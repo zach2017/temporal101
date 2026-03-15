@@ -1,773 +1,1406 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Temporal.io Developer Quiz</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DocPulse — Temporal Worker Tutorial & Certification</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
 <script>
 tailwind.config = {
-  darkMode: 'class',
   theme: {
     extend: {
-      fontFamily: { display: ['Outfit','sans-serif'], mono: ['IBM Plex Mono','monospace'] },
+      fontFamily: {
+        display: ['Fraunces','Georgia','serif'],
+        body:    ['Outfit','sans-serif'],
+        mono:    ['DM Mono','monospace'],
+      },
       colors: {
-        temporal: { 50:'#effcfc',100:'#d7f6f7',200:'#b3ecef',300:'#7edde3',400:'#42c5cf',500:'#27a9b5',600:'#238998',700:'#236f7c',800:'#245b66',900:'#224c56',950:'#11323a' }
-      }
-    }
-  }
-}
+        canvas: '#f7f4ef',
+        ink:    '#14120e',
+        warm:   '#e8e0d0',
+        amber:  '#d97706',
+        forest: '#166534',
+        coral:  '#dc2626',
+        sky:    '#0369a1',
+        slate2: '#334155',
+      },
+    },
+  },
+};
 </script>
-<style>
-  @keyframes slide-up { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes timer-glow { 0%,100% { box-shadow:0 0 8px rgba(239,68,68,0.3); } 50% { box-shadow:0 0 20px rgba(239,68,68,0.7); } }
-  @keyframes confetti-fall { 0% { transform:translateY(-10vh) rotate(0deg); opacity:1; } 100% { transform:translateY(100vh) rotate(720deg); opacity:0; } }
-  .anim-up { animation: slide-up 0.4s ease-out forwards; }
-  .timer-urgent { animation: timer-glow 0.5s ease-in-out infinite; }
-  .confetti-piece { position:fixed; top:0; pointer-events:none; z-index:100; animation:confetti-fall linear forwards; }
-  .opt-btn { transition: all 0.15s ease; }
-  .opt-btn:hover:not(:disabled) { transform: translateX(4px); }
-  .opt-btn:disabled { cursor: default; }
-  .opt-correct { background: linear-gradient(90deg, rgba(6,95,70,0.19), rgba(16,185,129,0.13)) !important; border-color: #10b981 !important; }
-  .opt-wrong  { background: linear-gradient(90deg, rgba(127,29,29,0.19), rgba(239,68,68,0.13)) !important; border-color: #ef4444 !important; }
-  .opt-missed { border-color: rgba(16,185,129,0.5) !important; opacity:0.6; }
-  .progress-fill { transition: width 0.4s ease; }
-  .timer-bar-fill { transition: width 0.1s linear; }
 
-  /* Light mode overrides */
-  html:not(.dark) .opt-correct { background: linear-gradient(90deg, rgba(6,95,70,0.08), rgba(16,185,129,0.08)) !important; }
-  html:not(.dark) .opt-wrong  { background: linear-gradient(90deg, rgba(127,29,29,0.08), rgba(239,68,68,0.08)) !important; }
+<style>
+  :root {
+    --canvas: #f7f4ef;
+    --ink: #14120e;
+    --warm: #e8e0d0;
+    --amber: #d97706;
+    --forest: #166534;
+    --coral: #dc2626;
+    --sky: #0369a1;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Outfit', sans-serif; background: var(--canvas); color: var(--ink); }
+
+  /* ── Typography ─────────────────────────────────────────── */
+  h1,h2,h3,h4 { font-family: 'Fraunces', Georgia, serif; }
+
+  /* ── Nav pill ───────────────────────────────────────────── */
+  .nav-pill {
+    transition: background .2s, color .2s;
+    border-radius: 999px;
+  }
+  .nav-pill.active { background: var(--ink); color: var(--canvas); }
+
+  /* ── Section fade-in ────────────────────────────────────── */
+  .section-page { display: none; }
+  .section-page.active { display: block; animation: fadeIn .35s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ── Code blocks ────────────────────────────────────────── */
+  .code-block {
+    font-family: 'DM Mono', monospace;
+    font-size: .78rem;
+    line-height: 1.7;
+    background: #1e1b16;
+    color: #e8d5b0;
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block .kw  { color: #f59e0b; }
+  .code-block .str { color: #86efac; }
+  .code-block .cmt { color: #78716c; font-style: italic; }
+  .code-block .ann { color: #93c5fd; }
+  .code-block .cls { color: #fde68a; }
+
+  /* ── Step cards ─────────────────────────────────────────── */
+  .step-card {
+    border-left: 3px solid var(--amber);
+    background: white;
+    border-radius: 0 10px 10px 0;
+    padding: 1rem 1.25rem;
+    margin-bottom: .75rem;
+    transition: box-shadow .2s;
+  }
+  .step-card:hover { box-shadow: 4px 4px 0 var(--amber); }
+
+  /* ── Diagram ─────────────────────────────────────────────── */
+  .diagram-box {
+    background: white;
+    border: 1.5px solid var(--warm);
+    border-radius: 10px;
+    padding: .6rem 1rem;
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: .78rem;
+  }
+  .diagram-arrow { color: var(--amber); font-size: 1.4rem; line-height: 1; text-align: center; }
+
+  /* ── Reference link ─────────────────────────────────────── */
+  .ref-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    color: var(--sky);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    font-size: .85rem;
+    transition: color .15s;
+  }
+  .ref-link:hover { color: var(--amber); }
+
+  /* ── Quiz ───────────────────────────────────────────────── */
+  .quiz-opt {
+    cursor: pointer;
+    border: 1.5px solid #d1cdc5;
+    border-radius: 8px;
+    padding: .7rem 1rem;
+    transition: border-color .15s, background .15s;
+    font-size: .9rem;
+  }
+  .quiz-opt:hover:not(.disabled) { border-color: var(--amber); background: #fefce8; }
+  .quiz-opt.selected  { border-color: var(--sky);    background: #eff6ff; }
+  .quiz-opt.correct   { border-color: var(--forest); background: #f0fdf4; }
+  .quiz-opt.wrong     { border-color: var(--coral);  background: #fef2f2; }
+  .quiz-opt.disabled  { cursor: not-allowed; }
+  .quiz-opt.reveal-correct { border-color: var(--forest); background: #f0fdf4; }
+
+  /* ── Timer ring ─────────────────────────────────────────── */
+  #timer-ring { transition: stroke-dashoffset .9s linear; }
+
+  /* ── Progress bar ───────────────────────────────────────── */
+  #quiz-progress-fill { transition: width .4s ease; background: var(--amber); }
+
+  /* ── Score badge ────────────────────────────────────────── */
+  .score-tick { animation: tickIn .3s ease; }
+  @keyframes tickIn { from { transform: scale(.5); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+  /* ── Certificate ────────────────────────────────────────── */
+  #cert-modal { display:none; }
+  #cert-modal.open { display:flex; }
 
   @media print {
-    body > *:not(#cert-screen) { display: none !important; }
-    #cert-screen { display: flex !important; }
-    .no-print { display: none !important; }
-    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    body > *:not(#cert-modal) { display: none !important; }
+    #cert-modal { display: flex !important; position: fixed; inset:0; background: white; z-index:9999; }
+    #cert-print-btn, #cert-close-btn { display: none !important; }
   }
+
+  .cert-border {
+    border: 6px double #d97706;
+    box-shadow: inset 0 0 0 2px #fef9c3, 0 0 0 10px white, 0 0 0 12px #d97706;
+  }
+
+  /* ── Tooltip ─────────────────────────────────────────────── */
+  .tooltip-wrap { position: relative; }
+  .tooltip-tip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--canvas);
+    font-size: .72rem;
+    padding: .3rem .6rem;
+    border-radius: 5px;
+    white-space: nowrap;
+    z-index: 10;
+  }
+  .tooltip-wrap:hover .tooltip-tip { display: block; }
 </style>
 </head>
 
-<body class="font-display min-h-screen transition-colors duration-300
-  dark:bg-gray-950 dark:text-gray-200
-  bg-gray-50 text-gray-800">
+<body class="min-h-screen">
 
-<!-- ══════════ THEME TOGGLE (always visible) ══════════ -->
-<button id="theme-toggle" onclick="toggleTheme()"
-  class="no-print fixed top-4 right-4 z-50 p-2.5 rounded-xl border transition-all
-  dark:bg-gray-900 dark:border-gray-700 dark:hover:border-temporal-600 dark:text-gray-400
-  bg-white border-gray-200 hover:border-temporal-500 text-gray-500 shadow-sm"
-  title="Toggle dark/light mode">
-  <svg id="icon-sun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-  <svg id="icon-moon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
-</button>
-
-<!-- ══════════ START SCREEN ══════════ -->
-<div id="start-screen" class="min-h-screen flex items-center justify-center p-6">
-  <div class="max-w-2xl w-full text-center anim-up">
-    <div class="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full border
-      dark:bg-temporal-950/60 dark:border-temporal-800/40
-      bg-temporal-50 border-temporal-200">
-      <div class="w-3 h-3 rounded-full bg-temporal-400 shadow-[0_0_12px_rgba(66,197,207,0.5)]"></div>
-      <span class="font-mono text-sm tracking-widest uppercase dark:text-temporal-300 text-temporal-700">Temporal.io</span>
-    </div>
-
-    <h1 class="text-5xl sm:text-6xl font-extrabold mb-4 leading-tight
-      dark:bg-gradient-to-r dark:from-white dark:via-temporal-200 dark:to-temporal-400 dark:bg-clip-text dark:text-transparent
-      text-gray-900">
-      Developer Quiz
-    </h1>
-    <p class="text-lg mb-10 max-w-lg mx-auto leading-relaxed dark:text-gray-400 text-gray-500">
-      25 questions covering Temporal basics, workflows, activities, workers,
-      Java &amp; Python SDKs, async patterns, and production best practices.
-    </p>
-
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 text-left">
-      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
-        <div class="text-2xl font-bold text-temporal-500 mb-1">30s</div>
-        <div class="text-sm dark:text-gray-400 text-gray-500">per question timer</div>
+<!-- ══ TOP NAV ═══════════════════════════════════════════════════════════════ -->
+<header class="sticky top-0 z-50 bg-canvas/95 backdrop-blur border-b border-warm">
+  <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4 flex-wrap">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded bg-amber flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
       </div>
-      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
-        <div class="text-2xl font-bold text-emerald-500 mb-1">10 / 5</div>
-        <div class="text-sm dark:text-gray-400 text-gray-500">pts fast / pts regular</div>
-      </div>
-      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
-        <div class="text-2xl font-bold text-amber-500 mb-1">75%</div>
-        <div class="text-sm dark:text-gray-400 text-gray-500">to earn certificate</div>
-      </div>
+      <span class="font-display font-600 text-lg">DocPulse <span class="text-amber">Temporal</span></span>
     </div>
+    <nav class="flex items-center gap-1 flex-wrap" id="main-nav">
+      <button onclick="showSection('overview')"   class="nav-pill active   px-4 py-1.5 text-sm font-500">Overview</button>
+      <button onclick="showSection('concepts')"   class="nav-pill          px-4 py-1.5 text-sm font-500">Concepts</button>
+      <button onclick="showSection('setup')"      class="nav-pill          px-4 py-1.5 text-sm font-500">Setup</button>
+      <button onclick="showSection('pipeline')"   class="nav-pill          px-4 py-1.5 text-sm font-500">Pipeline</button>
+      <button onclick="showSection('workers')"    class="nav-pill          px-4 py-1.5 text-sm font-500">Workers</button>
+      <button onclick="showSection('quiz')"       class="nav-pill          px-4 py-1.5 text-sm font-500 bg-amber text-white">🎓 Quiz</button>
+    </nav>
+  </div>
+</header>
 
-    <div class="mb-6">
-      <label class="block text-sm mb-2 dark:text-gray-500 text-gray-400">Your Name (for certificate)</label>
-      <input id="player-name" type="text" placeholder="Enter your name..."
-        class="w-full max-w-sm mx-auto block px-4 py-3 border rounded-lg text-center font-mono placeholder-gray-400 focus:outline-none focus:ring-1 transition-colors
-        dark:bg-gray-900 dark:border-gray-700 dark:text-temporal-300 dark:focus:border-temporal-500 dark:focus:ring-temporal-500/30
-        bg-white border-gray-300 text-temporal-700 focus:border-temporal-500 focus:ring-temporal-500/30">
-    </div>
-
-    <button onclick="startQuiz()"
-      class="px-10 py-4 bg-temporal-600 hover:bg-temporal-500 text-white font-bold text-lg rounded-xl transition-all hover:shadow-[0_0_30px_rgba(39,169,181,0.3)] hover:-translate-y-0.5 active:translate-y-0">
-      Start Quiz
+<!-- ══ HERO ══════════════════════════════════════════════════════════════════ -->
+<div id="hero-bar" class="bg-ink text-canvas px-6 py-10 text-center">
+  <p class="font-mono text-amber text-xs uppercase tracking-widest mb-2">Spring Boot 3.5 + Temporal SDK 1.25</p>
+  <h1 class="font-display text-4xl md:text-5xl font-700 mb-3 leading-tight">
+    Document Processing<br/>with <em class="not-italic text-amber">Temporal Workers</em>
+  </h1>
+  <p class="text-canvas/70 text-base max-w-xl mx-auto mb-5">
+    A complete guide to building durable, fault-tolerant document pipelines —
+    from local dev server to production-grade workflow orchestration.
+  </p>
+  <div class="flex items-center justify-center gap-3 flex-wrap">
+    <button onclick="showSection('setup')" class="bg-amber text-white px-5 py-2.5 rounded-full font-600 text-sm hover:bg-yellow-600 transition-colors">
+      Get Started →
+    </button>
+    <button onclick="showSection('quiz')" class="border border-canvas/30 text-canvas px-5 py-2.5 rounded-full font-600 text-sm hover:border-amber hover:text-amber transition-colors">
+      Take the Quiz 🎓
     </button>
   </div>
 </div>
 
-<!-- ══════════ QUIZ SCREEN ══════════ -->
-<div id="quiz-screen" class="hidden min-h-screen p-4 sm:p-6">
-  <div class="max-w-3xl mx-auto">
-    <!-- Top bar -->
-    <div class="flex items-center justify-between mb-6 gap-4">
+<!-- ══ CONTENT ════════════════════════════════════════════════════════════════ -->
+<div class="max-w-6xl mx-auto px-6 py-10">
+
+<!-- ════════════════════════════════════════════
+     SECTION: OVERVIEW
+════════════════════════════════════════════ -->
+<div id="section-overview" class="section-page active">
+  <h2 class="font-display text-3xl font-700 mb-2">What is DocPulse?</h2>
+  <p class="text-slate2 text-base mb-6 max-w-3xl">DocPulse is a Spring Boot 3.5 application that demonstrates two patterns for asynchronous document processing — a lightweight <strong>CompletableFuture</strong> approach and a durable <strong>Temporal Worker pipeline</strong>. This tutorial covers the Temporal path end-to-end.</p>
+
+  <!-- Architecture overview cards -->
+  <div class="grid md:grid-cols-2 gap-5 mb-10">
+    <div class="bg-white rounded-xl p-6 border border-warm">
+      <div class="text-2xl mb-2">⚡</div>
+      <h3 class="font-display font-600 text-lg mb-1">CompletableFuture Mode</h3>
+      <p class="text-sm text-slate2">Runs in-process on Spring's <code class="bg-warm px-1 rounded text-xs">@Async</code> thread pool. Simple, zero dependencies. If the server restarts mid-processing, the job is <strong>lost</strong>.</p>
+      <div class="mt-3 flex gap-2 flex-wrap">
+        <span class="text-xs bg-green-50 text-forest border border-green-200 px-2 py-0.5 rounded-full">Fast startup</span>
+        <span class="text-xs bg-red-50 text-coral border border-red-200 px-2 py-0.5 rounded-full">Not durable</span>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl p-6 border-2 border-amber">
+      <div class="text-2xl mb-2">🔄</div>
+      <h3 class="font-display font-600 text-lg mb-1">Temporal Worker Mode</h3>
+      <p class="text-sm text-slate2">Runs via the Temporal orchestration platform. Every step is persisted. Server restarts, crashes, and retries are handled automatically with full event history.</p>
+      <div class="mt-3 flex gap-2 flex-wrap">
+        <span class="text-xs bg-green-50 text-forest border border-green-200 px-2 py-0.5 rounded-full">Durable</span>
+        <span class="text-xs bg-green-50 text-forest border border-green-200 px-2 py-0.5 rounded-full">Auto-retry</span>
+        <span class="text-xs bg-blue-50 text-sky border border-blue-200 px-2 py-0.5 rounded-full">Observable</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- How they compare -->
+  <h3 class="font-display font-600 text-xl mb-4">Side-by-Side Comparison</h3>
+  <div class="overflow-x-auto mb-10">
+    <table class="w-full text-sm border-collapse">
+      <thead>
+        <tr class="bg-ink text-canvas">
+          <th class="text-left p-3 font-600">Feature</th>
+          <th class="text-center p-3 font-600">CompletableFuture</th>
+          <th class="text-center p-3 font-600">Temporal Worker</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-warm">
+        <tr class="bg-white"><td class="p-3">Durability on restart</td><td class="p-3 text-center text-coral">✗ Lost</td><td class="p-3 text-center text-forest">✓ Resumes</td></tr>
+        <tr class="bg-canvas"><td class="p-3">Auto-retry on failure</td><td class="p-3 text-center text-coral">Manual</td><td class="p-3 text-center text-forest">✓ Built-in</td></tr>
+        <tr class="bg-white"><td class="p-3">Live status query</td><td class="p-3 text-center text-slate2">Timer simulation</td><td class="p-3 text-center text-forest">✓ @QueryMethod</td></tr>
+        <tr class="bg-canvas"><td class="p-3">Cancellation</td><td class="p-3 text-center text-coral">Not supported</td><td class="p-3 text-center text-forest">✓ @SignalMethod</td></tr>
+        <tr class="bg-white"><td class="p-3">External dependencies</td><td class="p-3 text-center text-forest">None</td><td class="p-3 text-center text-sky">Temporal server</td></tr>
+        <tr class="bg-canvas"><td class="p-3">Production-ready</td><td class="p-3 text-center text-amber">Dev/small scale</td><td class="p-3 text-center text-forest">✓ Enterprise</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Reference links -->
+  <h3 class="font-display font-600 text-xl mb-4">📚 Official Documentation</h3>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <a href="https://docs.temporal.io/dev-guide/java" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> Temporal Java Dev Guide
+    </a>
+    <a href="https://docs.temporal.io/concepts/what-is-a-workflow" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> What is a Workflow?
+    </a>
+    <a href="https://docs.temporal.io/concepts/what-is-an-activity" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> What is an Activity?
+    </a>
+    <a href="https://docs.temporal.io/concepts/what-is-a-worker" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> What is a Worker?
+    </a>
+    <a href="https://docs.temporal.io/concepts/what-is-a-task-queue" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> Task Queues Explained
+    </a>
+    <a href="https://github.com/temporalio/sdk-java" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">⭐</span> temporal-sdk-java on GitHub
+    </a>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION: CONCEPTS
+════════════════════════════════════════════ -->
+<div id="section-concepts" class="section-page">
+  <h2 class="font-display text-3xl font-700 mb-2">Core Temporal Concepts</h2>
+  <p class="text-slate2 mb-8 max-w-3xl">Understanding these five primitives is all you need to build production Temporal applications.</p>
+
+  <!-- Concept cards -->
+  <div class="space-y-6 mb-10">
+
+    <div class="bg-white rounded-xl border border-warm p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-amber/10 border border-amber/30 flex items-center justify-center text-xl flex-shrink-0">🔁</div>
+        <div>
+          <h3 class="font-display font-600 text-lg mb-1">Workflow</h3>
+          <p class="text-sm text-slate2 mb-3">A <strong>Workflow</strong> is a durable, fault-tolerant orchestrator. It defines the sequence of Activities to execute and the logic between them. Temporal persists its complete event history so it can resume after any failure.<br/><br/>
+          <strong>Key rule:</strong> Workflow code must be <em>deterministic</em> — given the same event history it always produces the same execution path. Never call <code class="bg-warm px-1 rounded text-xs">System.currentTimeMillis()</code> or <code class="bg-warm px-1 rounded text-xs">Thread.sleep()</code> inside a Workflow.</p>
+          <a href="https://docs.temporal.io/concepts/what-is-a-workflow" target="_blank" class="ref-link">docs.temporal.io → Workflow concepts ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-warm p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-sky/10 border border-sky/30 flex items-center justify-center text-xl flex-shrink-0">⚙️</div>
+        <div>
+          <h3 class="font-display font-600 text-lg mb-1">Activity</h3>
+          <p class="text-sm text-slate2 mb-3">An <strong>Activity</strong> is the unit of work — I/O, HTTP calls, database writes, OCR, NLP inference. Activities ARE allowed to be non-deterministic. They run on a Worker's thread pool and report heartbeats so Temporal knows they are alive.<br/><br/>
+          Activities have their own retry policy (max attempts, backoff) configured via <code class="bg-warm px-1 rounded text-xs">ActivityOptions</code>.</p>
+          <a href="https://docs.temporal.io/concepts/what-is-an-activity" target="_blank" class="ref-link">docs.temporal.io → Activity concepts ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-warm p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-forest/10 border border-forest/30 flex items-center justify-center text-xl flex-shrink-0">👷</div>
+        <div>
+          <h3 class="font-display font-600 text-lg mb-1">Worker</h3>
+          <p class="text-sm text-slate2 mb-3">A <strong>Worker</strong> is a long-running process that polls a Task Queue for Workflow and Activity tasks, executes the matching implementation, and reports the result back to Temporal.<br/><br/>
+          In DocPulse, <code class="bg-warm px-1 rounded text-xs">DocumentWorkerRegistrar</code> creates a <code class="bg-warm px-1 rounded text-xs">WorkerFactory</code>, registers the three Activity impls and the WorkflowImpl, then starts polling <code class="bg-warm px-1 rounded text-xs">DOCUMENT_PROCESSING_TASK_QUEUE</code>.</p>
+          <a href="https://docs.temporal.io/concepts/what-is-a-worker" target="_blank" class="ref-link">docs.temporal.io → Worker concepts ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-warm p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-coral/10 border border-coral/30 flex items-center justify-center text-xl flex-shrink-0">📋</div>
+        <div>
+          <h3 class="font-display font-600 text-lg mb-1">Task Queue</h3>
+          <p class="text-sm text-slate2 mb-3">A <strong>Task Queue</strong> is a named channel between the Temporal server and your Workers. When a Workflow schedules an Activity, Temporal places a task on the queue. A Worker polling that queue picks it up and executes it.<br/><br/>
+          DocPulse uses one queue: <code class="bg-warm px-1 rounded text-xs">DOCUMENT_PROCESSING_TASK_QUEUE</code>. You can scale horizontally by running more Worker processes on the same queue.</p>
+          <a href="https://docs.temporal.io/concepts/what-is-a-task-queue" target="_blank" class="ref-link">docs.temporal.io → Task Queue concepts ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-warm p-6">
+      <div class="flex items-start gap-4">
+        <div class="w-10 h-10 rounded-lg bg-amber/10 border border-amber/30 flex items-center justify-center text-xl flex-shrink-0">📡</div>
+        <div>
+          <h3 class="font-display font-600 text-lg mb-1">Signals &amp; Queries</h3>
+          <p class="text-sm text-slate2 mb-3">
+            <strong>@QueryMethod</strong> — a read-only, strongly-consistent view into the Workflow's in-memory state. The DocPulse frontend calls <code class="bg-warm px-1 rounded text-xs">GET /api/worker/status/{id}</code> which triggers <code class="bg-warm px-1 rounded text-xs">getStatus()</code> — no database needed.<br/><br/>
+            <strong>@SignalMethod</strong> — an asynchronous message sent to a running Workflow. DocPulse uses <code class="bg-warm px-1 rounded text-xs">requestCancellation(reason)</code> to gracefully stop processing between Activity steps.
+          </p>
+          <a href="https://docs.temporal.io/concepts/what-is-a-signal" target="_blank" class="ref-link">docs.temporal.io → Signals ↗</a>
+          <a href="https://docs.temporal.io/concepts/what-is-a-query" target="_blank" class="ref-link ml-4">docs.temporal.io → Queries ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Determinism rules callout -->
+  <div class="bg-amber/10 border-l-4 border-amber rounded-r-xl p-5 mb-6">
+    <h4 class="font-display font-600 mb-2">⚠️ Determinism Rules — The Most Important Concept</h4>
+    <div class="grid sm:grid-cols-2 gap-4 text-sm">
+      <div>
+        <p class="font-600 text-coral mb-1">❌ Never in Workflow code:</p>
+        <ul class="space-y-1 text-slate2 font-mono text-xs">
+          <li>System.currentTimeMillis()</li>
+          <li>Thread.sleep()</li>
+          <li>new Random() / UUID.randomUUID()</li>
+          <li>Direct DB/HTTP/File I/O</li>
+          <li>System.getenv()</li>
+        </ul>
+      </div>
+      <div>
+        <p class="font-600 text-forest mb-1">✅ Always use instead:</p>
+        <ul class="space-y-1 text-slate2 font-mono text-xs">
+          <li>Workflow.currentTimeMillis()</li>
+          <li>Workflow.sleep(Duration)</li>
+          <li>Workflow.newRandom()</li>
+          <li>Put I/O inside Activities</li>
+          <li>Workflow.getInfo() for metadata</li>
+        </ul>
+      </div>
+    </div>
+    <a href="https://docs.temporal.io/workflows#deterministic-constraints" target="_blank" class="ref-link mt-3 inline-block">docs.temporal.io → Deterministic constraints ↗</a>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION: SETUP
+════════════════════════════════════════════ -->
+<div id="section-setup" class="section-page">
+  <h2 class="font-display text-3xl font-700 mb-2">Setup Guide</h2>
+  <p class="text-slate2 mb-8 max-w-3xl">Get DocPulse running with a real Temporal server in under 10 minutes.</p>
+
+  <div class="grid lg:grid-cols-3 gap-6 mb-10">
+
+    <!-- Step column 1 -->
+    <div>
+      <h3 class="font-display font-600 text-lg mb-4 flex items-center gap-2"><span class="w-7 h-7 bg-ink text-canvas rounded-full flex items-center justify-center text-sm">1</span>Install Temporal</h3>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">macOS (Homebrew)</p>
+        <div class="code-block">brew install temporal</div>
+      </div>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">Linux / Windows via Go</p>
+        <div class="code-block">go install \
+  go.temporal.io/server/cmd/\
+  temporal@latest</div>
+      </div>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">Docker</p>
+        <div class="code-block">docker run --rm \
+  -p 7233:7233 \
+  -p 8233:8233 \
+  temporalio/auto-setup:latest \
+  temporal server start-dev</div>
+      </div>
+      <a href="https://docs.temporal.io/cli#installation" target="_blank" class="ref-link mt-2 inline-block">docs → CLI Installation ↗</a>
+    </div>
+
+    <!-- Step column 2 -->
+    <div>
+      <h3 class="font-display font-600 text-lg mb-4 flex items-center gap-2"><span class="w-7 h-7 bg-ink text-canvas rounded-full flex items-center justify-center text-sm">2</span>Start the Dev Server</h3>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">Start (local, no persistence)</p>
+        <div class="code-block">temporal server start-dev</div>
+      </div>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">Verify — Web UI should open:</p>
+        <div class="code-block">http://localhost:8233</div>
+      </div>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">Verify — gRPC endpoint:</p>
+        <div class="code-block">temporal operator \
+  cluster health \
+  --address 127.0.0.1:7233</div>
+      </div>
+
+      <a href="https://docs.temporal.io/cli/server" target="_blank" class="ref-link mt-2 inline-block">docs → temporal server ↗</a>
+    </div>
+
+    <!-- Step column 3 -->
+    <div>
+      <h3 class="font-display font-600 text-lg mb-4 flex items-center gap-2"><span class="w-7 h-7 bg-ink text-canvas rounded-full flex items-center justify-center text-sm">3</span>Run DocPulse</h3>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">Build &amp; run</p>
+        <div class="code-block">cd docupload
+mvn spring-boot:run</div>
+      </div>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">Open the app</p>
+        <div class="code-block">http://localhost:8080</div>
+      </div>
+
+      <div class="step-card">
+        <p class="font-600 text-sm mb-1">Select Temporal Worker mode<br/>then upload any file</p>
+        <p class="text-xs text-slate2 mt-1">Watch the pipeline status update live via the @QueryMethod poll.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- application.properties -->
+  <h3 class="font-display font-600 text-xl mb-4">application.properties — Key Settings</h3>
+  <div class="code-block mb-2"><span class="cmt"># ── Temporal connection ──────────────────────────────────────</span>
+<span class="cmt"># LOCAL DEV:</span>
+spring.temporal.connection.target=<span class="str">127.0.0.1:7233</span>
+spring.temporal.namespace=<span class="str">default</span>
+
+<span class="cmt"># Enable @WorkflowImpl / @ActivityImpl auto-discovery</span>
+spring.temporal.workers-auto-discovery.packages=<span class="str">com.docupload.temporal</span>
+
+<span class="cmt"># TEMPORAL CLOUD (production):</span>
+<span class="cmt"># spring.temporal.connection.target=&lt;ns&gt;.tmprl.cloud:7233</span>
+<span class="cmt"># spring.temporal.namespace=&lt;your-namespace&gt;</span>
+<span class="cmt"># spring.temporal.connection.mtls.key-file=/path/client.key</span>
+<span class="cmt"># spring.temporal.connection.mtls.cert-chain-file=/path/client.crt</span></div>
+  <a href="https://docs.temporal.io/cloud/get-started" target="_blank" class="ref-link mb-8 inline-block">docs → Temporal Cloud setup ↗</a>
+
+  <!-- pom.xml -->
+  <h3 class="font-display font-600 text-xl mb-4 mt-8">pom.xml — Required Dependencies</h3>
+  <div class="code-block"><span class="cmt">&lt;!-- Temporal Java SDK --&gt;</span>
+<span class="kw">&lt;dependency&gt;</span>
+  <span class="kw">&lt;groupId&gt;</span>io.temporal<span class="kw">&lt;/groupId&gt;</span>
+  <span class="kw">&lt;artifactId&gt;</span>temporal-sdk<span class="kw">&lt;/artifactId&gt;</span>
+  <span class="kw">&lt;version&gt;</span><span class="str">1.25.0</span><span class="kw">&lt;/version&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span>
+
+<span class="cmt">&lt;!-- Spring Boot autoconfigure — wires WorkflowClient bean --&gt;</span>
+<span class="kw">&lt;dependency&gt;</span>
+  <span class="kw">&lt;groupId&gt;</span>io.temporal<span class="kw">&lt;/groupId&gt;</span>
+  <span class="kw">&lt;artifactId&gt;</span>temporal-spring-boot-autoconfigure<span class="kw">&lt;/artifactId&gt;</span>
+  <span class="kw">&lt;version&gt;</span><span class="str">1.25.0</span><span class="kw">&lt;/version&gt;</span>
+<span class="kw">&lt;/dependency&gt;</span></div>
+  <a href="https://search.maven.org/artifact/io.temporal/temporal-sdk" target="_blank" class="ref-link mt-2 inline-block">Maven Central → temporal-sdk ↗</a>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION: PIPELINE
+════════════════════════════════════════════ -->
+<div id="section-pipeline" class="section-page">
+  <h2 class="font-display text-3xl font-700 mb-2">The Document Pipeline</h2>
+  <p class="text-slate2 mb-8 max-w-3xl">Three Activities wired into a single durable Workflow. Each stage runs on a Worker thread, reports heartbeats, and can be independently retried.</p>
+
+  <!-- Flow diagram -->
+  <div class="bg-white rounded-xl border border-warm p-6 mb-8">
+    <p class="font-mono text-xs text-slate2 mb-4 uppercase tracking-widest">End-to-End Flow</p>
+    <div class="flex flex-col items-center gap-1">
+      <div class="diagram-box w-full max-w-sm">Browser POST /api/worker/upload</div>
+      <div class="diagram-arrow">↓</div>
+      <div class="diagram-box w-full max-w-sm bg-amber/5 border-amber/30">UploadWorkerController<br/><span class="text-xs text-slate2">stages file → builds WorkflowRequest → starts Workflow</span></div>
+      <div class="diagram-arrow">↓ 202 Accepted (workflowId)</div>
+      <div class="diagram-box w-full max-w-sm">Browser polls GET /api/worker/status/{id} every 2 s</div>
+      <div class="diagram-arrow">↓ @QueryMethod</div>
+
+      <div class="flex gap-3 w-full max-w-2xl">
+        <div class="flex-1 flex flex-col items-center gap-1">
+          <div class="diagram-box w-full bg-sky/5 border-sky/30">
+            <span class="font-600">Stage 1</span><br/>SecurityScanActivity<br/><span class="text-xs text-slate2">~2 s · heartbeats · 3 retries</span>
+          </div>
+          <div class="diagram-arrow">↓ ScanResult</div>
+          <div class="diagram-box w-full bg-sky/5 border-sky/30">
+            <span class="font-600">Stage 2</span><br/>TextExtractionActivity<br/><span class="text-xs text-slate2">~3 s · heartbeats · 3 retries</span>
+          </div>
+          <div class="diagram-arrow">↓ ExtractionResult</div>
+          <div class="diagram-box w-full bg-sky/5 border-sky/30">
+            <span class="font-600">Stage 3</span><br/>NlpAnalysisActivity<br/><span class="text-xs text-slate2">~1.5 s · heartbeats · 3 retries</span>
+          </div>
+        </div>
+        <div class="flex flex-col items-center justify-center text-xs text-slate2 font-mono gap-1" style="min-width:90px">
+          <div class="bg-forest/10 border border-forest/20 rounded p-2 text-center">
+            All inside<br/><strong>DocumentProcessing<br/>WorkflowImpl</strong>
+          </div>
+          <div class="bg-amber/10 border border-amber/20 rounded p-2 text-center mt-2">
+            Status updated<br/>before each stage<br/><em>@QueryMethod</em>
+          </div>
+        </div>
+      </div>
+      <div class="diagram-arrow">↓ DocumentWorkflowResult</div>
+      <div class="diagram-box w-full max-w-sm bg-forest/5 border-forest/30">Browser fetches GET /api/worker/result/{id}<br/><span class="text-xs text-slate2">Displays extracted text + NLP analysis</span></div>
+    </div>
+  </div>
+
+  <!-- Activity Options code -->
+  <h3 class="font-display font-600 text-xl mb-4">Activity Options &amp; Retry Policy</h3>
+  <div class="code-block mb-2"><span class="ann">private final</span> <span class="cls">SecurityScanActivity</span> scanActivity =
+    <span class="cls">Workflow</span>.newActivityStub(
+        <span class="cls">SecurityScanActivity</span>.class,
+        <span class="cls">ActivityOptions</span>.newBuilder()
+            <span class="cmt">// Total wall-clock budget including all retries</span>
+            .setScheduleToCloseTimeout(<span class="cls">Duration</span>.ofMinutes(<span class="str">3</span>))
+            <span class="cmt">// Max time for a single attempt</span>
+            .setStartToCloseTimeout(<span class="cls">Duration</span>.ofMinutes(<span class="str">2</span>))
+            <span class="cmt">// If no heartbeat in 10 s → attempt is considered failed</span>
+            .setHeartbeatTimeout(<span class="cls">Duration</span>.ofSeconds(<span class="str">10</span>))
+            .setRetryOptions(<span class="cls">RetryOptions</span>.newBuilder()
+                .setMaximumAttempts(<span class="str">3</span>)
+                .setInitialInterval(<span class="cls">Duration</span>.ofSeconds(<span class="str">1</span>))
+                .setBackoffCoefficient(<span class="str">2.0</span>)
+                .build())
+            .build()
+    );</div>
+  <a href="https://docs.temporal.io/java/activity-options" target="_blank" class="ref-link mb-8 inline-block">docs → ActivityOptions reference ↗</a>
+
+  <!-- Heartbeat code -->
+  <h3 class="font-display font-600 text-xl mb-4 mt-6">Heartbeats in Activities</h3>
+  <p class="text-sm text-slate2 mb-3">Any activity longer than <code class="bg-warm px-1 rounded text-xs">heartbeatTimeout</code> must call <code class="bg-warm px-1 rounded text-xs">ctx.heartbeat()</code> regularly. DocPulse does this every 200 ms inside a helper:</p>
+  <div class="code-block mb-2"><span class="kw">private static void</span> simulateWork(
+        <span class="cls">ActivityExecutionContext</span> ctx, <span class="kw">long</span> millis, <span class="cls">String</span> detail) {
+    <span class="kw">long</span> remaining = millis;
+    <span class="kw">while</span> (remaining &gt; <span class="str">0</span>) {
+        <span class="kw">long</span> chunk = <span class="cls">Math</span>.min(<span class="str">200</span>, remaining);
+        <span class="kw">try</span> { <span class="cls">Thread</span>.sleep(chunk); }
+        <span class="kw">catch</span> (<span class="cls">InterruptedException</span> e) {
+            <span class="cls">Thread</span>.currentThread().interrupt(); <span class="kw">return</span>;
+        }
+        ctx.heartbeat(detail);   <span class="cmt">// ← tells Temporal we're alive</span>
+        remaining -= chunk;
+    }
+}</div>
+  <a href="https://docs.temporal.io/activities#activity-heartbeats" target="_blank" class="ref-link inline-block">docs → Activity Heartbeats ↗</a>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION: WORKERS
+════════════════════════════════════════════ -->
+<div id="section-workers" class="section-page">
+  <h2 class="font-display text-3xl font-700 mb-2">Workers Deep-Dive</h2>
+  <p class="text-slate2 mb-8 max-w-3xl">How DocPulse's workers are annotated, registered, and started — and how to add new ones.</p>
+
+  <!-- Two-column: annotation vs registrar -->
+  <div class="grid lg:grid-cols-2 gap-6 mb-8">
+    <div>
+      <h3 class="font-display font-600 text-lg mb-3">Auto-Discovery Annotations</h3>
+      <p class="text-sm text-slate2 mb-3">The <code class="bg-warm px-1 rounded text-xs">temporal-spring-boot-autoconfigure</code> starter scans the package defined in <code class="bg-warm px-1 rounded text-xs">workers-auto-discovery.packages</code> for these annotations:</p>
+      <div class="code-block mb-3"><span class="cmt">// Workflow implementation</span>
+<span class="ann">@WorkflowImpl</span>(taskQueues = <span class="str">"DOCUMENT_PROCESSING_TASK_QUEUE"</span>)
+<span class="kw">public class</span> <span class="cls">DocumentProcessingWorkflowImpl</span>
+    <span class="kw">implements</span> <span class="cls">DocumentProcessingWorkflow</span> { … }
+
+<span class="cmt">// Activity implementation (one per stage)</span>
+<span class="ann">@Component</span>
+<span class="ann">@ActivityImpl</span>(taskQueues = <span class="str">"DOCUMENT_PROCESSING_TASK_QUEUE"</span>)
+<span class="kw">public class</span> <span class="cls">SecurityScanActivityImpl</span>
+    <span class="kw">implements</span> <span class="cls">SecurityScanActivity</span> { … }</div>
+      <a href="https://docs.temporal.io/develop/java/core-application" target="_blank" class="ref-link">docs → Core Application (Java) ↗</a>
+    </div>
+
+    <div>
+      <h3 class="font-display font-600 text-lg mb-3">Explicit Worker Registration</h3>
+      <p class="text-sm text-slate2 mb-3"><code class="bg-warm px-1 rounded text-xs">DocumentWorkerRegistrar</code> also does manual registration as a fallback (and shows the pattern for more complex setups):</p>
+      <div class="code-block"><span class="cls">WorkerFactory</span> factory =
+    <span class="cls">WorkerFactory</span>.newInstance(workflowClient);
+
+<span class="cls">Worker</span> worker = factory.newWorker(
+    <span class="cls">DocumentWorker</span>.TASK_QUEUE,
+    <span class="cls">WorkerOptions</span>.newBuilder()
+        .setMaxConcurrentWorkflowTaskExecutionSize(<span class="str">10</span>)
+        .setMaxConcurrentActivityExecutionSize(<span class="str">20</span>)
+        .build());
+
+worker.registerWorkflowImplementationTypes(
+    <span class="cls">DocumentProcessingWorkflowImpl</span>.class);
+
+worker.registerActivitiesImplementations(
+    scanActivity, extractActivity, nlpActivity);
+
+factory.start();</div>
+    </div>
+  </div>
+
+  <!-- How to add a new worker -->
+  <h3 class="font-display font-600 text-xl mb-4">How to Add a New Activity or Worker</h3>
+  <div class="space-y-3 mb-8">
+    <div class="step-card">
+      <p class="font-600 text-sm">Step 1 — Define the Activity interface</p>
+      <p class="text-xs text-slate2 mt-1">Create a new interface annotated with <code class="bg-warm px-1 rounded text-xs">@ActivityInterface</code>. Define methods annotated with <code class="bg-warm px-1 rounded text-xs">@ActivityMethod</code>. Add a nested result POJO.</p>
+    </div>
+    <div class="step-card">
+      <p class="font-600 text-sm">Step 2 — Implement it</p>
+      <p class="text-xs text-slate2 mt-1">Annotate the impl class with <code class="bg-warm px-1 rounded text-xs">@Component</code> and <code class="bg-warm px-1 rounded text-xs">@ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")</code>. Add <code class="bg-warm px-1 rounded text-xs">ctx.heartbeat()</code> calls for long steps.</p>
+    </div>
+    <div class="step-card">
+      <p class="font-600 text-sm">Step 3 — Add a stub in the Workflow</p>
+      <p class="text-xs text-slate2 mt-1">In <code class="bg-warm px-1 rounded text-xs">DocumentProcessingWorkflowImpl</code>, create a new <code class="bg-warm px-1 rounded text-xs">Workflow.newActivityStub()</code> field with <code class="bg-warm px-1 rounded text-xs">ActivityOptions</code>.</p>
+    </div>
+    <div class="step-card">
+      <p class="font-600 text-sm">Step 4 — Call it in processDocument()</p>
+      <p class="text-xs text-slate2 mt-1">Add the call to your stub after the existing stages. Update <code class="bg-warm px-1 rounded text-xs">updateStatus()</code> with the new <code class="bg-warm px-1 rounded text-xs">PipelineStage</code> value before calling it.</p>
+    </div>
+    <div class="step-card">
+      <p class="font-600 text-sm">Step 5 — Register in WorkerRegistrar (if not using auto-discovery)</p>
+      <p class="text-xs text-slate2 mt-1">Inject the new Activity impl bean and add it to <code class="bg-warm px-1 rounded text-xs">worker.registerActivitiesImplementations(...)</code>.</p>
+    </div>
+    <div class="step-card">
+      <p class="font-600 text-sm">Step 6 — Restart and verify in the Temporal Web UI</p>
+      <p class="text-xs text-slate2 mt-1">Open <code class="bg-warm px-1 rounded text-xs">http://localhost:8233</code>, find your workflow run, and inspect the event history to confirm the new Activity task appears.</p>
+    </div>
+  </div>
+
+  <!-- Scaling callout -->
+  <div class="bg-forest/10 border-l-4 border-forest rounded-r-xl p-5 mb-6">
+    <h4 class="font-display font-600 mb-2">🚀 Scaling Workers</h4>
+    <p class="text-sm text-slate2">To scale horizontally, simply run more instances of the Spring Boot app. Each instance starts its own Worker polling the same task queue. Temporal distributes tasks round-robin across all available Workers automatically. No leader election or coordination code required.</p>
+    <a href="https://docs.temporal.io/workers#scaling-workers" target="_blank" class="ref-link mt-2 inline-block">docs → Scaling Workers ↗</a>
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-4">
+    <a href="https://docs.temporal.io/develop/java/temporal-clients" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Java WorkflowClient reference ↗</a>
+    <a href="https://docs.temporal.io/develop/java/failure-detection" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Failure Detection & Timeouts ↗</a>
+    <a href="https://docs.temporal.io/develop/java/observability" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Observability & Logging ↗</a>
+    <a href="https://docs.temporal.io/develop/java/testing" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Testing Workflows & Activities ↗</a>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     SECTION: QUIZ
+════════════════════════════════════════════ -->
+<div id="section-quiz" class="section-page">
+
+  <!-- Quiz intro screen -->
+  <div id="quiz-intro">
+    <h2 class="font-display text-3xl font-700 mb-2">🎓 Temporal Certification Quiz</h2>
+    <p class="text-slate2 mb-6 max-w-2xl">25 questions covering Temporal concepts, worker configuration, activity options, and DocPulse architecture. Score 75% or higher to earn your certificate.</p>
+
+    <div class="grid sm:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white rounded-xl border border-warm p-5 text-center">
+        <div class="text-3xl font-display font-700 text-amber">25</div>
+        <div class="text-sm text-slate2 mt-1">Questions (randomised)</div>
+      </div>
+      <div class="bg-white rounded-xl border border-warm p-5 text-center">
+        <div class="text-3xl font-display font-700 text-amber">30s</div>
+        <div class="text-sm text-slate2 mt-1">Per question</div>
+      </div>
+      <div class="bg-white rounded-xl border border-warm p-5 text-center">
+        <div class="text-3xl font-display font-700 text-amber">10 pts</div>
+        <div class="text-sm text-slate2 mt-1">Max per question<br/><span class="text-xs">(drops to 0 after 30s)</span></div>
+      </div>
+    </div>
+
+    <!-- Scoring explanation -->
+    <div class="bg-amber/10 border border-amber/30 rounded-xl p-5 mb-6 max-w-lg">
+      <h4 class="font-600 mb-2">⏱ Scoring Rules</h4>
+      <ul class="text-sm text-slate2 space-y-1">
+        <li>• Answer in <strong>0–15 s</strong>: full <strong>10 points</strong></li>
+        <li>• Answer in <strong>15–30 s</strong>: points reduce linearly to 0</li>
+        <li>• Time runs out (30 s): <strong>0 points</strong>, wrong answer logged</li>
+        <li>• Passing score: <strong>75%</strong> (188 / 250 points)</li>
+      </ul>
+    </div>
+
+    <!-- Previous scores -->
+    <div id="prev-scores-block" class="mb-6 hidden">
+      <h4 class="font-600 mb-2">📊 Your Previous Attempts</h4>
+      <div id="prev-scores-list" class="flex flex-wrap gap-2"></div>
+    </div>
+
+    <button onclick="startQuiz()" class="bg-amber text-white px-8 py-3 rounded-full font-600 text-base hover:bg-yellow-600 transition-colors">
+      Start Quiz →
+    </button>
+  </div>
+
+  <!-- Quiz active screen -->
+  <div id="quiz-active" class="hidden">
+    <!-- Header bar -->
+    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div class="flex items-center gap-3">
-        <div class="w-2.5 h-2.5 rounded-full bg-temporal-400 shadow-[0_0_8px_rgba(66,197,207,0.4)]"></div>
-        <span class="font-mono text-xs tracking-wider uppercase dark:text-temporal-400/70 text-temporal-600/70">Temporal Quiz</span>
+        <span id="q-counter" class="font-mono text-sm text-slate2">Q 1 / 25</span>
+        <div class="w-48 h-2 bg-warm rounded-full overflow-hidden">
+          <div id="quiz-progress-fill" class="h-full w-0 rounded-full"></div>
+        </div>
       </div>
-      <div class="flex items-center gap-4 font-mono text-sm">
-        <span class="dark:text-gray-500 text-gray-400">Score:</span>
-        <span id="score-display" class="font-bold text-lg dark:text-temporal-300 text-temporal-600">0</span>
-      </div>
-    </div>
-
-    <!-- Progress -->
-    <div class="mb-8">
-      <div class="flex items-center justify-between mb-2">
-        <span id="q-counter" class="font-mono text-xs dark:text-gray-500 text-gray-400"></span>
-        <span id="q-category" class="font-mono text-[11px] px-2.5 py-1 rounded-full border
-          dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700/50
-          bg-gray-100 text-gray-500 border-gray-200"></span>
-      </div>
-      <div class="w-full h-1.5 rounded-full overflow-hidden dark:bg-gray-800 bg-gray-200">
-        <div id="progress-bar" class="progress-fill h-full bg-gradient-to-r from-temporal-600 to-temporal-400 rounded-full" style="width:0%"></div>
-      </div>
-    </div>
-
-    <!-- Timer -->
-    <div id="timer-wrap" class="mb-6">
-      <div class="flex items-center justify-between mb-1.5">
-        <span class="font-mono text-xs dark:text-gray-600 text-gray-400">TIME</span>
-        <span id="timer-text" class="font-mono text-sm font-bold dark:text-gray-300 text-gray-600">30s</span>
-      </div>
-      <div class="w-full h-2 rounded-full overflow-hidden dark:bg-gray-800 bg-gray-200">
-        <div id="timer-bar" class="timer-bar-fill h-full bg-gradient-to-r from-emerald-500 to-temporal-400 rounded-full" style="width:100%"></div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <svg width="44" height="44" viewBox="0 0 44 44">
+            <circle cx="22" cy="22" r="18" fill="none" stroke="#e8e0d0" stroke-width="4"/>
+            <circle id="timer-ring" cx="22" cy="22" r="18" fill="none"
+              stroke="#d97706" stroke-width="4"
+              stroke-dasharray="113.1" stroke-dashoffset="0"
+              stroke-linecap="round"
+              transform="rotate(-90 22 22)"/>
+          </svg>
+          <span id="timer-display" class="font-mono font-700 text-xl">30</span>
+        </div>
+        <div class="text-right">
+          <div class="font-mono text-xs text-slate2">Score</div>
+          <div id="live-score" class="font-display font-700 text-xl text-amber">0</div>
+        </div>
       </div>
     </div>
 
     <!-- Question card -->
-    <div id="question-card" class="rounded-2xl p-6 sm:p-8 mb-4 anim-up border
-      dark:bg-gray-900/80 dark:border-gray-800
-      bg-white border-gray-200 shadow-sm">
-      <div id="q-difficulty" class="inline-block font-mono text-[11px] px-2.5 py-1 rounded-full mb-4 border"></div>
-      <h2 id="q-text" class="text-xl sm:text-2xl font-bold leading-snug mb-2 dark:text-white text-gray-900"></h2>
-      <pre id="q-code" class="hidden rounded-lg p-4 mb-6 font-mono text-sm overflow-x-auto whitespace-pre-wrap border
-        dark:bg-gray-950 dark:border-gray-800 dark:text-temporal-300
-        bg-gray-50 border-gray-200 text-temporal-700"></pre>
-      <div id="q-options" class="space-y-3 mt-6"></div>
-      <div id="q-explanation" class="hidden mt-6 p-4 rounded-xl border
-        dark:bg-gray-950/60 dark:border-gray-700/50
-        bg-gray-50 border-gray-200">
-        <div class="text-xs font-mono uppercase tracking-wider mb-2 dark:text-gray-500 text-gray-400">Explanation</div>
-        <p id="q-explanation-text" class="text-sm leading-relaxed dark:text-gray-300 text-gray-600"></p>
+    <div class="bg-white rounded-xl border border-warm p-6 mb-4">
+      <p id="q-category" class="font-mono text-xs text-amber uppercase tracking-widest mb-2"></p>
+      <h3 id="q-text" class="font-display text-xl font-600 mb-6 leading-snug"></h3>
+      <div id="q-options" class="space-y-3"></div>
+    </div>
+
+    <!-- Feedback -->
+    <div id="q-feedback" class="hidden rounded-xl p-4 mb-4 text-sm font-500"></div>
+
+    <!-- Next -->
+    <button id="next-btn" onclick="nextQuestion()" class="hidden bg-ink text-canvas px-6 py-2.5 rounded-full font-600 text-sm hover:bg-slate2 transition-colors">
+      Next Question →
+    </button>
+  </div>
+
+  <!-- Quiz results screen -->
+  <div id="quiz-results" class="hidden">
+    <div class="text-center mb-8">
+      <div id="results-emoji" class="text-6xl mb-3"></div>
+      <h2 class="font-display text-3xl font-700 mb-2" id="results-title"></h2>
+      <p class="text-slate2 text-base mb-4" id="results-subtitle"></p>
+      <div class="inline-flex items-center gap-6 bg-white rounded-2xl border border-warm px-8 py-5">
+        <div class="text-center">
+          <div id="final-score" class="font-display text-4xl font-700 text-amber"></div>
+          <div class="text-xs text-slate2 mt-1">Points</div>
+        </div>
+        <div class="w-px h-12 bg-warm"></div>
+        <div class="text-center">
+          <div id="final-pct" class="font-display text-4xl font-700"></div>
+          <div class="text-xs text-slate2 mt-1">Score</div>
+        </div>
+        <div class="w-px h-12 bg-warm"></div>
+        <div class="text-center">
+          <div id="final-correct" class="font-display text-4xl font-700 text-forest"></div>
+          <div class="text-xs text-slate2 mt-1">Correct</div>
+        </div>
       </div>
     </div>
 
-    <!-- Help / Next -->
-    <div class="flex items-center justify-between gap-3">
-      <button id="help-btn" onclick="toggleHelp()"
-        class="flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-mono transition-all
-        dark:bg-gray-800/60 dark:hover:bg-gray-800 dark:border-gray-700/50 dark:text-gray-400 dark:hover:text-temporal-300
-        bg-white hover:bg-gray-50 border-gray-200 text-gray-500 hover:text-temporal-600">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        Help &amp; Docs
+    <div class="flex gap-3 justify-center flex-wrap mb-10">
+      <button id="cert-btn" onclick="openCert()" class="hidden bg-amber text-white px-6 py-2.5 rounded-full font-600 text-sm hover:bg-yellow-600 transition-colors">
+        🏆 View Certificate
       </button>
-      <button id="next-btn" onclick="nextQuestion()"
-        class="hidden px-6 py-2.5 bg-temporal-600 hover:bg-temporal-500 text-white font-semibold rounded-lg transition-all hover:shadow-[0_0_20px_rgba(39,169,181,0.2)]">
-        Next Question →
+      <button onclick="retakeQuiz()" class="bg-ink text-canvas px-6 py-2.5 rounded-full font-600 text-sm hover:bg-slate2 transition-colors">
+        Retake Quiz
+      </button>
+      <button onclick="showSection('overview')" class="border border-warm px-6 py-2.5 rounded-full font-600 text-sm hover:border-amber transition-colors">
+        Back to Tutorial
       </button>
     </div>
 
-    <!-- Help panel -->
-    <div id="help-panel" class="hidden mt-4 p-5 rounded-xl anim-up border
-      dark:bg-gray-900/80 dark:border-temporal-800/30
-      bg-white border-temporal-200">
-      <div class="text-xs font-mono uppercase tracking-wider mb-3 dark:text-temporal-500 text-temporal-600">Hint &amp; Documentation</div>
-      <p id="help-hint" class="text-sm mb-4 leading-relaxed dark:text-gray-300 text-gray-600"></p>
-      <a id="help-link" href="#" target="_blank"
-        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors border
-        dark:bg-temporal-950/60 dark:hover:bg-temporal-900/60 dark:border-temporal-700/30 dark:text-temporal-300
-        bg-temporal-50 hover:bg-temporal-100 border-temporal-200 text-temporal-700">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-        <span id="help-link-text">Temporal Docs</span>
-      </a>
+    <!-- Answer review -->
+    <h3 class="font-display font-600 text-xl mb-4">📋 Question Review</h3>
+    <div id="review-list" class="space-y-3"></div>
+  </div>
+
+</div><!-- /section-quiz -->
+
+</div><!-- /max-w-6xl -->
+
+<!-- ══ FOOTER ════════════════════════════════════════════════════════════════ -->
+<footer class="border-t border-warm mt-16 py-8 text-center text-sm text-slate2">
+  <p>DocPulse Tutorial — Spring Boot 3.5 + Temporal SDK 1.25</p>
+  <div class="flex justify-center gap-4 mt-2 flex-wrap">
+    <a href="https://docs.temporal.io" target="_blank" class="ref-link">docs.temporal.io ↗</a>
+    <a href="https://github.com/temporalio/sdk-java" target="_blank" class="ref-link">temporal-sdk-java ↗</a>
+    <a href="http://localhost:8080" class="ref-link">← Back to DocPulse App</a>
+  </div>
+</footer>
+
+<!-- ══ CERTIFICATE MODAL ══════════════════════════════════════════════════════ -->
+<div id="cert-modal" class="fixed inset-0 bg-black/60 items-center justify-center z-50 p-6">
+  <div class="bg-white rounded-2xl max-w-2xl w-full cert-border relative">
+    <div class="p-10 text-center">
+      <div class="text-5xl mb-3">🏆</div>
+      <p class="font-mono text-xs text-amber uppercase tracking-widest mb-2">Certificate of Achievement</p>
+      <h2 class="font-display text-3xl font-700 mb-1">Temporal Worker</h2>
+      <h2 class="font-display text-3xl font-700 text-amber mb-4">Certification</h2>
+      <p class="text-slate2 text-sm mb-6">This certifies that</p>
+      <p id="cert-name" class="font-display text-2xl font-700 border-b-2 border-ink pb-1 mb-6 inline-block px-8"></p>
+      <p class="text-slate2 text-sm mb-2">has successfully completed the</p>
+      <p class="font-600 mb-4">DocPulse Temporal Worker Tutorial &amp; Quiz</p>
+      <div class="flex justify-center gap-8 mb-6 text-sm">
+        <div class="text-center">
+          <div id="cert-score" class="font-display text-2xl font-700 text-amber"></div>
+          <div class="text-xs text-slate2">Points</div>
+        </div>
+        <div class="text-center">
+          <div id="cert-pct" class="font-display text-2xl font-700 text-forest"></div>
+          <div class="text-xs text-slate2">Score</div>
+        </div>
+        <div class="text-center">
+          <div id="cert-date" class="font-display text-2xl font-700"></div>
+          <div class="text-xs text-slate2">Date</div>
+        </div>
+      </div>
+      <div class="flex items-center justify-center gap-2 mb-6">
+        <div class="h-px flex-1 bg-warm"></div>
+        <span class="font-mono text-xs text-slate2">Spring Boot 3.5 · Temporal SDK 1.25 · DOCUMENT_PROCESSING_TASK_QUEUE</span>
+        <div class="h-px flex-1 bg-warm"></div>
+      </div>
+      <div class="flex gap-3 justify-center">
+        <button id="cert-print-btn" onclick="window.print()" class="bg-amber text-white px-5 py-2 rounded-full font-600 text-sm hover:bg-yellow-600 transition-colors">🖨 Print Certificate</button>
+        <button id="cert-close-btn" onclick="closeCert()" class="border border-warm px-5 py-2 rounded-full font-600 text-sm hover:border-amber transition-colors">Close</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════ RESULTS SCREEN ══════════ -->
-<div id="results-screen" class="hidden min-h-screen flex items-center justify-center p-6">
-  <div class="max-w-2xl w-full text-center anim-up">
-    <div id="results-icon" class="text-7xl mb-6"></div>
-    <h2 id="results-title" class="text-4xl font-extrabold mb-3"></h2>
-    <p id="results-subtitle" class="text-lg mb-8 dark:text-gray-400 text-gray-500"></p>
-
-    <div class="grid grid-cols-3 gap-4 mb-8">
-      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
-        <div id="r-score" class="text-3xl font-bold text-temporal-500 mb-1"></div>
-        <div class="text-xs font-mono dark:text-gray-500 text-gray-400">POINTS</div>
-      </div>
-      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
-        <div id="r-correct" class="text-3xl font-bold text-emerald-500 mb-1"></div>
-        <div class="text-xs font-mono dark:text-gray-500 text-gray-400">CORRECT</div>
-      </div>
-      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
-        <div id="r-pct" class="text-3xl font-bold text-amber-500 mb-1"></div>
-        <div class="text-xs font-mono dark:text-gray-500 text-gray-400">ACCURACY</div>
-      </div>
-    </div>
-
-    <div class="rounded-xl p-5 mb-8 text-left border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
-      <div class="text-xs font-mono uppercase tracking-wider mb-3 dark:text-gray-500 text-gray-400">Breakdown</div>
-      <div class="grid grid-cols-2 gap-3 text-sm font-mono">
-        <div class="flex justify-between"><span class="dark:text-gray-500 text-gray-400">Fast (10pts)</span><span id="r-fast" class="text-emerald-500"></span></div>
-        <div class="flex justify-between"><span class="dark:text-gray-500 text-gray-400">Regular (5pts)</span><span id="r-regular" class="text-temporal-500"></span></div>
-        <div class="flex justify-between"><span class="dark:text-gray-500 text-gray-400">Wrong / Timeout</span><span id="r-wrong" class="text-red-500"></span></div>
-        <div class="flex justify-between"><span class="dark:text-gray-500 text-gray-400">Max possible</span><span class="dark:text-gray-400 text-gray-500">250</span></div>
-      </div>
-    </div>
-
-    <div class="flex flex-wrap justify-center gap-4">
-      <button onclick="restartQuiz()"
-        class="px-8 py-3 border font-semibold rounded-xl transition-all
-        dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-white
-        bg-white hover:bg-gray-50 border-gray-200 text-gray-700">Try Again</button>
-      <button id="cert-btn" onclick="showCertificate()"
-        class="hidden px-8 py-3 bg-temporal-600 hover:bg-temporal-500 text-white font-bold rounded-xl transition-all hover:shadow-[0_0_20px_rgba(39,169,181,0.3)]">
-        View Certificate
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ CERTIFICATE SCREEN ══════════ -->
-<div id="cert-screen" class="hidden min-h-screen flex items-center justify-center p-6 dark:bg-gray-950 bg-gray-100">
-  <div class="max-w-3xl w-full">
-    <div class="bg-gradient-to-br from-gray-900 via-gray-900 to-temporal-950 border-2 border-temporal-700/40 rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden text-gray-200">
-      <div class="absolute top-0 left-0 w-24 h-24 border-t-2 border-l-2 border-temporal-600/30 rounded-tl-3xl"></div>
-      <div class="absolute top-0 right-0 w-24 h-24 border-t-2 border-r-2 border-temporal-600/30 rounded-tr-3xl"></div>
-      <div class="absolute bottom-0 left-0 w-24 h-24 border-b-2 border-l-2 border-temporal-600/30 rounded-bl-3xl"></div>
-      <div class="absolute bottom-0 right-0 w-24 h-24 border-b-2 border-r-2 border-temporal-600/30 rounded-br-3xl"></div>
-
-      <div class="font-mono text-xs text-temporal-500 tracking-[0.3em] uppercase mb-6">Certificate of Completion</div>
-      <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-temporal-600/20 border border-temporal-500/30 flex items-center justify-center">
-        <svg class="w-8 h-8 text-temporal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
-      </div>
-
-      <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">Temporal.io</h2>
-      <p class="text-lg text-temporal-300 mb-8">Developer Proficiency Assessment</p>
-
-      <div class="text-sm text-gray-500 mb-1">This certifies that</div>
-      <div id="cert-name" class="text-3xl font-bold text-white mb-6 border-b border-gray-700 pb-4 mx-auto max-w-md"></div>
-
-      <p class="text-sm text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
-        has demonstrated proficiency in Temporal.io concepts including workflows,
-        activities, workers, Java &amp; Python SDK usage, async patterns,
-        and production best practices.
-      </p>
-
-      <div class="grid grid-cols-3 gap-4 mb-8 max-w-sm mx-auto">
-        <div><div id="cert-score" class="text-xl font-bold text-temporal-400"></div><div class="text-[10px] text-gray-500 font-mono uppercase">Score</div></div>
-        <div><div id="cert-pct" class="text-xl font-bold text-emerald-400"></div><div class="text-[10px] text-gray-500 font-mono uppercase">Accuracy</div></div>
-        <div><div id="cert-date" class="text-xl font-bold text-gray-300"></div><div class="text-[10px] text-gray-500 font-mono uppercase">Date</div></div>
-      </div>
-      <div class="font-mono text-[10px] text-gray-600 tracking-wider">TEMPORAL-CERT-<span id="cert-id"></span></div>
-    </div>
-
-    <div class="flex justify-center gap-4 mt-8 no-print">
-      <button onclick="hideCertificate()" class="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all border dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 bg-white hover:bg-gray-50 border-gray-200">← Back</button>
-      <button onclick="window.print()" class="px-6 py-2.5 bg-temporal-600 hover:bg-temporal-500 text-white font-semibold rounded-lg transition-all">Print Certificate</button>
-    </div>
-  </div>
-</div>
-
+<!-- ══ JAVASCRIPT ════════════════════════════════════════════════════════════ -->
 <script>
-// ═════════════════════════════════════════════════════
-//  THEME
-// ═════════════════════════════════════════════════════
-function toggleTheme() {
-  document.documentElement.classList.toggle('dark');
-  localStorage.setItem('temporal-quiz-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+function showSection(id) {
+  document.querySelectorAll('.section-page').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('#main-nav .nav-pill').forEach(b => b.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  document.getElementById('hero-bar').style.display = (id === 'overview') ? '' : 'none';
+  const btn = document.querySelector(`#main-nav button[onclick="showSection('${id}')"]`);
+  if (btn) btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (id === 'quiz') initQuizIntro();
 }
-(function() {
-  const saved = localStorage.getItem('temporal-quiz-theme');
-  if (saved === 'light') document.documentElement.classList.remove('dark');
-})();
 
-// ═════════════════════════════════════════════════════
-//  QUESTION BANK — correct answer is "correctText"
-//  Options will be SHUFFLED at runtime
-// ═════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════
+   QUESTION BANK — 25 questions
+═══════════════════════════════════════════ */
 const QUESTIONS = [
   {
-    category:"Fundamentals", difficulty:"beginner",
-    text:"What is Temporal.io primarily used for?",
-    correctText:"Building durable, fault-tolerant distributed applications",
-    wrong:["Managing container orchestration like Kubernetes","Real-time stream processing like Apache Kafka","Serving static web content"],
-    explanation:"Temporal is a platform for building durable, fault-tolerant applications. It persists your application's state so that if a process crashes, execution resumes automatically.",
-    hint:"Think about what happens when your microservice crashes mid-operation.",
-    docUrl:"https://docs.temporal.io/temporal", docLabel:"What is Temporal?"
+    cat: 'Core Concepts',
+    q: 'What annotation marks a Java class as a Temporal Workflow interface?',
+    opts: ['@WorkflowDefinition','@WorkflowInterface','@TemporalWorkflow','@WorkflowType'],
+    ans: 1,
+    exp: '@WorkflowInterface is the correct Temporal SDK annotation for declaring a workflow interface.'
   },
   {
-    category:"Fundamentals", difficulty:"beginner",
-    text:"What are the two core building blocks of a Temporal application?",
-    correctText:"Workflows and Activities",
-    wrong:["Producers and Consumers","Controllers and Services","Publishers and Subscribers"],
-    explanation:"Workflows define the orchestration logic (durable, deterministic). Activities contain the actual work (API calls, DB writes, etc.) that can fail and be retried.",
-    hint:"One is deterministic and orchestrates; the other does the actual side-effect work.",
-    docUrl:"https://docs.temporal.io/workflows", docLabel:"Workflows & Activities"
+    cat: 'Core Concepts',
+    q: 'What annotation marks a Java class as a Temporal Activity interface?',
+    opts: ['@ActivityDefinition','@ActivityInterface','@TemporalActivity','@ActivityType'],
+    ans: 1,
+    exp: '@ActivityInterface declares an activity interface in the Temporal Java SDK.'
   },
   {
-    category:"Fundamentals", difficulty:"beginner",
-    text:"Where does Temporal persist workflow execution state?",
-    correctText:"In a database (PostgreSQL, MySQL, or Cassandra)",
-    wrong:["In the worker's local memory","In a distributed file system","In browser localStorage"],
-    explanation:"Temporal Server persists every workflow event in a supported database. This is what makes workflows durable — they survive crashes, restarts, and network partitions.",
-    hint:"Temporal Server needs a backing datastore to make workflows survive crashes.",
-    docUrl:"https://docs.temporal.io/clusters", docLabel:"Temporal Clusters"
+    cat: 'Determinism',
+    q: 'Which method MUST you use instead of System.currentTimeMillis() inside a Workflow?',
+    opts: ['Clock.systemUTC().millis()','Instant.now().toEpochMilli()','Workflow.currentTimeMillis()','WorkflowClock.millis()'],
+    ans: 2,
+    exp: 'Workflow.currentTimeMillis() is the deterministic replacement. System.currentTimeMillis() would break event-history replay.'
   },
   {
-    category:"Fundamentals", difficulty:"beginner",
-    text:"What is a Task Queue in Temporal?",
-    correctText:"A named queue that routes tasks from the server to the correct workers",
-    wrong:["A priority queue for ordering workflow executions","A message broker like RabbitMQ","A database table that stores pending activities"],
-    explanation:"Task Queues are lightweight named queues that route workflow and activity tasks to workers that poll them. Multiple workers can poll the same queue for load balancing.",
-    hint:"Workers poll these to receive work. The name determines which workers get which tasks.",
-    docUrl:"https://docs.temporal.io/workers#task-queue", docLabel:"Task Queues"
+    cat: 'Determinism',
+    q: 'Why must Workflow code be deterministic?',
+    opts: [
+      'To improve performance',
+      'So that replaying the event history always reconstructs the same execution path',
+      'Because the Temporal server enforces it at runtime',
+      'To avoid thread-safety issues'
+    ],
+    ans: 1,
+    exp: 'Temporal replays event history to reconstruct workflow state after crashes. Non-determinism causes divergence.'
   },
   {
-    category:"Fundamentals", difficulty:"beginner",
-    text:"What happens when a Temporal worker crashes in the middle of executing a workflow?",
-    correctText:"Another worker replays the event history and resumes execution",
-    wrong:["The workflow is lost and must be restarted manually","Temporal sends an error to the client and stops","The database rolls back all completed activities"],
-    explanation:"Temporal records every state transition as an event. A new worker replays events to reconstruct state and continues from where the crash occurred.",
-    hint:"Event Sourcing is the key mechanism — every step is persisted as an immutable event.",
-    docUrl:"https://docs.temporal.io/workflows#event-history", docLabel:"Event History"
+    cat: 'Determinism',
+    q: 'Which of the following is SAFE to call directly inside a Workflow implementation?',
+    opts: ['Thread.sleep(1000)','new Random().nextInt()','Workflow.sleep(Duration.ofSeconds(1))','System.getenv("DB_URL")'],
+    ans: 2,
+    exp: 'Workflow.sleep() is the deterministic sleep. Thread.sleep() and non-deterministic APIs must only appear in Activities.'
   },
   {
-    category:"Core Concepts", difficulty:"beginner",
-    text:"Why must Temporal Workflow code be deterministic?",
-    correctText:"So the workflow can be reconstructed by replaying its event history",
-    wrong:["To optimize database query performance","Because Temporal only supports functional programming","To prevent race conditions in the task queue"],
-    explanation:"During replay, the same workflow code runs again but Temporal feeds it previously recorded results. Non-deterministic code would produce different decisions, causing a NonDeterministicException.",
-    hint:"Think about what happens during replay — the same code runs again to rebuild state.",
-    docUrl:"https://docs.temporal.io/workflows#deterministic-constraints", docLabel:"Deterministic Constraints"
+    cat: 'Worker Setup',
+    q: 'What Spring Boot property enables auto-discovery of @WorkflowImpl and @ActivityImpl beans?',
+    opts: [
+      'spring.temporal.worker.scan=true',
+      'spring.temporal.workers-auto-discovery.packages=com.example',
+      'spring.temporal.auto-register=true',
+      'temporal.worker.packages=com.example'
+    ],
+    ans: 1,
+    exp: 'spring.temporal.workers-auto-discovery.packages tells the autoconfigure starter which packages to scan for @WorkflowImpl / @ActivityImpl beans.'
   },
   {
-    category:"Core Concepts", difficulty:"intermediate",
-    text:"What is the purpose of Activity Heartbeats in Temporal?",
-    correctText:"To report progress and prove the activity is still alive",
-    wrong:["To send data back to the workflow every second","To synchronize clocks between workers","To trigger workflow signals from inside activities"],
-    explanation:"Long-running activities should heartbeat periodically. If the worker crashes, Temporal detects the missing heartbeats and schedules the activity on another worker.",
-    hint:"It's a liveness signal — if it stops, Temporal knows the activity may be stuck or dead.",
-    docUrl:"https://docs.temporal.io/activities#activity-heartbeat", docLabel:"Activity Heartbeats"
+    cat: 'Worker Setup',
+    q: 'What is the default gRPC port for a local Temporal dev server?',
+    opts: ['4317','7233','8080','9090'],
+    ans: 1,
+    exp: 'The Temporal server listens for gRPC connections on port 7233 by default.'
   },
   {
-    category:"Core Concepts", difficulty:"intermediate",
-    text:"What does a Retry Policy control in Temporal?",
-    correctText:"How many times and with what backoff an activity is retried on failure",
-    wrong:["How many workers can poll the same task queue","How long workflow history is retained after completion","The maximum number of concurrent workflows"],
-    explanation:"RetryPolicy configures maximum attempts, initial interval, backoff coefficient, and maximum interval. Temporal automatically retries failed activities — no manual retry code needed.",
-    hint:"It controls automatic retries: attempts, delays, and exponential backoff.",
-    docUrl:"https://docs.temporal.io/retry-policies", docLabel:"Retry Policies"
+    cat: 'Worker Setup',
+    q: 'What CLI command starts a local Temporal development server?',
+    opts: [
+      'temporal start --dev',
+      'temporal server start-dev',
+      'temporal run local',
+      'temporal dev-server'
+    ],
+    ans: 1,
+    exp: '"temporal server start-dev" starts an in-memory Temporal server suitable for local development.'
   },
   {
-    category:"Core Concepts", difficulty:"intermediate",
-    text:"How do you check the status of a running workflow without blocking?",
-    correctText:"Use a Workflow Query to read the workflow's state",
-    wrong:["Check the database directly for the workflow row","Send an HTTP request to the worker process","Read the workflow's log file"],
-    explanation:"Queries are read-only operations that run against the workflow's in-memory state. They return instantly and don't affect execution.",
-    hint:"It's a read-only operation defined with @QueryMethod (Java) or @workflow.query (Python).",
-    docUrl:"https://docs.temporal.io/workflows#query", docLabel:"Workflow Queries"
+    cat: 'Worker Setup',
+    q: 'What Spring Boot property sets the Temporal server address?',
+    opts: [
+      'spring.temporal.host=127.0.0.1:7233',
+      'spring.temporal.url=grpc://127.0.0.1:7233',
+      'spring.temporal.connection.target=127.0.0.1:7233',
+      'spring.temporal.grpc.address=127.0.0.1:7233'
+    ],
+    ans: 2,
+    exp: 'spring.temporal.connection.target is the correct property in temporal-spring-boot-autoconfigure.'
   },
   {
-    category:"Core Concepts", difficulty:"intermediate",
-    text:"What is the difference between Workflow.sleep() and Thread.sleep() in a Temporal workflow?",
-    correctText:"Workflow.sleep() is durable and survives crashes; Thread.sleep() would break determinism",
-    wrong:["Thread.sleep() is faster and preferred for short durations","They are identical — both work inside workflows","Workflow.sleep() runs on the server; Thread.sleep() runs on the worker"],
-    explanation:"Workflow.sleep() creates a durable timer persisted in the event history. If the worker restarts, the timer resumes correctly. Thread.sleep() would violate determinism.",
-    hint:"One is durable (survives restarts), the other is not. Determinism is the key concern.",
-    docUrl:"https://docs.temporal.io/develop/java/timers", docLabel:"Timers"
+    cat: 'Worker Setup',
+    q: 'Which class in DocPulse creates the WorkerFactory and registers implementations?',
+    opts: ['AppConfig','DocumentWorkerRegistrar','DocumentWorkflowClientStub','UploadWorkerController'],
+    ans: 1,
+    exp: 'DocumentWorkerRegistrar implements DocumentWorker and uses @EventListener(ApplicationReadyEvent) to start the factory after Spring context is ready.'
   },
   {
-    category:"Java SDK", difficulty:"intermediate",
-    text:"Which annotation marks a Java interface as a Temporal Workflow?",
-    code:"// Which annotation goes here?\npublic interface OrderWorkflow {\n    @WorkflowMethod\n    String processOrder(String orderId);\n}",
-    correctText:"@WorkflowInterface",
-    wrong:["@TemporalWorkflow","@WorkflowDefinition","@DurableFunction"],
-    explanation:"In the Java SDK, @WorkflowInterface marks the interface and @WorkflowMethod marks the entry point method.",
-    hint:"The Java SDK uses two annotations: one on the interface, one on the method.",
-    docUrl:"https://docs.temporal.io/develop/java/core-application#develop-workflows", docLabel:"Java Workflows"
+    cat: 'Activities',
+    q: 'What method must a long-running Activity call periodically so Temporal knows it is alive?',
+    opts: ['activity.ping()','ctx.heartbeat()','Activity.keepAlive()','activity.progress()'],
+    ans: 1,
+    exp: 'ctx.heartbeat() (via ActivityExecutionContext) sends a heartbeat to the Temporal server. Without it, the activity is considered timed out if heartbeatTimeout is exceeded.'
   },
   {
-    category:"Java SDK", difficulty:"intermediate",
-    text:"How do you create an Activity stub inside a Java workflow?",
-    code:"// Inside the workflow implementation:\nprivate final MyActivities activities = ???",
-    correctText:"Workflow.newActivityStub(MyActivities.class, activityOptions)",
-    wrong:["new MyActivitiesImpl()","ActivityStub.create(MyActivities.class)","WorkflowClient.newActivityStub(MyActivities.class)"],
-    explanation:"Workflow.newActivityStub() creates a proxy that serializes calls and dispatches them through Temporal for durable execution with retry and timeout support.",
-    hint:"Workflows never call 'new' on activity implementations — they use stubs/proxies.",
-    docUrl:"https://docs.temporal.io/develop/java/core-application#activity-execution", docLabel:"Java Activity Execution"
+    cat: 'Activities',
+    q: 'What ActivityOptions setting limits the total time including ALL retry attempts?',
+    opts: ['setStartToCloseTimeout','setHeartbeatTimeout','setScheduleToCloseTimeout','setExecutionTimeout'],
+    ans: 2,
+    exp: 'setScheduleToCloseTimeout is the total budget from when the activity is scheduled until it must complete — including all retries.'
   },
   {
-    category:"Java SDK", difficulty:"intermediate",
-    text:"How do you register a workflow and activity with a Java worker?",
-    code:"Worker worker = factory.newWorker(\"my-queue\");\n// What comes next?",
-    correctText:"worker.registerWorkflowImplementationTypes(Impl.class) and worker.registerActivitiesImplementations(new Impl())",
-    wrong:["worker.addWorkflow(new Impl()) and worker.addActivity(new Impl())","worker.register(Workflow.class, Activities.class)","WorkerRegistry.register(worker, Impl.class)"],
-    explanation:"Workflows are registered by class (Temporal instantiates them). Activities are registered by instance (you control construction and can inject dependencies).",
-    hint:"Workflow types are registered, activity instances are registered — notice the difference.",
-    docUrl:"https://docs.temporal.io/develop/java/core-application#run-a-dev-worker", docLabel:"Java Workers"
+    cat: 'Activities',
+    q: 'What ActivityOptions setting limits the time for a SINGLE activity attempt?',
+    opts: ['setScheduleToCloseTimeout','setHeartbeatTimeout','setAttemptTimeout','setStartToCloseTimeout'],
+    ans: 3,
+    exp: 'setStartToCloseTimeout caps a single execution attempt. The activity is retried if it exceeds this limit.'
   },
   {
-    category:"Java SDK", difficulty:"advanced",
-    text:"What is the purpose of the Temporal Spring Boot Starter?",
-    correctText:"Auto-configures WorkflowClient, WorkerFactory, and worker registration via Spring beans",
-    wrong:["Provides a REST API that replaces the need for Temporal Server","Converts Spring MVC controllers into Temporal workflows automatically","Embeds a Temporal Server inside the Spring Boot application"],
-    explanation:"The temporal-spring-boot-starter auto-configures Temporal beans in the Spring context. Workers and registrations are managed through dependency injection and configuration properties.",
-    hint:"It's a Spring Boot auto-configuration — think @Bean and application.yml.",
-    docUrl:"https://docs.temporal.io/develop/java/testing-suite#spring-boot", docLabel:"Spring Boot Integration"
+    cat: 'Activities',
+    q: 'In DocPulse, which activity handles OCR and document parsing?',
+    opts: ['SecurityScanActivity','NlpAnalysisActivity','TextExtractionActivity','DocumentParserActivity'],
+    ans: 2,
+    exp: 'TextExtractionActivity (Stage 2) handles OCR, routing to PDFBox, Apache POI, Tesseract, or DirectReader based on MIME type.'
   },
   {
-    category:"Java SDK", difficulty:"advanced",
-    text:"How do you start a workflow asynchronously (fire-and-forget) from a Java client?",
-    code:"WorkflowStub stub = client.newUntypedWorkflowStub(\n    \"MyWorkflow\", options);\n// Start without waiting for result:",
-    correctText:"stub.start(arg) — returns WorkflowExecution immediately",
-    wrong:["stub.startAsync(arg) — returns a CompletableFuture","stub.execute(arg, false) — the false means don't wait","WorkflowClient.startAsync(stub, arg)"],
-    explanation:"stub.start() fires the workflow and returns a WorkflowExecution (containing workflowId and runId) immediately. To get the result later, call stub.getResult().",
-    hint:"start() vs getResult() — one fires, the other blocks for the result.",
-    docUrl:"https://docs.temporal.io/develop/java/core-application#start-workflow-execution", docLabel:"Start Workflow"
+    cat: 'Workflow Methods',
+    q: 'Which Temporal annotation marks a method as an asynchronous message to a running Workflow?',
+    opts: ['@QueryMethod','@SignalMethod','@WorkflowMethod','@MessageMethod'],
+    ans: 1,
+    exp: '@SignalMethod marks a method that can be called externally to send an async message to a running Workflow (e.g. cancellation).'
   },
   {
-    category:"Python SDK", difficulty:"intermediate",
-    text:"How do you define a workflow in the Temporal Python SDK?",
-    code:"# Which decorators are needed?\nclass GreetingWorkflow:\n    async def run(self, name: str) -> str:\n        ...",
-    correctText:"@workflow.defn on the class and @workflow.run on the method",
-    wrong:["@temporal.workflow on the class only","@workflow.define() on the class and @workflow.entry on the method","Inherit from temporal.Workflow base class"],
-    explanation:"Python uses @workflow.defn to mark the class and @workflow.run to mark the entry point method. The class name becomes the workflow type name.",
-    hint:"Two decorators needed — one for the class definition, one for the entry point method.",
-    docUrl:"https://docs.temporal.io/develop/python/core-application#develop-workflows", docLabel:"Python Workflows"
+    cat: 'Workflow Methods',
+    q: 'Which Temporal annotation marks a read-only, strongly-consistent view into Workflow state?',
+    opts: ['@SignalMethod','@WorkflowMethod','@QueryMethod','@ReadMethod'],
+    ans: 2,
+    exp: '@QueryMethod provides a synchronous, strongly-consistent read of the Workflow\'s in-memory state without adding an event to the history.'
   },
   {
-    category:"Python SDK", difficulty:"intermediate",
-    text:"How do you execute an activity from inside a Python workflow?",
-    code:"@workflow.defn\nclass MyWorkflow:\n    @workflow.run\n    async def run(self, data: str) -> str:",
-    correctText:"await workflow.execute_activity(my_activity, data, start_to_close_timeout=timedelta(seconds=10))",
-    wrong:["await my_activity(data)","self.run_activity(my_activity, data)","activity.execute(my_activity, data)"],
-    explanation:"workflow.execute_activity() schedules the activity through Temporal with specified timeouts and retry policies.",
-    hint:"You can't call activities directly — they must go through Temporal's scheduling.",
-    docUrl:"https://docs.temporal.io/develop/python/core-application#activity-execution", docLabel:"Python Activity Execution"
+    cat: 'Workflow Methods',
+    q: 'In DocPulse, what endpoint triggers the @QueryMethod to return live pipeline status?',
+    opts: [
+      'GET /api/documents/status/{id}',
+      'GET /api/worker/status/{workflowId}',
+      'POST /api/worker/query/{workflowId}',
+      'GET /api/temporal/state/{workflowId}'
+    ],
+    ans: 1,
+    exp: 'GET /api/worker/status/{workflowId} in UploadWorkerController calls DocumentWorkflowClientStub.queryStatus() which triggers the @QueryMethod.'
   },
   {
-    category:"Python SDK", difficulty:"intermediate",
-    text:"Why does the Python SDK use 'with workflow.unsafe.imports_passed_through()' when importing activities?",
-    correctText:"To bypass the workflow sandbox so the activity module isn't re-imported on every replay",
-    wrong:["To enable unsafe multithreading in the workflow","To allow the activity to access environment variables","To disable type checking on the activity parameters"],
-    explanation:"Python workflows run in a sandbox. Activities are side-effect code that shouldn't be sandboxed, so imports_passed_through() uses the already-loaded module reference.",
-    hint:"The Python SDK sandboxes workflow files. This bypasses the sandbox for activity imports.",
-    docUrl:"https://docs.temporal.io/develop/python/core-application#workflow-sandbox", docLabel:"Workflow Sandbox"
+    cat: 'Task Queues',
+    q: 'What is the name of the task queue used in DocPulse?',
+    opts: [
+      'DOC_PROCESSING_QUEUE',
+      'TEMPORAL_TASK_QUEUE',
+      'DOCUMENT_PROCESSING_TASK_QUEUE',
+      'docupload-queue'
+    ],
+    ans: 2,
+    exp: 'DOCUMENT_PROCESSING_TASK_QUEUE is the constant defined in DocumentWorker.TASK_QUEUE.'
   },
   {
-    category:"Python SDK", difficulty:"advanced",
-    text:"How do you start a Python Temporal Worker that polls a specific task queue?",
-    code:"client = await Client.connect(\"localhost:7233\")\n# Create and run the worker:",
-    correctText:"worker = Worker(client, task_queue=\"q\", workflows=[Wf], activities=[act]); await worker.run()",
-    wrong:["worker = TemporalWorker(client, \"q\"); worker.register(Wf, act); worker.start()","await client.start_worker(\"q\", Wf, act)","Worker.create(client).poll(\"q\").run()"],
-    explanation:"Create a Worker instance with the client, task queue name, list of workflow classes, and list of activity functions. Then await worker.run() to start long-polling.",
-    hint:"Constructor takes client, queue name, workflow classes, activity functions. Then .run().",
-    docUrl:"https://docs.temporal.io/develop/python/core-application#run-a-dev-worker", docLabel:"Python Workers"
+    cat: 'Task Queues',
+    q: 'How does Temporal distribute work across multiple Worker instances on the same task queue?',
+    opts: [
+      'Round-robin via leader election',
+      'Based on Worker CPU load',
+      'Temporal distributes tasks automatically — no coordination code needed',
+      'Workers register themselves in ZooKeeper'
+    ],
+    ans: 2,
+    exp: 'Temporal automatically distributes tasks to available Workers polling the same queue. Simply run more Worker instances to scale.'
   },
   {
-    category:"Python SDK", difficulty:"advanced",
-    text:"How do you define a workflow query in Python that works cross-language (e.g., called from Java)?",
-    code:"@workflow.defn\nclass MyWorkflow:\n    # Define a query named \"getProgress\":",
-    correctText:"@workflow.query(name=\"getProgress\") with an explicit name parameter",
-    wrong:["@workflow.query followed by def getProgress(self)","@query(\"getProgress\") async def progress(self)","def query_getProgress(self)"],
-    explanation:"Use @workflow.query(name=\"getProgress\") to set an explicit query name. Without it, Python uses the snake_case method name which wouldn't match Java's camelCase.",
-    hint:"Cross-language queries need matching names. Python snake_case won't match Java camelCase.",
-    docUrl:"https://docs.temporal.io/develop/python/message-passing#queries", docLabel:"Python Queries"
+    cat: 'Configuration',
+    q: 'What Temporal namespace should be used with a local dev server?',
+    opts: ['local','dev','temporal','default'],
+    ans: 3,
+    exp: 'The "default" namespace is created automatically when you run "temporal server start-dev".'
   },
   {
-    category:"Patterns", difficulty:"advanced",
-    text:"How do you scale a Temporal application to handle more workflow throughput?",
-    correctText:"Add more worker processes polling the same task queue",
-    wrong:["Increase the database connection pool size","Deploy multiple Temporal Servers on different ports","Add more namespaces for each workflow type"],
-    explanation:"Workers are stateless — just add more. Multiple workers poll the same task queue and Temporal distributes tasks automatically. Scale with 'docker compose up --scale worker=10'.",
-    hint:"Workers are stateless. Scaling means adding more of them on the same queue.",
-    docUrl:"https://docs.temporal.io/workers#worker-processes", docLabel:"Scaling Workers"
+    cat: 'Configuration',
+    q: 'To connect to Temporal Cloud instead of a local server, what additional configuration is needed?',
+    opts: [
+      'Only change the connection.target URL',
+      'Change connection.target, namespace, and add mTLS cert/key paths',
+      'Add a spring.temporal.cloud=true property',
+      'No change needed — it auto-detects Temporal Cloud'
+    ],
+    ans: 1,
+    exp: 'Temporal Cloud requires the Cloud endpoint URL, your namespace, and mTLS certificates (cert-chain-file and key-file).'
   },
   {
-    category:"Patterns", difficulty:"advanced",
-    text:"What is the key difference between a Temporal Signal and a Query?",
-    correctText:"Signals mutate workflow state; Queries only read it without side effects",
-    wrong:["Signals are synchronous; Queries are asynchronous","Signals work only in Java; Queries work in all SDKs","Signals use HTTP; Queries use gRPC"],
-    explanation:"Signals are async messages that can change workflow state. Queries are read-only — they inspect current state without affecting execution. Both use gRPC and work in all SDKs.",
-    hint:"One is write/mutate, the other is read-only. Think about side effects.",
-    docUrl:"https://docs.temporal.io/workflows#signals-and-queries", docLabel:"Signals & Queries"
+    cat: 'DocPulse Architecture',
+    q: 'What HTTP status code does POST /api/worker/upload return, and why?',
+    opts: [
+      '200 OK — the workflow completes synchronously',
+      '202 Accepted — the workflow is submitted but processing is async',
+      '201 Created — a new workflow resource is created',
+      '204 No Content — no response body is needed'
+    ],
+    ans: 1,
+    exp: '202 Accepted is returned immediately with the workflowId. The actual processing happens asynchronously in Temporal.'
   },
   {
-    category:"Patterns", difficulty:"advanced",
-    text:"What is the correct way to handle a 24-hour delay inside a Temporal workflow?",
-    code:"// Need to wait 24 hours before next step:",
-    correctText:"Workflow.sleep(Duration.ofHours(24)) in Java or await asyncio.sleep via workflow.sleep(86400) in Python",
-    wrong:["Thread.sleep(86400000) in Java or time.sleep(86400) in Python","Use a cron job scheduled 24 hours from now","Schedule a new workflow to run after 24 hours"],
-    explanation:"Workflow.sleep() creates a durable timer. Even if it spans days, no worker is occupied. The timer event is persisted and the workflow resumes automatically.",
-    hint:"Temporal timers are durable and free (no worker held). They survive restarts.",
-    docUrl:"https://docs.temporal.io/develop/java/timers", docLabel:"Durable Timers"
+    cat: 'DocPulse Architecture',
+    q: 'Which class in DocPulse acts as the anti-corruption layer between the REST controller and Temporal SDK types?',
+    opts: [
+      'DocumentProcessingService',
+      'UploadWorkerController',
+      'DocumentWorkflowClientStub',
+      'DocumentWorkerRegistrar'
+    ],
+    ans: 2,
+    exp: 'DocumentWorkflowClientStub wraps WorkflowClient and translates between REST domain model and Temporal SDK types.'
   },
   {
-    category:"Integration", difficulty:"advanced",
-    text:"To add Temporal to an existing Python web app (e.g., FastAPI), what are the minimum steps?",
-    correctText:"Install temporalio, create a Client, define workflow + activity, start a Worker, call client.execute_workflow() from your endpoint",
-    wrong:["Replace all API endpoints with Temporal activities","Install a Temporal plugin that auto-converts endpoints to workflows","Rewrite the entire app in Go since Temporal is Go-native"],
-    explanation:"Temporal is additive — keep your web framework. Create a Client on startup, define workflows/activities for durable operations, run a Worker process, and call client.execute_workflow() from route handlers.",
-    hint:"Temporal is additive, not a replacement. Your web framework stays — you add workflow calls.",
-    docUrl:"https://docs.temporal.io/develop/python", docLabel:"Python SDK Guide"
+    cat: 'Retry & Failures',
+    q: 'In DocPulse, if SecurityScanActivity returns isClean()=false, what does the Workflow do?',
+    opts: [
+      'Retries the scan automatically',
+      'Returns a FAILED result immediately without running TextExtractionActivity',
+      'Skips to NlpAnalysisActivity',
+      'Sends a signal to the client'
+    ],
+    ans: 1,
+    exp: 'The workflow checks scanResult.isClean() and short-circuits with a FAILED result if the scan verdict is not CLEAN.'
   },
   {
-    category:"Integration", difficulty:"advanced",
-    text:"What can you find in the Temporal Web UI for debugging a failed workflow?",
-    correctText:"Complete event history with inputs, outputs, retry attempts, error messages, and timing for every step",
-    wrong:["Only the final error message and stack trace","CPU and memory usage of the worker processes","Network packet captures between services"],
-    explanation:"The Temporal UI shows the full immutable event history: every ActivityScheduled/Completed/Failed with payloads, retry attempts with errors, timer events, signals, queries — all with timestamps.",
-    hint:"Every single state transition is recorded — inputs, outputs, retries, errors, timing.",
-    docUrl:"https://docs.temporal.io/web-ui", docLabel:"Temporal Web UI"
+    cat: 'Retry & Failures',
+    q: 'What happens to a Temporal Workflow if the Spring Boot application crashes mid-processing?',
+    opts: [
+      'The workflow is lost and must be re-submitted',
+      'Temporal replays the event history and the workflow resumes from the last completed Activity',
+      'The workflow is paused and must be manually resumed',
+      'Temporal retries the entire workflow from the beginning'
+    ],
+    ans: 1,
+    exp: 'Temporal persists the full event history. When the Worker restarts, it replays the history and resumes execution from exactly where it left off.'
   }
 ];
 
-// ═════════════════════════════════════════════════════
-//  SHUFFLE OPTIONS — returns { options:[], correctIndex: N }
-// ═════════════════════════════════════════════════════
-function shuffleOptions(q) {
-  const all = [q.correctText, ...q.wrong];
-  // Fisher-Yates shuffle
-  for (let i = all.length - 1; i > 0; i--) {
+/* ═══════════════════════════════════════════
+   QUIZ STATE
+═══════════════════════════════════════════ */
+const LS_KEY = 'docpulse_quiz_scores';
+const TOTAL_MAX = 250;
+const PASS_THRESHOLD = 0.75;
+const Q_TIME = 30;        // seconds per question
+const REDUCE_START = 15;  // points start dropping at 15s
+
+let quizQuestions = [];
+let qIndex = 0;
+let score  = 0;
+let correctCount = 0;
+let answers = [];        // { qi, chosen, correct, pts }
+let timerInterval = null;
+let timeLeft = Q_TIME;
+let answered = false;
+
+function initQuizIntro() {
+  const scores = getStoredScores();
+  const block  = document.getElementById('prev-scores-block');
+  const list   = document.getElementById('prev-scores-list');
+  if (scores.length) {
+    block.classList.remove('hidden');
+    list.innerHTML = scores.slice(-5).reverse().map(s =>
+      `<span class="text-xs bg-white border border-warm px-3 py-1 rounded-full font-mono">
+        ${s.date}: <strong>${s.score}</strong> pts (${s.pct}%)
+       </span>`
+    ).join('');
+  }
+}
+
+function getStoredScores() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch { return []; }
+}
+function saveScore(sc, pct) {
+  const scores = getStoredScores();
+  scores.push({ date: new Date().toLocaleDateString(), score: sc, pct: Math.round(pct) });
+  try { localStorage.setItem(LS_KEY, JSON.stringify(scores)); } catch {}
+}
+
+/* ─ Fisher-Yates shuffle ─ */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [all[i], all[j]] = [all[j], all[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return { options: all, correctIndex: all.indexOf(q.correctText) };
+  return a;
 }
 
-// ═════════════════════════════════════════════════════
-//  STATE
-// ═════════════════════════════════════════════════════
-let S = { name:'', qs:[], qi:0, score:0, correct:0, fast:0, regular:0, wrong:0, timer:null, timeLeft:30, answered:false, shuffled:null };
-
-function show(id) {
-  ['start-screen','quiz-screen','results-screen','cert-screen'].forEach(s=>document.getElementById(s).classList.add('hidden'));
-  document.getElementById(id).classList.remove('hidden');
-}
-
-// ═════════════════════════════════════════════════════
-//  START
-// ═════════════════════════════════════════════════════
 function startQuiz() {
-  S.name = document.getElementById('player-name').value.trim() || 'Anonymous Developer';
-  S.qs = [...QUESTIONS].sort(() => Math.random() - 0.5);
-  S.qi=0; S.score=0; S.correct=0; S.fast=0; S.regular=0; S.wrong=0;
-  show('quiz-screen');
-  renderQ();
+  quizQuestions = shuffle(QUESTIONS);
+  qIndex = 0; score = 0; correctCount = 0; answers = [];
+
+  document.getElementById('quiz-intro').classList.add('hidden');
+  document.getElementById('quiz-results').classList.add('hidden');
+  document.getElementById('quiz-active').classList.remove('hidden');
+
+  renderQuestion();
 }
 
-// ═════════════════════════════════════════════════════
-//  RENDER
-// ═════════════════════════════════════════════════════
-function renderQ() {
-  const q = S.qs[S.qi];
-  S.answered = false;
-  S.timeLeft = 30;
-  S.shuffled = shuffleOptions(q);
+function renderQuestion() {
+  if (qIndex >= quizQuestions.length) { showResults(); return; }
 
-  document.getElementById('q-counter').textContent = `Question ${S.qi+1} / ${S.qs.length}`;
-  document.getElementById('progress-bar').style.width = `${(S.qi/S.qs.length)*100}%`;
-  document.getElementById('score-display').textContent = S.score;
-  document.getElementById('q-category').textContent = q.category;
+  answered = false;
+  timeLeft  = Q_TIME;
+  const qobj = quizQuestions[qIndex];
 
-  const diffEl = document.getElementById('q-difficulty');
-  const dc = { beginner:'text-emerald-500 border-emerald-700 bg-emerald-950/40 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
-    intermediate:'text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
-    advanced:'text-red-600 border-red-300 bg-red-50 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800' };
-  diffEl.className = `inline-block font-mono text-[11px] px-2.5 py-1 rounded-full mb-4 border ${dc[q.difficulty]}`;
-  diffEl.textContent = q.difficulty.toUpperCase();
+  // header
+  document.getElementById('q-counter').textContent = `Q ${qIndex + 1} / ${quizQuestions.length}`;
+  document.getElementById('quiz-progress-fill').style.width = ((qIndex / quizQuestions.length) * 100) + '%';
+  document.getElementById('live-score').textContent = score;
 
-  document.getElementById('q-text').textContent = q.text;
-  const codeEl = document.getElementById('q-code');
-  if (q.code) { codeEl.textContent = q.code; codeEl.classList.remove('hidden'); }
-  else codeEl.classList.add('hidden');
+  // question
+  document.getElementById('q-category').textContent = qobj.cat;
+  document.getElementById('q-text').textContent = qobj.q;
 
-  const optEl = document.getElementById('q-options');
-  optEl.innerHTML = '';
-  S.shuffled.options.forEach((opt, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'opt-btn w-full text-left px-5 py-3.5 border rounded-xl font-mono text-sm transition-all ' +
-      'dark:bg-gray-800/60 dark:hover:bg-gray-800 dark:border-gray-700/60 dark:text-gray-300 dark:hover:text-white dark:hover:border-temporal-600/40 ' +
-      'bg-gray-50 hover:bg-white border-gray-200 text-gray-600 hover:text-gray-900 hover:border-temporal-400';
-    btn.innerHTML = `<span class="mr-3 font-bold dark:text-gray-500 text-gray-400">${String.fromCharCode(65+i)}</span>${opt}`;
-    btn.onclick = () => selectAnswer(i);
-    optEl.appendChild(btn);
+  // options — shuffle their order each time
+  const shuffledIdxs = shuffle([0,1,2,3]);
+  const container = document.getElementById('q-options');
+  container.innerHTML = '';
+  shuffledIdxs.forEach(origIdx => {
+    const div = document.createElement('div');
+    div.className = 'quiz-opt';
+    div.dataset.orig = origIdx;
+    div.textContent = qobj.opts[origIdx];
+    div.onclick = () => selectAnswer(div, origIdx);
+    container.appendChild(div);
   });
 
-  document.getElementById('q-explanation').classList.add('hidden');
+  // feedback & next
+  const fb = document.getElementById('q-feedback');
+  fb.classList.add('hidden');
+  fb.className = 'hidden rounded-xl p-4 mb-4 text-sm font-500';
   document.getElementById('next-btn').classList.add('hidden');
-  document.getElementById('help-panel').classList.add('hidden');
 
-  const card = document.getElementById('question-card');
-  card.classList.remove('anim-up'); void card.offsetWidth; card.classList.add('anim-up');
+  // timer
+  clearInterval(timerInterval);
+  updateTimerRing(Q_TIME);
+  document.getElementById('timer-display').textContent = Q_TIME;
 
-  startTimer();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById('timer-display').textContent = timeLeft;
+    updateTimerRing(timeLeft);
+
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      if (!answered) autoTimeout();
+    }
+  }, 1000);
 }
 
-// ═════════════════════════════════════════════════════
-//  TIMER
-// ═════════════════════════════════════════════════════
-function startTimer() {
-  clearInterval(S.timer);
-  S.timeLeft = 30;
-  updTimer();
-  S.timer = setInterval(() => {
-    S.timeLeft -= 0.1;
-    if (S.timeLeft <= 0) { S.timeLeft=0; clearInterval(S.timer); if(!S.answered) timeUp(); }
-    updTimer();
-  }, 100);
+function updateTimerRing(t) {
+  const circumference = 113.1;
+  const offset = circumference * (1 - t / Q_TIME);
+  const ring = document.getElementById('timer-ring');
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = t <= 10 ? '#dc2626' : t <= 20 ? '#d97706' : '#166534';
 }
 
-function updTimer() {
-  const t = Math.max(0, S.timeLeft), pct = (t/30)*100;
-  const bar = document.getElementById('timer-bar');
-  const txt = document.getElementById('timer-text');
-  const wrap = document.getElementById('timer-wrap');
-  bar.style.width = pct+'%';
-  txt.textContent = Math.ceil(t)+'s';
-  if (t<=5) { bar.className='timer-bar-fill h-full bg-red-500 rounded-full'; txt.className='font-mono text-sm font-bold text-red-500'; wrap.classList.add('timer-urgent'); }
-  else if (t<=15) { bar.className='timer-bar-fill h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full'; txt.className='font-mono text-sm font-bold text-amber-500'; wrap.classList.remove('timer-urgent'); }
-  else { bar.className='timer-bar-fill h-full bg-gradient-to-r from-emerald-500 to-temporal-400 rounded-full'; txt.className='font-mono text-sm font-bold dark:text-gray-300 text-gray-600'; wrap.classList.remove('timer-urgent'); }
+function calcPoints(t) {
+  // Full points 0-15s, linear decay 15-30s
+  if (t > REDUCE_START) return 10;
+  if (t <= 0) return 0;
+  return Math.ceil((t / REDUCE_START) * 10);
 }
 
-function timeUp() {
-  S.answered=true; S.wrong++;
-  const ci = S.shuffled.correctIndex;
-  document.querySelectorAll('#q-options .opt-btn').forEach((btn,i)=>{ btn.disabled=true; if(i===ci) btn.classList.add('opt-missed'); });
-  showExp("⏰ Time's up! The correct answer was highlighted.");
-  document.getElementById('next-btn').classList.remove('hidden');
-}
+function selectAnswer(el, origIdx) {
+  if (answered) return;
+  answered = true;
+  clearInterval(timerInterval);
 
-// ═════════════════════════════════════════════════════
-//  ANSWER
-// ═════════════════════════════════════════════════════
-function selectAnswer(idx) {
-  if (S.answered) return;
-  S.answered=true; clearInterval(S.timer);
+  const qobj = quizQuestions[qIndex];
+  const isCorrect = origIdx === qobj.ans;
+  const pts = isCorrect ? calcPoints(timeLeft) : 0;
 
-  const ci = S.shuffled.correctIndex;
-  const correct = idx === ci;
-  const elapsed = 30 - S.timeLeft;
+  if (isCorrect) { score += pts; correctCount++; }
 
-  document.querySelectorAll('#q-options .opt-btn').forEach((btn,i)=>{
-    btn.disabled=true;
-    if (i===ci) btn.classList.add('opt-correct');
-    if (i===idx && !correct) btn.classList.add('opt-wrong');
+  answers.push({ qIndex, chosen: origIdx, correct: qobj.ans, pts, timeUsed: Q_TIME - timeLeft });
+
+  // Style all options
+  document.querySelectorAll('.quiz-opt').forEach(opt => {
+    opt.classList.add('disabled');
+    const oi = parseInt(opt.dataset.orig);
+    if (oi === qobj.ans)   opt.classList.add('reveal-correct');
+    if (oi === origIdx && !isCorrect) opt.classList.add('wrong');
   });
 
-  if (correct) {
-    S.correct++;
-    if (elapsed <= 15) { S.score+=10; S.fast++; showExp(`⚡ Fast answer! +10 points (${elapsed.toFixed(1)}s)`); }
-    else { S.score+=5; S.regular++; showExp(`✓ Correct! +5 points (${elapsed.toFixed(1)}s)`); }
+  // Feedback
+  const fb = document.getElementById('q-feedback');
+  fb.classList.remove('hidden');
+  if (isCorrect) {
+    fb.className = 'rounded-xl p-4 mb-4 text-sm font-500 bg-green-50 border border-green-200 text-forest';
+    fb.innerHTML = `✅ Correct! <strong>+${pts} points</strong> — ${qobj.exp}`;
   } else {
-    S.wrong++; showExp(`✗ Incorrect. The right answer is highlighted above.`);
+    fb.className = 'rounded-xl p-4 mb-4 text-sm font-500 bg-red-50 border border-red-200 text-coral';
+    fb.innerHTML = `❌ Incorrect. Correct answer: <strong>${qobj.opts[qobj.ans]}</strong><br/><span class="text-slate-600">${qobj.exp}</span>`;
   }
 
-  document.getElementById('score-display').textContent = S.score;
+  document.getElementById('live-score').textContent = score;
   document.getElementById('next-btn').classList.remove('hidden');
 }
 
-function showExp(prefix) {
-  const q = S.qs[S.qi];
-  document.getElementById('q-explanation').classList.remove('hidden');
-  document.getElementById('q-explanation-text').textContent = prefix + '\n\n' + q.explanation;
+function autoTimeout() {
+  answered = true;
+  const qobj = quizQuestions[qIndex];
+  answers.push({ qIndex, chosen: -1, correct: qobj.ans, pts: 0, timeUsed: Q_TIME });
+
+  document.querySelectorAll('.quiz-opt').forEach(opt => {
+    opt.classList.add('disabled');
+    if (parseInt(opt.dataset.orig) === qobj.ans) opt.classList.add('reveal-correct');
+  });
+
+  const fb = document.getElementById('q-feedback');
+  fb.classList.remove('hidden');
+  fb.className = 'rounded-xl p-4 mb-4 text-sm font-500 bg-amber-50 border border-amber-200';
+  fb.innerHTML = `⏰ Time's up! Correct answer: <strong>${qobj.opts[qobj.ans]}</strong><br/><span class="text-slate-600">${qobj.exp}</span>`;
+
+  document.getElementById('next-btn').classList.remove('hidden');
 }
 
-// ═════════════════════════════════════════════════════
-//  HELP
-// ═════════════════════════════════════════════════════
-function toggleHelp() {
-  const p = document.getElementById('help-panel');
-  if (!p.classList.contains('hidden')) { p.classList.add('hidden'); return; }
-  const q = S.qs[S.qi];
-  document.getElementById('help-hint').textContent = q.hint;
-  document.getElementById('help-link').href = q.docUrl;
-  document.getElementById('help-link-text').textContent = q.docLabel;
-  p.classList.remove('hidden');
+function nextQuestion() {
+  qIndex++;
+  if (qIndex >= quizQuestions.length) showResults();
+  else renderQuestion();
 }
 
-// ═════════════════════════════════════════════════════
-//  NEXT
-// ═════════════════════════════════════════════════════
-function nextQuestion() { S.qi++; if(S.qi >= S.qs.length) showResults(); else renderQ(); }
-
-// ═════════════════════════════════════════════════════
-//  RESULTS
-// ═════════════════════════════════════════════════════
 function showResults() {
-  clearInterval(S.timer); show('results-screen');
-  const pct = Math.round((S.correct/S.qs.length)*100);
-  const passed = pct >= 75;
-  document.getElementById('results-icon').textContent = passed ? '🏆' : '📚';
-  document.getElementById('results-title').textContent = passed ? 'Outstanding!' : 'Keep Learning!';
-  document.getElementById('results-title').className = `text-4xl font-extrabold mb-3 ${passed ? 'text-temporal-500' : 'dark:text-gray-200 text-gray-800'}`;
+  clearInterval(timerInterval);
+  document.getElementById('quiz-active').classList.add('hidden');
+  document.getElementById('quiz-results').classList.remove('hidden');
+
+  const pct = score / TOTAL_MAX;
+  const passed = pct >= PASS_THRESHOLD;
+
+  document.getElementById('results-emoji').textContent    = passed ? '🏆' : '📚';
+  document.getElementById('results-title').textContent    = passed ? 'Certification Achieved!' : 'Keep Studying!';
   document.getElementById('results-subtitle').textContent = passed
-    ? `You scored ${pct}% — you've earned your Temporal Developer Certificate!`
-    : `You scored ${pct}% — review the docs and try again (75% required).`;
-  document.getElementById('r-score').textContent = S.score;
-  document.getElementById('r-correct').textContent = `${S.correct}/${S.qs.length}`;
-  document.getElementById('r-pct').textContent = pct+'%';
-  document.getElementById('r-fast').textContent = S.fast;
-  document.getElementById('r-regular').textContent = S.regular;
-  document.getElementById('r-wrong').textContent = S.wrong;
-  document.getElementById('cert-btn').classList.toggle('hidden', !passed);
-  if (passed) confetti();
+    ? `You passed with ${Math.round(pct*100)}% — well done!`
+    : `You scored ${Math.round(pct*100)}%. You need 75% to pass. Review the tutorial and try again!`;
+
+  document.getElementById('final-score').textContent   = score;
+  document.getElementById('final-pct').textContent     = Math.round(pct*100) + '%';
+  document.getElementById('final-pct').style.color     = passed ? '#166534' : '#dc2626';
+  document.getElementById('final-correct').textContent = correctCount + '/' + quizQuestions.length;
+
+  if (passed) document.getElementById('cert-btn').classList.remove('hidden');
+  else        document.getElementById('cert-btn').classList.add('hidden');
+
+  saveScore(score, pct * 100);
+
+  // Review list
+  const rl = document.getElementById('review-list');
+  rl.innerHTML = '';
+  answers.forEach((a, i) => {
+    const qobj = quizQuestions[a.qIndex];
+    const ok   = a.chosen === a.correct;
+    const card = document.createElement('div');
+    card.className = `rounded-xl border p-4 text-sm ${ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`;
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <span class="font-mono text-xs text-slate2">Q${i+1} · ${qobj.cat}</span>
+          <p class="font-600 mt-1 mb-1">${qobj.q}</p>
+          ${ok
+            ? `<p class="text-forest text-xs">✅ ${qobj.opts[qobj.ans]} <span class="text-slate2">(+${a.pts} pts, ${a.timeUsed}s)</span></p>`
+            : `<p class="text-coral text-xs">❌ You chose: ${a.chosen >= 0 ? qobj.opts[a.chosen] : 'Timed out'}</p>
+               <p class="text-forest text-xs">Correct: ${qobj.opts[a.correct]}</p>`
+          }
+        </div>
+        <span class="font-display font-700 text-base flex-shrink-0 ${ok ? 'text-forest' : 'text-coral'}">
+          ${ok ? '+'+a.pts : '0'}
+        </span>
+      </div>`;
+    rl.appendChild(card);
+  });
 }
 
-// ═════════════════════════════════════════════════════
-//  CERTIFICATE
-// ═════════════════════════════════════════════════════
-function showCertificate() {
-  show('cert-screen');
-  const pct = Math.round((S.correct/S.qs.length)*100);
-  document.getElementById('cert-name').textContent = S.name;
-  document.getElementById('cert-score').textContent = `${S.score}/250`;
-  document.getElementById('cert-pct').textContent = pct+'%';
-  document.getElementById('cert-date').textContent = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  document.getElementById('cert-id').textContent = Math.random().toString(36).substring(2,10).toUpperCase();
-}
-function hideCertificate() { show('results-screen'); }
-function restartQuiz() { document.getElementById('player-name').value = S.name; show('start-screen'); }
-
-// ═════════════════════════════════════════════════════
-//  CONFETTI
-// ═════════════════════════════════════════════════════
-function confetti() {
-  const colors = ['#42c5cf','#10b981','#f59e0b','#8b5cf6','#ef4444','#ec4899','#3b82f6'];
-  for (let i=0;i<60;i++) {
-    const el=document.createElement('div'); el.className='confetti-piece';
-    el.style.cssText=`left:${Math.random()*100}vw;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*2}s;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;border-radius:${Math.random()>0.5?'50%':'2px'}`;
-    document.body.appendChild(el); setTimeout(()=>el.remove(),6000);
-  }
+function retakeQuiz() {
+  document.getElementById('quiz-results').classList.add('hidden');
+  document.getElementById('cert-btn').classList.add('hidden');
+  document.getElementById('quiz-intro').classList.remove('hidden');
+  initQuizIntro();
 }
 
-// Keyboard
-document.addEventListener('keydown', e => {
-  if (document.getElementById('quiz-screen').classList.contains('hidden')) return;
-  if ('aAbBcCdD'.includes(e.key)) selectAnswer('aAbBcCdD'.indexOf(e.key) >> 1);
-  else if (e.key>='1'&&e.key<='4') selectAnswer(+e.key-1);
-  else if (e.key==='Enter'||e.key===' ') { if(!document.getElementById('next-btn').classList.contains('hidden')) nextQuestion(); }
-  else if (e.key==='h'||e.key==='H') toggleHelp();
-});
+/* ─ Certificate ─ */
+function openCert() {
+  const pct = score / TOTAL_MAX;
+  const name = prompt('Enter your name for the certificate:', 'Your Name') || 'Candidate';
+  document.getElementById('cert-name').textContent  = name;
+  document.getElementById('cert-score').textContent = score + ' / ' + TOTAL_MAX;
+  document.getElementById('cert-pct').textContent   = Math.round(pct*100) + '%';
+  document.getElementById('cert-date').textContent  = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('cert-modal').classList.add('open');
+}
+function closeCert() {
+  document.getElementById('cert-modal').classList.remove('open');
+}
 </script>
 </body>
 </html>
