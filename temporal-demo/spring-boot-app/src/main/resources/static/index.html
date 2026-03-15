@@ -454,6 +454,51 @@
             animation: spin 0.6s linear infinite;
             display: inline-block;
         }
+
+        /* ─── PIPELINE STEPS ──────────────────────────── */
+        .pipeline-steps {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .p-step {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-muted);
+            transition: all 0.4s;
+        }
+        .p-step.active {
+            border-color: var(--accent-amber);
+            color: var(--accent-amber);
+            background: #f59e0b08;
+        }
+        .p-step.done {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            background: #10b98108;
+        }
+        .p-dot {
+            width: 22px; height: 22px;
+            border-radius: 50%;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 11px;
+            flex-shrink: 0;
+            transition: all 0.4s;
+        }
+        .p-step.active .p-dot { background: var(--accent-amber); color: var(--bg-deep); }
+        .p-step.done .p-dot { background: var(--accent-green); color: var(--bg-deep); }
     </style>
 </head>
 <body>
@@ -462,7 +507,9 @@
         <nav>
             <div class="logo">temporal<span>::demo</span></div>
             <div class="nav-links">
-                <a href="#demo">Demo</a>
+                <a href="#demo">Hello</a>
+                <a href="#async-demo">Async</a>
+                <a href="#pipeline-demo">Pipeline</a>
                 <a href="#tutorial">Tutorial</a>
                 <a href="http://localhost:8080" target="_blank">Temporal UI</a>
             </div>
@@ -528,6 +575,80 @@
                 </div>
                 <div class="status-bar" id="pythonStatus">Waiting...</div>
                 <div class="result-message" id="pythonResult"></div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- ASYNC FIRE-AND-FORGET DEMO                          -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <section id="async-demo" class="demo-section" style="margin-bottom: 80px;">
+            <div class="card full-width">
+                <div class="card-header">
+                    <div class="icon" style="background:linear-gradient(135deg,#f59e0b30,#ea580c30);color:#f59e0b;">&#9889;</div>
+                    <h3>Async Fire-and-Forget Workflow</h3>
+                </div>
+                <p style="color:var(--text-secondary);margin-bottom:16px;font-size:14px;">Start a background job and get the workflow ID back <strong>instantly</strong>. The workflow runs asynchronously &mdash; poll its status at any time via Temporal query.</p>
+                <div class="input-group">
+                    <input type="text" id="asyncJobInput" placeholder="Job name..." value="report-generation">
+                    <select id="asyncWorkerSelect" style="padding:10px 14px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:13px;">
+                        <option value="java">Java Worker</option>
+                        <option value="python">Python Worker</option>
+                    </select>
+                    <button class="btn btn-primary" id="asyncBtn" onclick="startAsync()">Start Job</button>
+                </div>
+                <div class="status-bar" id="asyncStatus">Ready &mdash; fire-and-forget, returns immediately</div>
+                <div class="result-message" id="asyncResult"></div>
+                <div id="asyncPolling" style="display:none;margin-top:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="spinner" style="color:var(--accent-amber);"></span>
+                        <span style="font-size:13px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;" id="asyncPollText">Polling status...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- LONG-RUNNING PIPELINE DEMO                          -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <section id="pipeline-demo" class="demo-section" style="margin-bottom: 80px;">
+            <div class="card full-width">
+                <div class="card-header">
+                    <div class="icon" style="background:linear-gradient(135deg,#8b5cf630,#6d28d930);color:#8b5cf6;">&#9881;</div>
+                    <h3>Long-Running ETL Pipeline</h3>
+                </div>
+                <p style="color:var(--text-secondary);margin-bottom:16px;font-size:14px;">Run a 4-step pipeline: <strong>Extract &rarr; Transform &rarr; Load &rarr; Notify</strong>. Watch real-time progress via Temporal workflow queries. Activities heartbeat to prove liveness.</p>
+                <div class="input-group">
+                    <input type="text" id="pipelineSourceInput" placeholder="Data source..." value="sales_database">
+                    <select id="pipelineWorkerSelect" style="padding:10px 14px;background:var(--bg-deep);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-family:'JetBrains Mono',monospace;font-size:13px;">
+                        <option value="java">Java Worker</option>
+                        <option value="python">Python Worker</option>
+                    </select>
+                    <button class="btn btn-primary" id="pipelineBtn" onclick="startPipeline()">Start Pipeline</button>
+                </div>
+                <div class="status-bar" id="pipelineStatus">Ready &mdash; starts a multi-step long-running workflow</div>
+
+                <!-- Progress bar -->
+                <div id="pipelineProgressWrap" style="display:none;margin-top:16px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                        <span style="font-size:12px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;" id="pipelineStepText">Starting...</span>
+                        <span style="font-size:12px;color:var(--accent-cyan);font-family:'JetBrains Mono',monospace;" id="pipelinePctText">0%</span>
+                    </div>
+                    <div style="width:100%;height:8px;background:var(--bg-deep);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
+                        <div id="pipelineBar" style="width:0%;height:100%;background:linear-gradient(90deg,var(--accent-blue),var(--accent-cyan));border-radius:4px;transition:width 0.5s ease;"></div>
+                    </div>
+                </div>
+
+                <!-- Steps timeline -->
+                <div id="pipelineTimeline" style="display:none;margin-top:16px;">
+                    <div class="pipeline-steps">
+                        <div class="p-step" id="ps-extract"><span class="p-dot">1</span>Extract</div>
+                        <div class="p-step" id="ps-transform"><span class="p-dot">2</span>Transform</div>
+                        <div class="p-step" id="ps-load"><span class="p-dot">3</span>Load</div>
+                        <div class="p-step" id="ps-notify"><span class="p-dot">4</span>Notify</div>
+                    </div>
+                </div>
+
+                <div class="result-message" id="pipelineResult"></div>
             </div>
         </section>
 
@@ -821,6 +942,200 @@ docker compose up --scale python-worker=3</code></pre>
         document.getElementById('nameInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') sendHello();
         });
+
+        // ════════════════════════════════════════════════════
+        //  ASYNC FIRE-AND-FORGET
+        // ════════════════════════════════════════════════════
+
+        let asyncPollTimer = null;
+
+        async function startAsync() {
+            const jobName = document.getElementById('asyncJobInput').value || 'default-job';
+            const worker = document.getElementById('asyncWorkerSelect').value;
+            const btn = document.getElementById('asyncBtn');
+            const status = document.getElementById('asyncStatus');
+            const result = document.getElementById('asyncResult');
+            const polling = document.getElementById('asyncPolling');
+
+            if (asyncPollTimer) { clearInterval(asyncPollTimer); asyncPollTimer = null; }
+            result.classList.remove('visible');
+            polling.style.display = 'none';
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Starting...';
+            status.className = 'status-bar loading';
+            status.textContent = 'Starting async workflow...';
+
+            try {
+                const res = await fetch('/api/async', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ jobName, worker })
+                });
+                const data = await res.json();
+
+                if (data.status === 'STARTED') {
+                    status.className = 'status-bar success';
+                    status.textContent = '✓ Workflow started (fire-and-forget) — ID: ' + data.workflowId;
+                    polling.style.display = 'block';
+
+                    // Poll status every 1.5s
+                    asyncPollTimer = setInterval(() => pollAsyncStatus(data.workflowId), 1500);
+                    pollAsyncStatus(data.workflowId); // immediate first poll
+                } else {
+                    status.className = 'status-bar error';
+                    status.textContent = '✗ ' + (data.message || 'Failed to start');
+                }
+            } catch (err) {
+                status.className = 'status-bar error';
+                status.textContent = '✗ Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Start Job';
+            }
+        }
+
+        async function pollAsyncStatus(workflowId) {
+            const pollText = document.getElementById('asyncPollText');
+            const result = document.getElementById('asyncResult');
+            const polling = document.getElementById('asyncPolling');
+            const status = document.getElementById('asyncStatus');
+
+            try {
+                const res = await fetch('/api/async/' + workflowId + '/status');
+                const data = await res.json();
+                pollText.textContent = 'Status: ' + data.status;
+
+                if (data.status === 'COMPLETED') {
+                    clearInterval(asyncPollTimer);
+                    asyncPollTimer = null;
+                    polling.style.display = 'none';
+                    status.className = 'status-bar success';
+                    status.textContent = '✓ Workflow completed!';
+                    result.textContent = JSON.stringify(data, null, 2);
+                    result.classList.add('visible');
+                }
+            } catch (err) {
+                pollText.textContent = 'Poll error: ' + err.message;
+            }
+        }
+
+        // ════════════════════════════════════════════════════
+        //  LONG-RUNNING ETL PIPELINE
+        // ════════════════════════════════════════════════════
+
+        let pipelinePollTimer = null;
+
+        async function startPipeline() {
+            const source = document.getElementById('pipelineSourceInput').value || 'sales_database';
+            const worker = document.getElementById('pipelineWorkerSelect').value;
+            const btn = document.getElementById('pipelineBtn');
+            const status = document.getElementById('pipelineStatus');
+            const result = document.getElementById('pipelineResult');
+            const progressWrap = document.getElementById('pipelineProgressWrap');
+            const timeline = document.getElementById('pipelineTimeline');
+
+            if (pipelinePollTimer) { clearInterval(pipelinePollTimer); pipelinePollTimer = null; }
+            result.classList.remove('visible');
+            progressWrap.style.display = 'none';
+            timeline.style.display = 'none';
+            resetPipelineSteps();
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Starting...';
+            status.className = 'status-bar loading';
+            status.textContent = 'Starting ETL pipeline...';
+
+            try {
+                const res = await fetch('/api/pipeline', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source, worker })
+                });
+                const data = await res.json();
+
+                if (data.status === 'STARTED') {
+                    status.className = 'status-bar loading';
+                    status.textContent = 'Pipeline running — ID: ' + data.workflowId;
+                    progressWrap.style.display = 'block';
+                    timeline.style.display = 'block';
+
+                    // Poll progress every 1s
+                    pipelinePollTimer = setInterval(() => pollPipelineProgress(data.workflowId), 1000);
+                    pollPipelineProgress(data.workflowId);
+                } else {
+                    status.className = 'status-bar error';
+                    status.textContent = '✗ ' + (data.message || 'Failed to start');
+                }
+            } catch (err) {
+                status.className = 'status-bar error';
+                status.textContent = '✗ Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Start Pipeline';
+            }
+        }
+
+        async function pollPipelineProgress(workflowId) {
+            const status = document.getElementById('pipelineStatus');
+            const stepText = document.getElementById('pipelineStepText');
+            const pctText = document.getElementById('pipelinePctText');
+            const bar = document.getElementById('pipelineBar');
+            const result = document.getElementById('pipelineResult');
+
+            try {
+                const res = await fetch('/api/pipeline/' + workflowId + '/progress');
+                const data = await res.json();
+
+                const pct = data.percentage || 0;
+                const desc = data.description || '';
+
+                stepText.textContent = desc;
+                pctText.textContent = pct + '%';
+                bar.style.width = pct + '%';
+
+                // Update step indicators
+                updatePipelineSteps(pct);
+
+                if (data.state === 'COMPLETED') {
+                    clearInterval(pipelinePollTimer);
+                    pipelinePollTimer = null;
+                    status.className = 'status-bar success';
+                    status.textContent = '✓ Pipeline completed!';
+                    bar.style.background = 'linear-gradient(90deg, var(--accent-green), #34d399)';
+                    result.textContent = JSON.stringify(data, null, 2);
+                    result.classList.add('visible');
+                }
+            } catch (err) {
+                stepText.textContent = 'Poll error: ' + err.message;
+            }
+        }
+
+        function updatePipelineSteps(pct) {
+            const steps = [
+                { id: 'ps-extract', threshold: 10 },
+                { id: 'ps-transform', threshold: 35 },
+                { id: 'ps-load', threshold: 65 },
+                { id: 'ps-notify', threshold: 90 },
+            ];
+            for (let i = 0; i < steps.length; i++) {
+                const el = document.getElementById(steps[i].id);
+                const nextThreshold = (i < steps.length - 1) ? steps[i+1].threshold : 101;
+                if (pct >= nextThreshold) {
+                    el.className = 'p-step done';
+                } else if (pct >= steps[i].threshold) {
+                    el.className = 'p-step active';
+                } else {
+                    el.className = 'p-step';
+                }
+            }
+        }
+
+        function resetPipelineSteps() {
+            ['ps-extract','ps-transform','ps-load','ps-notify'].forEach(id => {
+                document.getElementById(id).className = 'p-step';
+            });
+        }
     </script>
 </body>
 </html>

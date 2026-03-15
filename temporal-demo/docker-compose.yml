@@ -22,6 +22,8 @@ services:
       retries: 10
 
   # ─── Temporal Server ────────────────────────────────────────
+  # NOTE: auto-setup runs schema migration + namespace creation on first start.
+  # This takes 20-40 seconds. Workers and app will retry connections automatically.
   temporal:
     image: temporalio/auto-setup:latest
     container_name: temporal-server
@@ -43,12 +45,6 @@ services:
       - "7233:7233"
     networks:
       - temporal-network
-    healthcheck:
-      test: ["CMD", "echo"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 40s
 
   # ─── Temporal Web UI ────────────────────────────────────────
   temporal-ui:
@@ -71,8 +67,8 @@ services:
       dockerfile: Dockerfile
     container_name: temporal-spring-app
     depends_on:
-      temporal:
-        condition: service_healthy
+      - temporal
+    restart: on-failure
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - SERVER_PORT=8081
@@ -88,8 +84,8 @@ services:
       dockerfile: Dockerfile
     container_name: temporal-java-worker
     depends_on:
-      temporal:
-        condition: service_healthy
+      - temporal
+    restart: on-failure
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
     networks:
@@ -102,8 +98,8 @@ services:
       dockerfile: Dockerfile
     container_name: temporal-python-worker
     depends_on:
-      temporal:
-        condition: service_healthy
+      - temporal
+    restart: on-failure
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
     networks:

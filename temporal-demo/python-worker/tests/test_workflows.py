@@ -20,12 +20,8 @@ Time-skipping mode:
 """
 
 import pytest
-from datetime import timedelta
-from unittest.mock import AsyncMock, patch
 
 from temporalio import activity
-from temporalio.client import Client
-from temporalio.common import RetryPolicy
 from temporalio.testing import WorkflowEnvironment
 from temporalio.worker import Worker
 

@@ -1,7 +1,10 @@
 package com.demo.temporal.javaworker;
 
 import com.demo.temporal.javaworker.activity.GreetingActivitiesImpl;
+import com.demo.temporal.javaworker.activity.ProcessingActivitiesImpl;
+import com.demo.temporal.javaworker.workflow.AsyncProcessingWorkflowImpl;
 import com.demo.temporal.javaworker.workflow.JavaHelloWorkflowImpl;
+import com.demo.temporal.javaworker.workflow.LongRunningWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.serviceclient.WorkflowServiceStubs;
@@ -44,8 +47,13 @@ public class JavaWorkerApp {
         Worker worker = factory.newWorker(TASK_QUEUE);
 
         // Register workflow and activity implementations
-        worker.registerWorkflowImplementationTypes(JavaHelloWorkflowImpl.class);
-        worker.registerActivitiesImplementations(new GreetingActivitiesImpl());
+        worker.registerWorkflowImplementationTypes(
+                JavaHelloWorkflowImpl.class,
+                AsyncProcessingWorkflowImpl.class,
+                LongRunningWorkflowImpl.class);
+        worker.registerActivitiesImplementations(
+                new GreetingActivitiesImpl(),
+                new ProcessingActivitiesImpl());
 
         // Start polling the task queue
         factory.start();

@@ -6,7 +6,16 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from activities import compose_greeting
+from processing_activities import (
+    process_async,
+    extract_data,
+    transform_data,
+    load_data,
+    send_notification,
+)
 from workflows import PythonHelloWorkflow
+from async_workflow import AsyncProcessingWorkflow
+from long_running_workflow import LongRunningWorkflow
 
 TASK_QUEUE = "python-hello-queue"
 
@@ -31,8 +40,19 @@ async def main():
     worker = Worker(
         client,
         task_queue=TASK_QUEUE,
-        workflows=[PythonHelloWorkflow],
-        activities=[compose_greeting],
+        workflows=[
+            PythonHelloWorkflow,
+            AsyncProcessingWorkflow,
+            LongRunningWorkflow,
+        ],
+        activities=[
+            compose_greeting,
+            process_async,
+            extract_data,
+            transform_data,
+            load_data,
+            send_notification,
+        ],
     )
 
     log.info("Python Worker is now polling task queue: %s", TASK_QUEUE)
