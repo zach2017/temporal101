@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporal.io — Beginner's Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#faf9f6;--bg2:#f0eeea;--bg3:#fff;--text:#1a1917;--text2:#5c5a54;--text3:#8a877f;
+  --accent:#6c5ce7;--accent2:#a29bfe;--accent-bg:#f0eeff;
+  --teal:#00b894;--teal-bg:#e6f9f4;--teal-dark:#00896d;
+  --coral:#e17055;--coral-bg:#fdf0ec;--coral-dark:#c0513a;
+  --blue:#0984e3;--blue-bg:#e8f4fd;--blue-dark:#0670c2;
+  --amber:#f59e0b;--amber-bg:#fef9e7;--amber-dark:#d48806;
+  --border:#e2e0db;--border2:#ccc9c1;
+  --mono:'JetBrains Mono',monospace;--sans:'DM Sans',system-ui,sans-serif;--display:'Fraunces',serif;
+  --radius:10px;--radius-lg:16px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.7;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+
+/* Layout */
+.wrapper{max-width:920px;margin:0 auto;padding:2rem 1.5rem 4rem}
+header{text-align:center;padding:3rem 0 2rem}
+header .badge{display:inline-block;background:var(--accent-bg);color:var(--accent);font-size:.75rem;font-weight:600;padding:4px 14px;border-radius:99px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1rem}
+header h1{font-family:var(--display);font-size:clamp(2rem,5vw,3rem);font-weight:700;line-height:1.2;margin-bottom:.75rem}
+header h1 span{color:var(--accent)}
+header p.sub{font-size:1.1rem;color:var(--text2);max-width:560px;margin:0 auto}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;border-bottom:1.5px solid var(--border);padding-bottom:0;margin:2.5rem 0 0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 18px;font-size:.875rem;font-weight:500;color:var(--text2);cursor:pointer;border:none;background:none;border-bottom:2.5px solid transparent;transition:all .2s;white-space:nowrap;font-family:var(--sans)}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.panel{display:none;padding:2rem 0 0;animation:fadeUp .35s ease}
+.panel.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* Sections */
+h2{font-family:var(--display);font-size:1.65rem;font-weight:700;margin:2rem 0 .75rem;line-height:1.3}
+h2:first-child{margin-top:0}
+h3{font-size:1.1rem;font-weight:600;margin:1.5rem 0 .5rem;color:var(--text)}
+p{margin-bottom:1rem;color:var(--text2)}
+p strong{color:var(--text);font-weight:600}
+
+/* Feature cards */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:1.5rem 0}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,.04)}
+.card .icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;margin-bottom:.75rem;font-weight:700}
+.card h4{font-size:.95rem;font-weight:600;margin-bottom:.35rem}
+.card p{font-size:.85rem;margin:0;color:var(--text3)}
+
+/* Code blocks */
+.code-wrap{position:relative;margin:1.25rem 0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:.75rem;font-weight:600;color:var(--text2)}
+.code-header .lang{background:var(--accent-bg);color:var(--accent);padding:2px 10px;border-radius:99px;font-size:.7rem;letter-spacing:.03em}
+.code-header button{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:.72rem;color:var(--text2);cursor:pointer;font-family:var(--sans);transition:all .15s}
+.code-header button:hover{background:var(--bg);border-color:var(--border2)}
+pre{background:#1e1e2e;color:#cdd6f4;padding:1.25rem 1.5rem;overflow-x:auto;font-family:var(--mono);font-size:.82rem;line-height:1.75;margin:0}
+pre .kw{color:#cba6f7}pre .fn{color:#89b4fa}pre .str{color:#a6e3a1}pre .cm{color:#6c7086;font-style:italic}
+pre .type{color:#f9e2af}pre .num{color:#fab387}pre .ann{color:#f38ba8}pre .op{color:#89dceb}
+
+/* Info boxes */
+.info-box{border-radius:var(--radius);padding:1rem 1.25rem;margin:1.25rem 0;font-size:.9rem}
+.info-box.teal{background:var(--teal-bg);border-left:3px solid var(--teal)}
+.info-box.blue{background:var(--blue-bg);border-left:3px solid var(--blue)}
+.info-box.coral{background:var(--coral-bg);border-left:3px solid var(--coral)}
+.info-box.amber{background:var(--amber-bg);border-left:3px solid var(--amber)}
+.info-box strong{color:var(--text)}
+
+/* Diagram */
+.diagram{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2rem;margin:1.5rem 0;text-align:center;overflow-x:auto}
+.diagram svg{max-width:100%;height:auto}
+
+/* Steps */
+.step{display:flex;gap:1rem;margin:1.25rem 0;align-items:flex-start}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0;margin-top:2px}
+.step-content h4{font-size:.95rem;font-weight:600;margin-bottom:.25rem}
+.step-content p{font-size:.88rem;margin:0}
+
+/* Table */
+.compare-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-size:.88rem}
+.compare-table th{text-align:left;padding:10px 14px;background:var(--bg2);font-weight:600;border-bottom:1.5px solid var(--border)}
+.compare-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
+.compare-table tr:hover td{background:var(--bg2)}
+
+/* Architecture anim */
+.arch-flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:1.5rem 0}
+.arch-box{padding:10px 18px;border-radius:var(--radius);font-size:.82rem;font-weight:600;text-align:center;border:1.5px solid;min-width:110px}
+.arch-arrow{color:var(--text3);font-size:1.2rem}
+.pulse{animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* Footer */
+footer{text-align:center;padding:2rem 0;color:var(--text3);font-size:.8rem;border-top:1px solid var(--border);margin-top:3rem}
+@media(max-width:600px){
+  .wrapper{padding:1rem}
+  header h1{font-size:1.75rem}
+  .tabs{gap:0}
+  .tab{padding:8px 12px;font-size:.8rem}
+  pre{font-size:.75rem;padding:1rem}
+}
+</style>
+</head>
+<body>
+<div class="wrapper">
+<header>
+  <div class="badge">Beginner Tutorial</div>
+  <h1>Master <span>Temporal.io</span> from Scratch</h1>
+  <p class="sub">Learn durable workflow orchestration with Docker Compose, Java SDK, and Python SDK — from concepts to running code.</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="overview">What is Temporal?</button>
+  <button class="tab" data-tab="architecture">Architecture</button>
+  <button class="tab" data-tab="features">Features &amp; Scaling</button>
+  <button class="tab" data-tab="docker">Docker Compose</button>
+  <button class="tab" data-tab="java">Java Tutorial</button>
+  <button class="tab" data-tab="python">Python Tutorial</button>
+</nav>
+
+<!-- ═══════════════ OVERVIEW ═══════════════ -->
+<section class="panel active" id="overview">
+<h2>What is Temporal?</h2>
+<p>Temporal is an <strong>open-source durable execution platform</strong> that lets you write complex application logic as simple procedural code. Instead of juggling message queues, retry logic, state machines, and cron schedulers, you write a <strong>Workflow</strong> — a function that can run for seconds, hours, or even years — and Temporal guarantees it will complete, even through process crashes, network failures, and server restarts.</p>
+
+<div class="info-box teal">
+  <strong>Core idea:</strong> Your code writes like a normal function with try/catch, loops, and if-else. Temporal makes that function <em>indestructible</em> by recording every step in a durable event history.
+</div>
+
+<h3>Why do teams use Temporal?</h3>
+<p>Before Temporal, building reliable distributed systems meant hand-wiring retries, timeouts, state persistence, idempotency keys, dead-letter queues, and compensating transactions. A single order-processing pipeline might need dozens of infrastructure primitives glued together. Temporal replaces all of that with one programming model.</p>
+
+<div class="card-grid">
+  <div class="card">
+    <div class="icon" style="background:var(--accent-bg);color:var(--accent)">⟳</div>
+    <h4>Automatic retries</h4>
+    <p>Failed activities retry with configurable backoff policies — no manual retry loops.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--teal-bg);color:var(--teal-dark)">✓</div>
+    <h4>Durable state</h4>
+    <p>Workflow state survives crashes. Temporal replays the event history to restore exactly where you left off.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--coral-bg);color:var(--coral-dark)">⏱</div>
+    <h4>Timers &amp; schedules</h4>
+    <p>Sleep for days or years inside a workflow — no cron jobs or external schedulers needed.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--blue-bg);color:var(--blue-dark)">↔</div>
+    <h4>Language agnostic</h4>
+    <p>SDKs for Go, Java, Python, TypeScript, .NET, and PHP. Mix languages in the same system.</p>
+  </div>
+</div>
+
+<h3>Real-world use cases</h3>
+<p>Companies like <strong>Netflix, Stripe, Snap, Datadog, and Coinbase</strong> use Temporal for:</p>
+<table class="compare-table">
+<tr><th>Use Case</th><th>What Temporal Does</th></tr>
+<tr><td>Order processing</td><td>Orchestrates payment → inventory → shipping → notification as one workflow</td></tr>
+<tr><td>User onboarding</td><td>Multi-step signup with verification emails, timeouts, and fallbacks</td></tr>
+<tr><td>Data pipelines</td><td>ETL jobs that retry failed steps without re-running the whole pipeline</td></tr>
+<tr><td>Subscription billing</td><td>Long-running workflows that bill monthly for years, handling upgrades/cancellations</td></tr>
+<tr><td>CI/CD orchestration</td><td>Build → test → deploy pipelines that survive infra failures mid-deploy</td></tr>
+<tr><td>Human-in-the-loop</td><td>Workflows that pause and wait for manual approval, then resume</td></tr>
+</table>
+</section>
+
+<!-- ═══════════════ ARCHITECTURE ═══════════════ -->
+<section class="panel" id="architecture">
+<h2>How Temporal works</h2>
+<p>Temporal has a <strong>client-server architecture</strong> with clear separation between the orchestration engine (Temporal Server) and your business logic (Workers).</p>
+
+<div class="diagram">
+<svg viewBox="0 0 780 420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <!-- Client -->
+  <rect x="20" y="60" width="150" height="60" rx="10" fill="#f0eeff" stroke="#6c5ce7" stroke-width="1.5"/>
+  <text x="95" y="87" text-anchor="middle" font-family="DM Sans" font-size="13" font-weight="600" fill="#6c5ce7">Your Application</text>
+  <text x="95" y="104" text-anchor="middle" font-family="DM Sans" font-size="10" fill="#8a877f">(Temporal Client)</text>
+  <!-- Arrow client → server -->
+  <line x1="170" y1="90" x2="238" y2="90" stroke="#6c5ce7" stroke-width="1.5" marker-end="url(#arw)"/>
+  <text x="204" y="82" text-anchor="middle" font-family="DM Sans" font-size="9" fill="#8a877f">gRPC</text>
+  <!-- Temporal Server box -->
+  <rect x="240" y="20" width="300" height="380" rx="14" fill="none" stroke="#e2e0db" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="390" y="46" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="700" fill="#1a1917">Temporal Server</text>
+  <!-- Frontend -->
+  <rect x="270" y="65" width="240" height="50" rx="8" fill="#e8f4fd" stroke="#0984e3" stroke-width="1"/>
+  <text x="390" y="87" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="600" fill="#0670c2">Frontend Service</text>
+  <text x="390" y="102" text-anchor="middle" font-family="DM Sans" font-size="9" fill="#8a877f">API gateway, rate limiting</text>
+  <!-- Matching -->
+  <rect x="270" y="135" width="240" height="50" rx="8" fill="#fef9e7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="390" y="157" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="600" fill="#d48806">Matching Service</text>
+  <text x="390" y="172" text-anchor="middle" font-family="DM Sans" font-size="9" fill="#8a877f">Task queue dispatch</text>
+  <!-- History -->
+  <rect x="270" y="205" width="240" height="50" rx="8" fill="#e6f9f4" stroke="#00b894" stroke-width="1"/>
+  <text x="390" y="227" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="600" fill="#00896d">History Service</text>
+  <text x="390" y="242" text-anchor="middle" font-family="DM Sans" font-size="9" fill="#8a877f">Event sourcing, state</text>
+  <!-- Worker Service -->
+  <rect x="270" y="275" width="240" height="50" rx="8" fill="#fdf0ec" stroke="#e17055" stroke-width="1"/>
+  <text x="390" y="297" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="600" fill="#c0513a">Worker Service</text>
+  <text x="390" y="312" text-anchor="middle" font-family="DM Sans" font-size="9" fill="#8a877f">Internal task management</text>
+  <!-- Persistence -->
+  <rect x="290" y="345" width="200" height="40" rx="8" fill="#f0eeea" stroke="#ccc9c1" stroke-width="1"/>
+  <text x="390" y="370" text-anchor="middle" font-family="DM Sans" font-size="11" font-weight="600" fill="#5c5a54">Persistence (DB)</text>
+  <!-- Arrows inside server -->
+  <line x1="390" y1="115" x2="390" y2="135" stroke="#ccc9c1" stroke-width="1" marker-end="url(#arw)"/>
+  <line x1="390" y1="185" x2="390" y2="205" stroke="#ccc9c1" stroke-width="1" marker-end="url(#arw)"/>
+  <line x1="390" y1="255" x2="390" y2="275" stroke="#ccc9c1" stroke-width="1" marker-end="url(#arw)"/>
+  <line x1="390" y1="325" x2="390" y2="345" stroke="#ccc9c1" stroke-width="1" marker-end="url(#arw)"/>
+  <!-- Workers -->
+  <rect x="610" y="100" width="150" height="55" rx="10" fill="#e6f9f4" stroke="#00b894" stroke-width="1.5"/>
+  <text x="685" y="124" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="600" fill="#00896d">Worker (Java)</text>
+  <text x="685" y="141" text-anchor="middle" font-family="DM Sans" font-size="9" fill="#8a877f">Workflows + Activities</text>
+  <rect x="610" y="175" width="150" height="55" rx="10" fill="#f0eeff" stroke="#6c5ce7" stroke-width="1.5"/>
+  <text x="685" y="199" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="600" fill="#6c5ce7">Worker (Python)</text>
+  <text x="685" y="216" text-anchor="middle" font-family="DM Sans" font-size="9" fill="#8a877f">Workflows + Activities</text>
+  <rect x="610" y="250" width="150" height="55" rx="10" fill="#fef9e7" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="685" y="274" text-anchor="middle" font-family="DM Sans" font-size="12" font-weight="600" fill="#d48806">Worker (Go/TS)</text>
+  <text x="685" y="291" text-anchor="middle" font-family="DM Sans" font-size="9" fill="#8a877f">Workflows + Activities</text>
+  <!-- Arrows server → workers -->
+  <line x1="540" y1="160" x2="608" y2="128" stroke="#00b894" stroke-width="1.5" marker-end="url(#arw)"/>
+  <line x1="540" y1="160" x2="608" y2="200" stroke="#6c5ce7" stroke-width="1.5" marker-end="url(#arw)"/>
+  <line x1="540" y1="230" x2="608" y2="275" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arw)"/>
+  <text x="574" y="148" font-family="DM Sans" font-size="9" fill="#8a877f">poll</text>
+  <text x="574" y="198" font-family="DM Sans" font-size="9" fill="#8a877f">poll</text>
+  <text x="574" y="260" font-family="DM Sans" font-size="9" fill="#8a877f">poll</text>
+</svg>
+</div>
+
+<h3>The execution model</h3>
+<div class="step"><div class="step-num">1</div><div class="step-content"><h4>Client starts a Workflow</h4><p>Your app sends a gRPC request to the Temporal Server saying "run this workflow with these inputs." The server assigns it a <strong>Workflow ID</strong> and creates an event history.</p></div></div>
+<div class="step"><div class="step-num">2</div><div class="step-content"><h4>Server schedules a Workflow Task</h4><p>The Matching Service puts a task onto a <strong>Task Queue</strong>. Think of it like a smart mailbox — tasks wait here until a Worker picks them up.</p></div></div>
+<div class="step"><div class="step-num">3</div><div class="step-content"><h4>Worker picks up the task</h4><p>Workers long-poll task queues. When a worker grabs a Workflow Task, it replays the event history to rebuild state, then executes the next step of your workflow code.</p></div></div>
+<div class="step"><div class="step-num">4</div><div class="step-content"><h4>Activities execute side effects</h4><p>When the workflow calls an Activity (API call, DB write, sending email), the server creates an <strong>Activity Task</strong>. A worker picks it up, executes the real work, and reports the result.</p></div></div>
+<div class="step"><div class="step-num">5</div><div class="step-content"><h4>Events are durably recorded</h4><p>Every decision, activity result, timer, and signal is appended to the workflow's <strong>Event History</strong> in the database. If the worker crashes mid-execution, another worker replays the history and continues exactly where it left off.</p></div></div>
+
+<div class="info-box blue">
+  <strong>Key insight — Replay:</strong> Workflow code must be <em>deterministic</em>. Temporal doesn't persist variables — it persists <em>events</em> and replays your workflow code against them. Non-deterministic calls (random numbers, current time, I/O) must go inside Activities, not workflow code.
+</div>
+</section>
+
+<!-- ═══════════════ FEATURES ═══════════════ -->
+<section class="panel" id="features">
+<h2>Features &amp; Scaling</h2>
+
+<h3>Core features</h3>
+<div class="card-grid">
+  <div class="card">
+    <div class="icon" style="background:var(--accent-bg);color:var(--accent)">⚡</div>
+    <h4>Durable Timers</h4>
+    <p>Sleep for minutes or months inside a workflow. No cron, no external scheduler — just <code>workflow.sleep("30d")</code>.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--teal-bg);color:var(--teal-dark)">📡</div>
+    <h4>Signals</h4>
+    <p>Send data to a running workflow from outside. Example: user approves an order → signal the waiting workflow to continue.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--coral-bg);color:var(--coral-dark)">🔍</div>
+    <h4>Queries</h4>
+    <p>Read workflow state without affecting execution. Check order status, progress percentage, or any internal variable.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--blue-bg);color:var(--blue-dark)">🔁</div>
+    <h4>Continue-As-New</h4>
+    <p>Long-running workflows can "restart" with fresh history to avoid unbounded event logs while preserving state.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--amber-bg);color:var(--amber-dark)">🧒</div>
+    <h4>Child Workflows</h4>
+    <p>Compose complex workflows from simpler ones. A parent workflow can spawn children that run independently.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--accent-bg);color:var(--accent)">📋</div>
+    <h4>Visibility &amp; Search</h4>
+    <p>Query running/completed workflows by custom attributes. Full observability via the Temporal Web UI.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--teal-bg);color:var(--teal-dark)">🔒</div>
+    <h4>Versioning</h4>
+    <p>Safely deploy new workflow logic while old executions finish on the previous version — no breaking changes.</p>
+  </div>
+  <div class="card">
+    <div class="icon" style="background:var(--coral-bg);color:var(--coral-dark)">📅</div>
+    <h4>Schedules</h4>
+    <p>Built-in cron-like scheduling. Run workflows on a cadence without external schedulers.</p>
+  </div>
+</div>
+
+<h3>How Temporal scales</h3>
+<p>Temporal was designed for massive scale from the start. Here's how each layer scales independently:</p>
+
+<table class="compare-table">
+<tr><th>Component</th><th>Scaling Strategy</th><th>Notes</th></tr>
+<tr><td><strong>Frontend Service</strong></td><td>Horizontal — add more instances</td><td>Stateless gRPC gateway, load-balanced</td></tr>
+<tr><td><strong>Matching Service</strong></td><td>Horizontal + sharded by Task Queue</td><td>Each task queue partition handles its own workers</td></tr>
+<tr><td><strong>History Service</strong></td><td>Horizontal + sharded by Workflow ID</td><td>Each shard owns a subset of workflow histories</td></tr>
+<tr><td><strong>Workers</strong></td><td>Horizontal — add more worker processes</td><td>Workers are stateless; add as many as needed</td></tr>
+<tr><td><strong>Database</strong></td><td>Cassandra, MySQL, PostgreSQL, or CockroachDB</td><td>Cassandra for highest throughput; Postgres for simplicity</td></tr>
+</table>
+
+<div class="info-box amber">
+  <strong>Production numbers:</strong> Temporal has been battle-tested at companies handling millions of concurrent workflows. The server can process tens of thousands of workflow transitions per second per shard. Workers scale linearly — double the workers, double the throughput.
+</div>
+
+<h3>Temporal vs. the alternatives</h3>
+<table class="compare-table">
+<tr><th>Feature</th><th>Temporal</th><th>Message Queues (Kafka/RabbitMQ)</th><th>Step Functions (AWS)</th></tr>
+<tr><td>Code-first logic</td><td>✅ Write normal code</td><td>❌ Glue consumers together</td><td>⚠️ JSON state machines</td></tr>
+<tr><td>Durable state</td><td>✅ Automatic</td><td>❌ Manual persistence</td><td>✅ Managed</td></tr>
+<tr><td>Long-running (months)</td><td>✅ Native timers</td><td>❌ Need cron + state DB</td><td>⚠️ Limited (1 year max)</td></tr>
+<tr><td>Visibility/Debugging</td><td>✅ Full event history + UI</td><td>❌ Build your own</td><td>⚠️ CloudWatch only</td></tr>
+<tr><td>Vendor lock-in</td><td>✅ Open source, self-host</td><td>✅ Open source</td><td>❌ AWS only</td></tr>
+<tr><td>Multi-language</td><td>✅ Go, Java, Python, TS, .NET, PHP</td><td>✅ Any</td><td>❌ Lambdas only</td></tr>
+</table>
+</section>
+
+<!-- ═══════════════ DOCKER ═══════════════ -->
+<section class="panel" id="docker">
+<h2>Docker Compose setup</h2>
+<p>This gives you a complete local Temporal environment with the server, a PostgreSQL database, and the Web UI for debugging.</p>
+
+<div class="info-box teal">
+  <strong>Prerequisites:</strong> Docker and Docker Compose installed on your machine. Verify with <code>docker --version</code> and <code>docker compose version</code>.
+</div>
+
+<h3>Project structure</h3>
+<div class="code-wrap">
+<div class="code-header"><span>Project layout</span><span class="lang">SHELL</span></div>
+<pre>temporal-tutorial/
+├── docker-compose.yml          <span class="cm"># Temporal Server + DB + UI</span>
+├── java-worker/                <span class="cm"># Java SDK worker</span>
+│   ├── build.gradle
+│   └── src/main/java/...
+└── python-worker/              <span class="cm"># Python SDK worker</span>
+    ├── requirements.txt
+    ├── workflows.py
+    ├── activities.py
+    ├── worker.py
+    └── starter.py</pre>
+</div>
+
+<h3>docker-compose.yml</h3>
+<div class="code-wrap">
+<div class="code-header"><span>docker-compose.yml</span><span class="lang">YAML</span></div>
+<pre><span class="cm"># Temporal.io local dev environment</span>
+<span class="kw">version</span>: <span class="str">"3.8"</span>
+
+<span class="kw">services</span>:
+
+  <span class="cm"># ── PostgreSQL database ──</span>
+  <span class="fn">postgresql</span>:
+    <span class="kw">image</span>: postgres:15-alpine
+    <span class="kw">container_name</span>: temporal-postgresql
+    <span class="kw">environment</span>:
+      <span class="type">POSTGRES_USER</span>: temporal
+      <span class="type">POSTGRES_PASSWORD</span>: temporal
+      <span class="type">POSTGRES_DB</span>: temporal
+    <span class="kw">ports</span>:
+      - <span class="str">"5432:5432"</span>
+    <span class="kw">volumes</span>:
+      - postgresql_data:/var/lib/postgresql/data
+    <span class="kw">networks</span>:
+      - temporal-network
+
+  <span class="cm"># ── Temporal Server ──</span>
+  <span class="fn">temporal</span>:
+    <span class="kw">image</span>: temporalio/auto-setup:latest
+    <span class="kw">container_name</span>: temporal-server
+    <span class="kw">depends_on</span>:
+      - postgresql
+    <span class="kw">environment</span>:
+      - <span class="type">DB</span>=postgres12
+      - <span class="type">DB_PORT</span>=5432
+      - <span class="type">POSTGRES_USER</span>=temporal
+      - <span class="type">POSTGRES_PWD</span>=temporal
+      - <span class="type">POSTGRES_SEEDS</span>=postgresql
+      - <span class="type">DYNAMIC_CONFIG_FILE_PATH</span>=config/dynamicconfig/development-sql.yaml
+    <span class="kw">ports</span>:
+      - <span class="str">"7233:7233"</span>   <span class="cm"># gRPC frontend</span>
+    <span class="kw">networks</span>:
+      - temporal-network
+
+  <span class="cm"># ── Temporal Web UI ──</span>
+  <span class="fn">temporal-ui</span>:
+    <span class="kw">image</span>: temporalio/ui:latest
+    <span class="kw">container_name</span>: temporal-ui
+    <span class="kw">depends_on</span>:
+      - temporal
+    <span class="kw">environment</span>:
+      - <span class="type">TEMPORAL_ADDRESS</span>=temporal:7233
+      - <span class="type">TEMPORAL_CORS_ORIGINS</span>=http://localhost:3000
+    <span class="kw">ports</span>:
+      - <span class="str">"8080:8080"</span>   <span class="cm"># Web UI</span>
+    <span class="kw">networks</span>:
+      - temporal-network
+
+  <span class="cm"># ── Temporal Admin Tools (optional, for tctl CLI) ──</span>
+  <span class="fn">temporal-admin-tools</span>:
+    <span class="kw">image</span>: temporalio/admin-tools:latest
+    <span class="kw">container_name</span>: temporal-admin-tools
+    <span class="kw">depends_on</span>:
+      - temporal
+    <span class="kw">environment</span>:
+      - <span class="type">TEMPORAL_ADDRESS</span>=temporal:7233
+    <span class="kw">networks</span>:
+      - temporal-network
+    <span class="kw">stdin_open</span>: <span class="num">true</span>
+    <span class="kw">tty</span>: <span class="num">true</span>
+
+<span class="kw">volumes</span>:
+  <span class="fn">postgresql_data</span>:
+
+<span class="kw">networks</span>:
+  <span class="fn">temporal-network</span>:
+    <span class="kw">driver</span>: bridge</pre>
+</div>
+
+<h3>Start the stack</h3>
+<div class="code-wrap">
+<div class="code-header"><span>Terminal commands</span><span class="lang">BASH</span></div>
+<pre><span class="cm"># Start all services</span>
+docker compose up -d
+
+<span class="cm"># Verify everything is running</span>
+docker compose ps
+
+<span class="cm"># Check Temporal Server health</span>
+docker exec temporal-admin-tools tctl cluster health
+
+<span class="cm"># Open the Web UI</span>
+<span class="cm"># → http://localhost:8080</span>
+
+<span class="cm"># Stop everything</span>
+docker compose down
+
+<span class="cm"># Stop and wipe all data</span>
+docker compose down -v</pre>
+</div>
+
+<div class="info-box blue">
+  <strong>Ports cheat sheet:</strong><br>
+  <code>7233</code> — Temporal gRPC (workers &amp; clients connect here)<br>
+  <code>8080</code> — Temporal Web UI (visual workflow explorer)<br>
+  <code>5432</code> — PostgreSQL (workflow event storage)
+</div>
+</section>
+
+<!-- ═══════════════ JAVA ═══════════════ -->
+<section class="panel" id="java">
+<h2>Java SDK Tutorial</h2>
+<p>We'll build a simple <strong>greeting workflow</strong> that calls an Activity to compose a greeting message. This teaches the core concepts: Workflow Interface, Activity Interface, Worker, and Client.</p>
+
+<div class="info-box teal">
+  <strong>Prerequisites:</strong> Java 11+, Gradle or Maven, and the Temporal Docker stack running on port 7233.
+</div>
+
+<h3>1. Gradle setup</h3>
+<div class="code-wrap">
+<div class="code-header"><span>build.gradle</span><span class="lang">GRADLE</span></div>
+<pre><span class="kw">plugins</span> {
+    <span class="fn">id</span> <span class="str">'java'</span>
+    <span class="fn">id</span> <span class="str">'application'</span>
+}
+
+<span class="kw">group</span> = <span class="str">'com.example.temporal'</span>
+<span class="kw">version</span> = <span class="str">'1.0.0'</span>
+<span class="kw">sourceCompatibility</span> = <span class="str">'11'</span>
+
+<span class="kw">repositories</span> {
+    mavenCentral()
+}
+
+<span class="kw">dependencies</span> {
+    <span class="fn">implementation</span> <span class="str">'io.temporal:temporal-sdk:1.25.0'</span>
+    <span class="fn">implementation</span> <span class="str">'ch.qos.logback:logback-classic:1.4.14'</span>
+}
+
+<span class="kw">application</span> {
+    mainClass = <span class="str">'com.example.temporal.GreetingStarter'</span>
+}</pre>
+</div>
+
+<h3>2. Define the Workflow interface</h3>
+<div class="code-wrap">
+<div class="code-header"><span>GreetingWorkflow.java</span><span class="lang">JAVA</span></div>
+<pre><span class="kw">package</span> com.example.temporal;
+
+<span class="kw">import</span> io.temporal.workflow.WorkflowInterface;
+<span class="kw">import</span> io.temporal.workflow.WorkflowMethod;
+
+<span class="cm">/**
+ * A Workflow Interface defines the contract.
+ * The @WorkflowMethod marks the entry point.
+ */</span>
+<span class="ann">@WorkflowInterface</span>
+<span class="kw">public interface</span> <span class="type">GreetingWorkflow</span> {
+
+    <span class="ann">@WorkflowMethod</span>
+    <span class="type">String</span> <span class="fn">greet</span>(<span class="type">String</span> name);
+}</pre>
+</div>
+
+<h3>3. Define the Activity interface</h3>
+<div class="code-wrap">
+<div class="code-header"><span>GreetingActivities.java</span><span class="lang">JAVA</span></div>
+<pre><span class="kw">package</span> com.example.temporal;
+
+<span class="kw">import</span> io.temporal.activity.ActivityInterface;
+<span class="kw">import</span> io.temporal.activity.ActivityMethod;
+
+<span class="cm">/**
+ * Activities are where side effects happen:
+ * API calls, DB writes, sending emails, etc.
+ */</span>
+<span class="ann">@ActivityInterface</span>
+<span class="kw">public interface</span> <span class="type">GreetingActivities</span> {
+
+    <span class="ann">@ActivityMethod</span>
+    <span class="type">String</span> <span class="fn">composeGreeting</span>(<span class="type">String</span> greeting, <span class="type">String</span> name);
+}</pre>
+</div>
+
+<h3>4. Implement the Activity</h3>
+<div class="code-wrap">
+<div class="code-header"><span>GreetingActivitiesImpl.java</span><span class="lang">JAVA</span></div>
+<pre><span class="kw">package</span> com.example.temporal;
+
+<span class="cm">/**
+ * Activity implementations contain the actual
+ * business logic. This runs on a Worker.
+ */</span>
+<span class="kw">public class</span> <span class="type">GreetingActivitiesImpl</span>
+       <span class="kw">implements</span> <span class="type">GreetingActivities</span> {
+
+    <span class="ann">@Override</span>
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">composeGreeting</span>(
+            <span class="type">String</span> greeting, <span class="type">String</span> name) {
+
+        <span class="cm">// This is where you'd call an API,</span>
+        <span class="cm">// query a database, send an email, etc.</span>
+        <span class="kw">return</span> greeting + <span class="str">" "</span> + name + <span class="str">"!"</span>;
+    }
+}</pre>
+</div>
+
+<h3>5. Implement the Workflow</h3>
+<div class="code-wrap">
+<div class="code-header"><span>GreetingWorkflowImpl.java</span><span class="lang">JAVA</span></div>
+<pre><span class="kw">package</span> com.example.temporal;
+
+<span class="kw">import</span> io.temporal.activity.ActivityOptions;
+<span class="kw">import</span> io.temporal.workflow.Workflow;
+<span class="kw">import</span> java.time.Duration;
+
+<span class="cm">/**
+ * Workflow implementation. This code is
+ * DETERMINISTIC — no I/O, no random(), no
+ * System.currentTimeMillis(). Use Activities
+ * for all side effects.
+ */</span>
+<span class="kw">public class</span> <span class="type">GreetingWorkflowImpl</span>
+       <span class="kw">implements</span> <span class="type">GreetingWorkflow</span> {
+
+    <span class="cm">// Create an Activity stub with options</span>
+    <span class="kw">private final</span> <span class="type">GreetingActivities</span> activities =
+        Workflow.<span class="fn">newActivityStub</span>(
+            <span class="type">GreetingActivities</span>.<span class="kw">class</span>,
+            ActivityOptions.<span class="fn">newBuilder</span>()
+                .<span class="fn">setStartToCloseTimeout</span>(
+                    Duration.<span class="fn">ofSeconds</span>(<span class="num">10</span>))
+                .<span class="fn">build</span>()
+        );
+
+    <span class="ann">@Override</span>
+    <span class="kw">public</span> <span class="type">String</span> <span class="fn">greet</span>(<span class="type">String</span> name) {
+        <span class="cm">// This looks like normal code, but Temporal</span>
+        <span class="cm">// records each Activity call as an event.</span>
+        <span class="cm">// If the worker crashes here, another worker</span>
+        <span class="cm">// replays the history and skips completed steps.</span>
+        <span class="type">String</span> result = activities
+            .<span class="fn">composeGreeting</span>(<span class="str">"Hello"</span>, name);
+
+        <span class="cm">// You can call multiple activities,</span>
+        <span class="cm">// use loops, if-else, try-catch — all normal!</span>
+        <span class="kw">return</span> result;
+    }
+}</pre>
+</div>
+
+<h3>6. Create the Worker</h3>
+<div class="code-wrap">
+<div class="code-header"><span>GreetingWorker.java</span><span class="lang">JAVA</span></div>
+<pre><span class="kw">package</span> com.example.temporal;
+
+<span class="kw">import</span> io.temporal.client.WorkflowClient;
+<span class="kw">import</span> io.temporal.serviceclient.WorkflowServiceStubs;
+<span class="kw">import</span> io.temporal.worker.Worker;
+<span class="kw">import</span> io.temporal.worker.WorkerFactory;
+
+<span class="cm">/**
+ * The Worker process: connects to the Temporal
+ * Server and polls a Task Queue for work.
+ */</span>
+<span class="kw">public class</span> <span class="type">GreetingWorker</span> {
+
+    <span class="kw">public static final</span> <span class="type">String</span> TASK_QUEUE =
+        <span class="str">"greeting-tasks"</span>;
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) {
+        <span class="cm">// 1. Connect to Temporal Server</span>
+        <span class="type">WorkflowServiceStubs</span> service =
+            WorkflowServiceStubs.<span class="fn">newLocalServiceStubs</span>();
+        <span class="type">WorkflowClient</span> client =
+            WorkflowClient.<span class="fn">newInstance</span>(service);
+
+        <span class="cm">// 2. Create a Worker Factory</span>
+        <span class="type">WorkerFactory</span> factory =
+            WorkerFactory.<span class="fn">newInstance</span>(client);
+
+        <span class="cm">// 3. Create a Worker that polls TASK_QUEUE</span>
+        <span class="type">Worker</span> worker =
+            factory.<span class="fn">newWorker</span>(TASK_QUEUE);
+
+        <span class="cm">// 4. Register Workflow &amp; Activity impls</span>
+        worker.<span class="fn">registerWorkflowImplementationTypes</span>(
+            <span class="type">GreetingWorkflowImpl</span>.<span class="kw">class</span>);
+        worker.<span class="fn">registerActivitiesImplementations</span>(
+            <span class="kw">new</span> <span class="type">GreetingActivitiesImpl</span>());
+
+        <span class="cm">// 5. Start polling (blocks this thread)</span>
+        factory.<span class="fn">start</span>();
+        System.out.<span class="fn">println</span>(
+            <span class="str">"Worker started on: "</span> + TASK_QUEUE);
+    }
+}</pre>
+</div>
+
+<h3>7. Start a Workflow (Client)</h3>
+<div class="code-wrap">
+<div class="code-header"><span>GreetingStarter.java</span><span class="lang">JAVA</span></div>
+<pre><span class="kw">package</span> com.example.temporal;
+
+<span class="kw">import</span> io.temporal.client.WorkflowClient;
+<span class="kw">import</span> io.temporal.client.WorkflowOptions;
+<span class="kw">import</span> io.temporal.serviceclient.WorkflowServiceStubs;
+
+<span class="kw">public class</span> <span class="type">GreetingStarter</span> {
+
+    <span class="kw">public static void</span> <span class="fn">main</span>(<span class="type">String</span>[] args) {
+        <span class="cm">// Connect to Temporal Server</span>
+        <span class="type">WorkflowServiceStubs</span> service =
+            WorkflowServiceStubs.<span class="fn">newLocalServiceStubs</span>();
+        <span class="type">WorkflowClient</span> client =
+            WorkflowClient.<span class="fn">newInstance</span>(service);
+
+        <span class="cm">// Create a typed Workflow stub</span>
+        <span class="type">GreetingWorkflow</span> workflow =
+            client.<span class="fn">newWorkflowStub</span>(
+                <span class="type">GreetingWorkflow</span>.<span class="kw">class</span>,
+                WorkflowOptions.<span class="fn">newBuilder</span>()
+                    .<span class="fn">setWorkflowId</span>(<span class="str">"greeting-1"</span>)
+                    .<span class="fn">setTaskQueue</span>(
+                        <span class="type">GreetingWorker</span>.TASK_QUEUE)
+                    .<span class="fn">build</span>()
+            );
+
+        <span class="cm">// Execute the Workflow (blocking call)</span>
+        <span class="type">String</span> result = workflow.<span class="fn">greet</span>(<span class="str">"World"</span>);
+        System.out.<span class="fn">println</span>(
+            <span class="str">"Workflow result: "</span> + result);
+        <span class="cm">// Output: Workflow result: Hello World!</span>
+
+        System.<span class="fn">exit</span>(<span class="num">0</span>);
+    }
+}</pre>
+</div>
+
+<h3>Run it</h3>
+<div class="code-wrap">
+<div class="code-header"><span>Terminal</span><span class="lang">BASH</span></div>
+<pre><span class="cm"># Terminal 1 — Start the Worker</span>
+./gradlew run -PmainClass=com.example.temporal.GreetingWorker
+
+<span class="cm"># Terminal 2 — Start the Workflow</span>
+./gradlew run -PmainClass=com.example.temporal.GreetingStarter
+
+<span class="cm"># Check the Web UI → http://localhost:8080</span>
+<span class="cm"># You'll see the workflow execution with full event history!</span></pre>
+</div>
+</section>
+
+<!-- ═══════════════ PYTHON ═══════════════ -->
+<section class="panel" id="python">
+<h2>Python SDK Tutorial</h2>
+<p>Same greeting workflow concept, implemented in Python with the Temporal Python SDK (<code>temporalio</code>). Python uses decorators and <code>async/await</code> for the programming model.</p>
+
+<div class="info-box teal">
+  <strong>Prerequisites:</strong> Python 3.8+, pip, and the Temporal Docker stack running on port 7233.
+</div>
+
+<h3>1. Install dependencies</h3>
+<div class="code-wrap">
+<div class="code-header"><span>requirements.txt</span><span class="lang">TXT</span></div>
+<pre>temporalio>=1.7.0</pre>
+</div>
+<div class="code-wrap">
+<div class="code-header"><span>Terminal</span><span class="lang">BASH</span></div>
+<pre>pip install temporalio</pre>
+</div>
+
+<h3>2. Define Activities</h3>
+<div class="code-wrap">
+<div class="code-header"><span>activities.py</span><span class="lang">PYTHON</span></div>
+<pre><span class="kw">from</span> temporalio <span class="kw">import</span> activity
+
+
+<span class="ann">@activity.defn</span>
+<span class="kw">async def</span> <span class="fn">compose_greeting</span>(
+    greeting: <span class="type">str</span>, name: <span class="type">str</span>
+) -> <span class="type">str</span>:
+    <span class="str">"""
+    Activities contain your side effects:
+    API calls, database writes, emails, etc.
+    They can be retried automatically.
+    """</span>
+    <span class="cm"># Imagine this calls an external API</span>
+    <span class="kw">return</span> <span class="str">f"</span>{greeting} {name}!<span class="str">"</span></pre>
+</div>
+
+<h3>3. Define the Workflow</h3>
+<div class="code-wrap">
+<div class="code-header"><span>workflows.py</span><span class="lang">PYTHON</span></div>
+<pre><span class="kw">from</span> datetime <span class="kw">import</span> timedelta
+<span class="kw">from</span> temporalio <span class="kw">import</span> workflow
+
+<span class="cm"># Import Activities using their module path.</span>
+<span class="cm"># This avoids importing non-deterministic code</span>
+<span class="cm"># directly into the workflow sandbox.</span>
+<span class="kw">with</span> workflow.<span class="fn">unsafe.imports_passed_through</span>():
+    <span class="kw">from</span> activities <span class="kw">import</span> compose_greeting
+
+
+<span class="ann">@workflow.defn</span>
+<span class="kw">class</span> <span class="type">GreetingWorkflow</span>:
+    <span class="str">"""
+    Workflow definition. This code must be
+    DETERMINISTIC — no I/O, no random(), no
+    datetime.now(). Use Activities for side effects.
+    """</span>
+
+    <span class="ann">@workflow.run</span>
+    <span class="kw">async def</span> <span class="fn">run</span>(<span class="kw">self</span>, name: <span class="type">str</span>) -> <span class="type">str</span>:
+        <span class="cm"># Call the activity with retry options</span>
+        result = <span class="kw">await</span> workflow.<span class="fn">execute_activity</span>(
+            compose_greeting,
+            args=[<span class="str">"Hello"</span>, name],
+            start_to_close_timeout=timedelta(seconds=<span class="num">10</span>),
+        )
+
+        <span class="cm"># You can use loops, if-else, try-except</span>
+        <span class="cm"># — just like normal Python code!</span>
+
+        <span class="cm"># Example: durable timer (survives crashes!)</span>
+        <span class="cm"># await workflow.sleep(timedelta(days=30))</span>
+
+        <span class="kw">return</span> result</pre>
+</div>
+
+<h3>4. Create the Worker</h3>
+<div class="code-wrap">
+<div class="code-header"><span>worker.py</span><span class="lang">PYTHON</span></div>
+<pre><span class="kw">import</span> asyncio
+<span class="kw">from</span> temporalio.client <span class="kw">import</span> Client
+<span class="kw">from</span> temporalio.worker <span class="kw">import</span> Worker
+
+<span class="kw">from</span> activities <span class="kw">import</span> compose_greeting
+<span class="kw">from</span> workflows <span class="kw">import</span> GreetingWorkflow
+
+TASK_QUEUE = <span class="str">"greeting-tasks-python"</span>
+
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="cm"># 1. Connect to the Temporal Server</span>
+    client = <span class="kw">await</span> Client.<span class="fn">connect</span>(
+        <span class="str">"localhost:7233"</span>
+    )
+
+    <span class="cm"># 2. Create and run the Worker</span>
+    worker = Worker(
+        client,
+        task_queue=TASK_QUEUE,
+        workflows=[GreetingWorkflow],
+        activities=[compose_greeting],
+    )
+
+    <span class="fn">print</span>(<span class="str">f"Worker started on: </span>{TASK_QUEUE}<span class="str">"</span>)
+
+    <span class="cm"># 3. Run forever (polls for tasks)</span>
+    <span class="kw">await</span> worker.<span class="fn">run</span>()
+
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    asyncio.<span class="fn">run</span>(main())</pre>
+</div>
+
+<h3>5. Start a Workflow (Client)</h3>
+<div class="code-wrap">
+<div class="code-header"><span>starter.py</span><span class="lang">PYTHON</span></div>
+<pre><span class="kw">import</span> asyncio
+<span class="kw">from</span> temporalio.client <span class="kw">import</span> Client
+
+<span class="kw">from</span> workflows <span class="kw">import</span> GreetingWorkflow
+
+TASK_QUEUE = <span class="str">"greeting-tasks-python"</span>
+
+
+<span class="kw">async def</span> <span class="fn">main</span>():
+    <span class="cm"># Connect to Temporal Server</span>
+    client = <span class="kw">await</span> Client.<span class="fn">connect</span>(
+        <span class="str">"localhost:7233"</span>
+    )
+
+    <span class="cm"># Start the Workflow</span>
+    result = <span class="kw">await</span> client.<span class="fn">execute_workflow</span>(
+        GreetingWorkflow.run,
+        <span class="str">"World"</span>,
+        id=<span class="str">"greeting-python-1"</span>,
+        task_queue=TASK_QUEUE,
+    )
+
+    <span class="fn">print</span>(<span class="str">f"Workflow result: </span>{result}<span class="str">"</span>)
+    <span class="cm"># Output: Workflow result: Hello World!</span>
+
+
+<span class="kw">if</span> __name__ == <span class="str">"__main__"</span>:
+    asyncio.<span class="fn">run</span>(main())</pre>
+</div>
+
+<h3>Run it</h3>
+<div class="code-wrap">
+<div class="code-header"><span>Terminal</span><span class="lang">BASH</span></div>
+<pre><span class="cm"># Terminal 1 — Start the Worker</span>
+python worker.py
+
+<span class="cm"># Terminal 2 — Start the Workflow</span>
+python starter.py
+
+<span class="cm"># Check the Web UI → http://localhost:8080</span>
+<span class="cm"># You'll see the workflow with full history!</span></pre>
+</div>
+
+<h3>Bonus: Advanced Python example (Signals + Queries)</h3>
+<div class="code-wrap">
+<div class="code-header"><span>advanced_workflow.py</span><span class="lang">PYTHON</span></div>
+<pre><span class="kw">from</span> datetime <span class="kw">import</span> timedelta
+<span class="kw">from</span> temporalio <span class="kw">import</span> workflow
+
+<span class="kw">with</span> workflow.<span class="fn">unsafe.imports_passed_through</span>():
+    <span class="kw">from</span> activities <span class="kw">import</span> compose_greeting
+
+
+<span class="ann">@workflow.defn</span>
+<span class="kw">class</span> <span class="type">ApprovalWorkflow</span>:
+    <span class="str">"""
+    A workflow that waits for human approval.
+    Demonstrates Signals, Queries, and Timers.
+    """</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>):
+        <span class="kw">self</span>.approved = <span class="num">False</span>
+        <span class="kw">self</span>.status = <span class="str">"pending"</span>
+
+    <span class="ann">@workflow.run</span>
+    <span class="kw">async def</span> <span class="fn">run</span>(<span class="kw">self</span>, name: <span class="type">str</span>) -> <span class="type">str</span>:
+
+        <span class="cm"># Wait for approval OR timeout (24 hours)</span>
+        <span class="kw">try</span>:
+            <span class="kw">await</span> workflow.<span class="fn">wait_condition</span>(
+                <span class="kw">lambda</span>: <span class="kw">self</span>.approved,
+                timeout=timedelta(hours=<span class="num">24</span>),
+            )
+            <span class="kw">self</span>.status = <span class="str">"approved"</span>
+        <span class="kw">except</span> asyncio.TimeoutError:
+            <span class="kw">self</span>.status = <span class="str">"timed_out"</span>
+            <span class="kw">return</span> <span class="str">"Approval timed out for "</span> + name
+
+        <span class="cm"># Approval received — run the activity</span>
+        result = <span class="kw">await</span> workflow.<span class="fn">execute_activity</span>(
+            compose_greeting,
+            args=[<span class="str">"Welcome"</span>, name],
+            start_to_close_timeout=timedelta(seconds=<span class="num">10</span>),
+        )
+        <span class="kw">self</span>.status = <span class="str">"completed"</span>
+        <span class="kw">return</span> result
+
+    <span class="ann">@workflow.signal</span>
+    <span class="kw">async def</span> <span class="fn">approve</span>(<span class="kw">self</span>):
+        <span class="str">"""External signal to approve the request."""</span>
+        <span class="kw">self</span>.approved = <span class="num">True</span>
+
+    <span class="ann">@workflow.query</span>
+    <span class="kw">def</span> <span class="fn">get_status</span>(<span class="kw">self</span>) -> <span class="type">str</span>:
+        <span class="str">"""Query current status without side effects."""</span>
+        <span class="kw">return</span> <span class="kw">self</span>.status</pre>
+</div>
+
+<div class="info-box coral">
+  <strong>Sending signals from the client:</strong><br>
+  <code>handle = await client.get_workflow_handle("my-workflow-id")</code><br>
+  <code>await handle.signal(ApprovalWorkflow.approve)</code><br>
+  <code>status = await handle.query(ApprovalWorkflow.get_status)</code>
+</div>
+</section>
+
+</div><!-- /wrapper -->
+
+<footer>
+  <p>Temporal.io Beginner Tutorial — Generated with care for clarity and correctness.</p>
+</footer>
+
+<script>
+// Tab switching
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(btn.dataset.tab).classList.add('active');
+});
+
+// Copy code buttons
+document.querySelectorAll('.code-header').forEach(header => {
+  const btn = document.createElement('button');
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', () => {
+    const pre = header.nextElementSibling;
+    navigator.clipboard.writeText(pre.textContent).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1500);
+    });
+  });
+  header.appendChild(btn);
+});
+</script>
+</body>
+</html>

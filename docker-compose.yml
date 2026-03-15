@@ -1,0 +1,89 @@
+# Temporal.io Local Development Environment
+# Usage: docker compose up -d
+# Web UI: http://localhost:8080
+# gRPC:   localhost:7233
+
+version: "3.8"
+
+services:
+
+  # ── PostgreSQL database ──
+  postgresql:
+    image: postgres:15-alpine
+    container_name: temporal-postgresql
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+    networks:
+      - temporal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Temporal Server (auto-setup creates DB schema) ──
+  temporal:
+    image: temporalio/auto-setup:latest
+    container_name: temporal-server
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"   # gRPC frontend — workers & clients connect here
+    networks:
+      - temporal-network
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # ── Temporal Web UI ──
+  temporal-ui:
+    image: temporalio/ui:latest
+    container_name: temporal-ui
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"   # Web UI for debugging workflows
+    networks:
+      - temporal-network
+
+  # ── Temporal Admin Tools (optional — gives you tctl CLI) ──
+  temporal-admin-tools:
+    image: temporalio/admin-tools:latest
+    container_name: temporal-admin-tools
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    networks:
+      - temporal-network
+    stdin_open: true
+    tty: true
+
+volumes:
+  postgresql_data:
+
+networks:
+  temporal-network:
+    driver: bridge
