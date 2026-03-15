@@ -1,0 +1,9 @@
+server:
+  port: ${SERVER_PORT:8081}
+
+temporal:
+  address: ${TEMPORAL_ADDRESS:localhost:7233}
+
+spring:
+  application:
+    name: temporal-demo-app

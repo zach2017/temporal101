@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temporal Workflow Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0e17;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2332;
+            --bg-code: #0d1117;
+            --border: #1e293b;
+            --border-glow: #3b82f620;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --accent-red: #ef4444;
+            --java-orange: #f89820;
+            --python-blue: #3776ab;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* ─── Grid background ─────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(90deg, #1e293b08 1px, transparent 1px),
+                linear-gradient(#1e293b08 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ─── NAV ─────────────────────────────────────── */
+        nav {
+            padding: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 60px;
+        }
+        .logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--accent-cyan);
+            letter-spacing: -0.5px;
+        }
+        .logo span { color: var(--text-muted); font-weight: 400; }
+        .nav-links { display: flex; gap: 32px; }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--accent-cyan); }
+
+        /* ─── HERO ────────────────────────────────────── */
+        .hero {
+            text-align: center;
+            margin-bottom: 72px;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--accent-blue);
+            background: linear-gradient(135deg, #3b82f620, #06b6d420);
+            border: 1px solid #3b82f640;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+        }
+        .hero h1 {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin: 0 auto 8px;
+        }
+
+        /* ─── DEMO SECTION ────────────────────────────── */
+        .demo-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 80px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            transition: border-color 0.3s;
+        }
+        .card:hover { border-color: #334155; }
+        .card.full-width { grid-column: 1 / -1; }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .card-header .icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .icon-send { background: linear-gradient(135deg, #3b82f630, #06b6d430); color: var(--accent-cyan); }
+        .icon-java { background: linear-gradient(135deg, #f8982030, #ea580c30); color: var(--java-orange); }
+        .icon-python { background: linear-gradient(135deg, #3776ab30, #ffd34330); color: var(--python-blue); }
+
+        .card-header h3 { font-size: 16px; font-weight: 600; }
+        .card-header .tag {
+            margin-left: auto;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 100px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+        }
+        .tag-queue { background: #1e293b; color: var(--text-muted); }
+
+        /* ─── FORM ────────────────────────────────────── */
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus { border-color: var(--accent-cyan); }
+        .input-group input::placeholder { color: var(--text-muted); }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            color: white;
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 24px #3b82f640; }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .status-bar {
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
+        .status-bar.success { border-color: #10b98140; color: var(--accent-green); }
+        .status-bar.error { border-color: #ef444440; color: var(--accent-red); }
+        .status-bar.loading { border-color: #f59e0b40; color: var(--accent-amber); }
+
+        /* ─── RESULT CARDS ────────────────────────────── */
+        .result-message {
+            margin-top: 12px;
+            padding: 16px;
+            background: var(--bg-deep);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            display: none;
+        }
+        .result-message.visible { display: block; }
+
+        /* ─── ARCHITECTURE DIAGRAM ────────────────────── */
+        .arch-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 28px 16px;
+            flex-wrap: wrap;
+        }
+        .arch-node {
+            padding: 12px 20px;
+            border-radius: var(--radius-sm);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid;
+            min-width: 130px;
+        }
+        .arch-node.browser { background: #3b82f615; border-color: #3b82f640; color: var(--accent-blue); }
+        .arch-node.spring { background: #10b98115; border-color: #10b98140; color: var(--accent-green); }
+        .arch-node.temporal { background: #8b5cf615; border-color: #8b5cf640; color: var(--accent-purple); }
+        .arch-node.java { background: #f8982015; border-color: #f8982040; color: var(--java-orange); }
+        .arch-node.python { background: #3776ab15; border-color: #3776ab40; color: var(--python-blue); }
+        .arch-arrow { color: var(--text-muted); font-size: 20px; }
+
+        /* ─── TUTORIAL ────────────────────────────────── */
+        .tutorial-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .tutorial-header h2 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        .tutorial-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .toc {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 48px;
+        }
+        .toc a {
+            padding: 8px 18px;
+            border-radius: 100px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .toc a:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+        .tutorial-section {
+            margin-bottom: 48px;
+        }
+        .tutorial-section h3 {
+            font-size: 22px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .tutorial-section h3 .num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .tutorial-section p { color: var(--text-secondary); margin-bottom: 16px; }
+
+        pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        pre code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--text-primary);
+        }
+        pre .label {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .label-java { background: #f8982025; color: var(--java-orange); }
+        .label-python { background: #3776ab25; color: var(--python-blue); }
+        .label-yaml { background: #10b98125; color: var(--accent-green); }
+
+        .highlight { color: var(--accent-cyan); }
+        .kw { color: var(--accent-purple); }
+        .str { color: var(--accent-green); }
+        .cmt { color: var(--text-muted); font-style: italic; }
+        .ann { color: var(--accent-amber); }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .concept-card {
+            padding: 20px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+        .concept-card h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--accent-cyan);
+        }
+        .concept-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 0;
+        }
+
+        .benefit-list {
+            list-style: none;
+            padding: 0;
+        }
+        .benefit-list li {
+            padding: 12px 16px;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .benefit-list li::before {
+            content: '▸';
+            color: var(--accent-green);
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .callout {
+            padding: 20px 24px;
+            background: linear-gradient(135deg, #3b82f608, #06b6d408);
+            border: 1px solid #3b82f630;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+        }
+        .callout p { color: var(--text-secondary); margin-bottom: 0; }
+        .callout strong { color: var(--accent-cyan); }
+
+        /* ─── FOOTER ──────────────────────────────────── */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            margin-top: 60px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        footer a { color: var(--accent-cyan); text-decoration: none; }
+
+        /* ─── RESPONSIVE ──────────────────────────────── */
+        @media (max-width: 768px) {
+            .demo-section { grid-template-columns: 1fr; }
+            .arch-diagram { flex-direction: column; }
+            .arch-arrow { transform: rotate(90deg); }
+            nav { flex-direction: column; gap: 16px; }
+        }
+
+        /* ─── SPINNER ─────────────────────────────────── */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            width: 14px; height: 14px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- NAV -->
+        <nav>
+            <div class="logo">temporal<span>::demo</span></div>
+            <div class="nav-links">
+                <a href="#demo">Demo</a>
+                <a href="#tutorial">Tutorial</a>
+                <a href="http://localhost:8080" target="_blank">Temporal UI</a>
+            </div>
+        </nav>
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="badge">&#9889; Live Demo</div>
+            <h1>Temporal Workflow<br>Multi-Language Demo</h1>
+            <p>Send a hello message from this Spring Boot app to two Temporal workers &mdash; one written in Java, one in Python &mdash; and watch durable execution in action.</p>
+        </section>
+
+        <!-- ARCHITECTURE -->
+        <div class="card full-width" style="margin-bottom: 24px;">
+            <div class="arch-diagram">
+                <div class="arch-node browser">Browser<br><small>index.html</small></div>
+                <div class="arch-arrow">&rarr;</div>
+                <div class="arch-node spring">Spring Boot<br><small>REST API</small></div>
+                <div class="arch-arrow">&rarr;</div>
+                <div class="arch-node temporal">Temporal<br><small>Server + PostgreSQL</small></div>
+                <div class="arch-arrow">&rarr;</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div class="arch-node java">Java Worker<br><small>java-hello-queue</small></div>
+                    <div class="arch-node python">Python Worker<br><small>python-hello-queue</small></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DEMO -->
+        <section id="demo" class="demo-section">
+            <!-- Send Panel -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <div class="icon icon-send">&#9654;</div>
+                    <h3>Send Hello to Workers</h3>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="nameInput" placeholder="Enter your name..." value="World">
+                    <button class="btn btn-primary" id="sendBtn" onclick="sendHello()">
+                        Send Hello
+                    </button>
+                </div>
+                <div class="status-bar" id="mainStatus">Ready &mdash; click Send to trigger both workflows</div>
+            </div>
+
+            <!-- Java Result -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="icon icon-java">J</div>
+                    <h3>Java Worker</h3>
+                    <span class="tag tag-queue">java-hello-queue</span>
+                </div>
+                <div class="status-bar" id="javaStatus">Waiting...</div>
+                <div class="result-message" id="javaResult"></div>
+            </div>
+
+            <!-- Python Result -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="icon icon-python">Py</div>
+                    <h3>Python Worker</h3>
+                    <span class="tag tag-queue">python-hello-queue</span>
+                </div>
+                <div class="status-bar" id="pythonStatus">Waiting...</div>
+                <div class="result-message" id="pythonResult"></div>
+            </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- TUTORIAL SECTION                                    -->
+        <!-- ═══════════════════════════════════════════════════ -->
+        <section id="tutorial" style="margin-bottom: 40px;">
+            <div class="tutorial-header">
+                <h2>How It Works</h2>
+                <p>A deep dive into the Temporal SDK code, worker architecture, and platform capabilities.</p>
+            </div>
+
+            <div class="toc">
+                <a href="#t1">Workflows &amp; Activities</a>
+                <a href="#t2">Java Worker SDK</a>
+                <a href="#t3">Python Worker SDK</a>
+                <a href="#t4">Spring Boot Client</a>
+                <a href="#t5">Resiliency</a>
+                <a href="#t6">Scalability</a>
+                <a href="#t7">Audit Trails</a>
+            </div>
+
+            <!-- ── 1. Workflows & Activities ──────────────── -->
+            <div id="t1" class="tutorial-section">
+                <h3><span class="num">1</span> Workflows &amp; Activities</h3>
+                <p>Temporal applications are built around two primitives: <strong>Workflows</strong> (durable functions that orchestrate logic) and <strong>Activities</strong> (units of work that can fail and be retried). Workflows are deterministic and their execution state is persisted by the Temporal Server. Activities are where your side effects live &mdash; API calls, database writes, sending emails.</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h4>Workflow</h4>
+                        <p>A durable, fault-tolerant function. Its full execution history is stored by Temporal. If a worker crashes, the workflow is seamlessly resumed on another worker via event replay.</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>Activity</h4>
+                        <p>A single unit of work within a workflow. Activities can be retried automatically on failure with configurable retry policies, timeouts, and heartbeat intervals.</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>Task Queue</h4>
+                        <p>A named queue that routes workflow and activity tasks to the correct set of workers. Multiple workers can poll the same queue for load balancing.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 2. Java Worker SDK ─────────────────────── -->
+            <div id="t2" class="tutorial-section">
+                <h3><span class="num">2</span> Java Worker &mdash; SDK Code</h3>
+                <p>The Java worker uses <code>io.temporal:temporal-sdk:1.32.0</code>. Workflows are defined as interfaces annotated with <code>@WorkflowInterface</code>, and activities with <code>@ActivityInterface</code>.</p>
+
+                <pre><code><span class="label label-java">Java</span><span class="ann">@WorkflowInterface</span>
+<span class="kw">public interface</span> <span class="highlight">JavaHelloWorkflow</span> {
+    <span class="ann">@WorkflowMethod</span>
+    String <span class="highlight">sayHello</span>(String name);
+}
+
+<span class="kw">public class</span> JavaHelloWorkflowImpl <span class="kw">implements</span> JavaHelloWorkflow {
+    <span class="cmt">// Activity stub with retry policy</span>
+    <span class="kw">private final</span> GreetingActivities activities =
+        Workflow.newActivityStub(GreetingActivities.<span class="kw">class</span>,
+            ActivityOptions.newBuilder()
+                .setStartToCloseTimeout(Duration.ofSeconds(10))
+                .setRetryOptions(RetryOptions.newBuilder()
+                    .setMaximumAttempts(3).build())
+                .build());
+
+    <span class="ann">@Override</span>
+    <span class="kw">public</span> String <span class="highlight">sayHello</span>(String name) {
+        <span class="kw">return</span> activities.composeGreeting(name);
+    }
+}</code></pre>
+
+                <pre><code><span class="label label-java">Java</span><span class="ann">@ActivityInterface</span>
+<span class="kw">public interface</span> <span class="highlight">GreetingActivities</span> {
+    String <span class="highlight">composeGreeting</span>(String name);
+}
+
+<span class="kw">public class</span> GreetingActivitiesImpl <span class="kw">implements</span> GreetingActivities {
+    <span class="ann">@Override</span>
+    <span class="kw">public</span> String <span class="highlight">composeGreeting</span>(String name) {
+        <span class="kw">return</span> <span class="str">"Hello "</span> + name + <span class="str">" from Java Worker! (JDK 21, Temporal SDK 1.32.0)"</span>;
+    }
+}</code></pre>
+
+                <p>The worker process registers these implementations and polls the <code>java-hello-queue</code> task queue:</p>
+
+                <pre><code><span class="label label-java">Java</span>WorkerFactory factory = WorkerFactory.newInstance(client);
+Worker worker = factory.newWorker(<span class="str">"java-hello-queue"</span>);
+worker.registerWorkflowImplementationTypes(JavaHelloWorkflowImpl.<span class="kw">class</span>);
+worker.registerActivitiesImplementations(<span class="kw">new</span> GreetingActivitiesImpl());
+factory.start(); <span class="cmt">// begins long-polling the task queue</span></code></pre>
+            </div>
+
+            <!-- ── 3. Python Worker SDK ───────────────────── -->
+            <div id="t3" class="tutorial-section">
+                <h3><span class="num">3</span> Python Worker &mdash; SDK Code</h3>
+                <p>The Python worker uses the <code>temporalio</code> package. Workflows use the <code>@workflow.defn</code> decorator and activities use <code>@activity.defn</code>.</p>
+
+                <pre><code><span class="label label-python">Python</span><span class="ann">@activity.defn</span>
+<span class="kw">async def</span> <span class="highlight">compose_greeting</span>(name: str) -> str:
+    <span class="kw">return</span> <span class="str">f"Hello {name} from Python Worker! (temporalio SDK)"</span>
+
+
+<span class="ann">@workflow.defn</span>
+<span class="kw">class</span> <span class="highlight">PythonHelloWorkflow</span>:
+    <span class="ann">@workflow.run</span>
+    <span class="kw">async def</span> <span class="highlight">run</span>(self, name: str) -> str:
+        <span class="kw">return await</span> workflow.execute_activity(
+            compose_greeting,
+            name,
+            start_to_close_timeout=timedelta(seconds=10),
+            retry_policy=RetryPolicy(maximum_attempts=3),
+        )</code></pre>
+
+                <pre><code><span class="label label-python">Python</span><span class="cmt"># Start the worker, polling python-hello-queue</span>
+worker = Worker(
+    client,
+    task_queue=<span class="str">"python-hello-queue"</span>,
+    workflows=[PythonHelloWorkflow],
+    activities=[compose_greeting],
+)
+<span class="kw">await</span> worker.run()</code></pre>
+            </div>
+
+            <!-- ── 4. Spring Boot Client ──────────────────── -->
+            <div id="t4" class="tutorial-section">
+                <h3><span class="num">4</span> Spring Boot Client</h3>
+                <p>The Spring Boot app acts as the Temporal <strong>Client</strong>. It creates workflow stubs and starts executions. For the Java worker, it uses a typed stub (shared interface). For the Python worker, it uses an untyped stub (just the workflow type name string).</p>
+
+                <pre><code><span class="label label-java">Java</span><span class="cmt">// Typed stub for Java worker</span>
+JavaHelloWorkflow javaWf = workflowClient.newWorkflowStub(
+    JavaHelloWorkflow.<span class="kw">class</span>,
+    WorkflowOptions.newBuilder()
+        .setTaskQueue(<span class="str">"java-hello-queue"</span>)
+        .build());
+String result = javaWf.sayHello(name); <span class="cmt">// blocks until complete</span>
+
+<span class="cmt">// Untyped stub for Python worker (cross-language)</span>
+WorkflowStub pythonWf = workflowClient.newUntypedWorkflowStub(
+    <span class="str">"PythonHelloWorkflow"</span>,
+    WorkflowOptions.newBuilder()
+        .setTaskQueue(<span class="str">"python-hello-queue"</span>)
+        .build());
+pythonWf.start(name);
+String result = pythonWf.getResult(String.<span class="kw">class</span>);</code></pre>
+            </div>
+
+            <!-- ── 5. Resiliency ──────────────────────────── -->
+            <div id="t5" class="tutorial-section">
+                <h3><span class="num">5</span> Resiliency &amp; Fault Tolerance</h3>
+                <p>Temporal provides extraordinary resiliency out of the box. Here is what happens when things go wrong:</p>
+                <ul class="benefit-list">
+                    <li><strong>Worker crashes mid-workflow:</strong> Temporal persists every workflow step as an event in its history. When a new worker picks up the task, it replays events to reconstruct state and continues from exactly where it left off. No work is lost.</li>
+                    <li><strong>Activity fails (network timeout, API error):</strong> The built-in retry policy kicks in automatically. You configure <code>setMaximumAttempts</code>, <code>setBackoffCoefficient</code>, and <code>setInitialInterval</code>. Temporal handles exponential backoff for you.</li>
+                    <li><strong>Temporal Server itself restarts:</strong> All workflow state is persisted in PostgreSQL. When the server comes back, all workflows resume from their last committed state.</li>
+                    <li><strong>Network partition between worker and server:</strong> Workers use long-polling with automatic reconnection. Workflows remain safe in the server's database until the worker reconnects.</li>
+                    <li><strong>Duplicate workflow starts:</strong> Workflow IDs provide natural idempotency. Starting a workflow with the same ID will either reject the duplicate or return the existing execution.</li>
+                </ul>
+                <div class="callout">
+                    <p><strong>Key insight:</strong> Traditional code loses state on crashes and requires manual retry logic, circuit breakers, and state machines. Temporal eliminates all of that &mdash; your business logic reads like simple, linear code, while Temporal handles all the failure modes transparently.</p>
+                </div>
+            </div>
+
+            <!-- ── 6. Scalability ─────────────────────────── -->
+            <div id="t6" class="tutorial-section">
+                <h3><span class="num">6</span> Scalability &mdash; Adding More Workers</h3>
+                <p>Scaling Temporal is straightforward: <strong>add more workers</strong>. Multiple worker processes can poll the same task queue, and Temporal distributes tasks among them automatically.</p>
+
+                <pre><code><span class="label label-yaml">Docker</span><span class="cmt"># Scale to 5 Java workers with one command:</span>
+docker compose up --scale java-worker=5
+
+<span class="cmt"># Scale to 3 Python workers:</span>
+docker compose up --scale python-worker=3</code></pre>
+
+                <ul class="benefit-list">
+                    <li><strong>Horizontal scaling:</strong> Each worker is a stateless process. Add or remove workers at any time without affecting running workflows.</li>
+                    <li><strong>Task routing:</strong> Task queues decouple workflow scheduling from execution. You can have specialized queues for different workload types (e.g., <code>cpu-intensive-queue</code>, <code>io-bound-queue</code>).</li>
+                    <li><strong>Multi-language polyglot:</strong> As this demo shows, Java and Python workers coexist seamlessly. You could add Go, TypeScript, or .NET workers on separate task queues.</li>
+                    <li><strong>Rate limiting:</strong> Temporal supports server-side rate limiting per task queue to prevent worker overload during traffic spikes.</li>
+                    <li><strong>Worker auto-tuning (SDK 1.32+):</strong> The Java SDK supports <code>PollerBehaviorAutoscaling</code> which automatically adjusts the number of concurrent polls based on load.</li>
+                </ul>
+            </div>
+
+            <!-- ── 7. Audit Trails ────────────────────────── -->
+            <div id="t7" class="tutorial-section">
+                <h3><span class="num">7</span> Audit Trails &amp; Observability</h3>
+                <p>Every workflow execution in Temporal has a complete, immutable <strong>Event History</strong>. This is not just logging &mdash; it is the authoritative record of everything that happened.</p>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h4>Event History</h4>
+                        <p>Every state transition (WorkflowStarted, ActivityScheduled, ActivityCompleted, WorkflowCompleted) is recorded as a numbered event with timestamps and payloads.</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>Temporal Web UI</h4>
+                        <p>Browse workflow executions at <a href="http://localhost:8080" target="_blank" style="color:var(--accent-cyan);">localhost:8080</a>. Inspect the full event history, input/output payloads, retry attempts, and timing for every workflow.</p>
+                    </div>
+                    <div class="concept-card">
+                        <h4>Searchable via Visibility</h4>
+                        <p>Use SQL-like queries to find workflows by ID, type, status, or custom search attributes. Essential for compliance and debugging at scale.</p>
+                    </div>
+                </div>
+
+                <p>You can query workflow history programmatically or view it in the Temporal UI. Each workflow run in this demo generates events like:</p>
+
+                <pre><code><span class="label label-yaml">Events</span>1  WorkflowExecutionStarted   { input: "World", taskQueue: "java-hello-queue" }
+2  WorkflowTaskScheduled
+3  WorkflowTaskStarted
+4  WorkflowTaskCompleted
+5  ActivityTaskScheduled      { activityType: "composeGreeting" }
+6  ActivityTaskStarted
+7  ActivityTaskCompleted      { result: "Hello World from Java Worker!" }
+8  WorkflowTaskScheduled
+9  WorkflowTaskStarted
+10 WorkflowTaskCompleted
+11 WorkflowExecutionCompleted { result: "Hello World from Java Worker!" }</code></pre>
+
+                <div class="callout">
+                    <p><strong>Compliance &amp; Debugging:</strong> This event history is invaluable for auditing, debugging production issues, and satisfying regulatory requirements. Every decision, retry, and outcome is permanently recorded and queryable.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <div class="container">
+            Temporal Demo &mdash; Spring Boot 3.4.3 &middot; Java SDK 1.32.0 &middot; Python SDK &middot; PostgreSQL 17<br>
+            <a href="http://localhost:8080" target="_blank">Open Temporal UI</a> &middot;
+            <a href="https://docs.temporal.io" target="_blank">Temporal Docs</a> &middot;
+            <a href="https://github.com/temporalio" target="_blank">GitHub</a>
+        </div>
+    </footer>
+
+    <script>
+        async function sendHello() {
+            const name = document.getElementById('nameInput').value || 'World';
+            const btn = document.getElementById('sendBtn');
+            const mainStatus = document.getElementById('mainStatus');
+            const javaStatus = document.getElementById('javaStatus');
+            const pythonStatus = document.getElementById('pythonStatus');
+            const javaResult = document.getElementById('javaResult');
+            const pythonResult = document.getElementById('pythonResult');
+
+            // Reset
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Sending...';
+            mainStatus.className = 'status-bar loading';
+            mainStatus.textContent = 'Starting workflows on both task queues...';
+            javaStatus.className = 'status-bar loading';
+            javaStatus.textContent = 'Executing workflow...';
+            pythonStatus.className = 'status-bar loading';
+            pythonStatus.textContent = 'Executing workflow...';
+            javaResult.classList.remove('visible');
+            pythonResult.classList.remove('visible');
+
+            try {
+                const response = await fetch('/api/hello', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await response.json();
+
+                // Java Worker result
+                if (data.javaWorker) {
+                    const jw = data.javaWorker;
+                    javaStatus.className = 'status-bar ' + (jw.status === 'SUCCESS' ? 'success' : 'error');
+                    javaStatus.textContent = jw.status === 'SUCCESS' ? '✓ Workflow completed' : '✗ ' + jw.message;
+                    javaResult.textContent = JSON.stringify(jw, null, 2);
+                    javaResult.classList.add('visible');
+                }
+
+                // Python Worker result
+                if (data.pythonWorker) {
+                    const pw = data.pythonWorker;
+                    pythonStatus.className = 'status-bar ' + (pw.status === 'SUCCESS' ? 'success' : 'error');
+                    pythonStatus.textContent = pw.status === 'SUCCESS' ? '✓ Workflow completed' : '✗ ' + pw.message;
+                    pythonResult.textContent = JSON.stringify(pw, null, 2);
+                    pythonResult.classList.add('visible');
+                }
+
+                mainStatus.className = 'status-bar success';
+                mainStatus.textContent = '✓ Both workflows completed — check the Temporal UI for full event history!';
+            } catch (err) {
+                mainStatus.className = 'status-bar error';
+                mainStatus.textContent = '✗ Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Send Hello';
+            }
+        }
+
+        // Enter key support
+        document.getElementById('nameInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendHello();
+        });
+    </script>
+</body>
+</html>
