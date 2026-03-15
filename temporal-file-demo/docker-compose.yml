@@ -1,0 +1,54 @@
+services:
+  temporal:
+    image: temporalio/auto-setup:1.28.1
+    container_name: temporal
+    environment:
+      - DB=sqlite
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+  temporal-ui:
+    image: temporalio/ui:2.39.0
+    container_name: temporal-ui
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_UI_PORT=8080
+    ports:
+      - "8088:8080"
+    depends_on:
+      temporal:
+        condition: service_started
+
+  java-app:
+    build:
+      context: ./java-app
+    container_name: java-app
+    environment:
+      - APP_TEMPORAL_ADDRESS=temporal:7233
+      - APP_TEMPORAL_NAMESPACE=default
+      - APP_TEMPORAL_WORKFLOW_TASK_QUEUE=file-inspector-workflow
+      - APP_TEMPORAL_JAVA_ACTIVITY_TASK_QUEUE=java-file-inspector
+      - APP_TEMPORAL_PYTHON_ACTIVITY_TASK_QUEUE=python-file-inspector
+      - APP_SHARED_FILES_DIR=/shared-files
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./shared-files:/shared-files
+    depends_on:
+      temporal:
+        condition: service_started
+
+  python-worker:
+    build:
+      context: ./python-worker
+    container_name: python-worker
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - PYTHON_ACTIVITY_TASK_QUEUE=python-file-inspector
+      - SHARED_FILES_DIR=/shared-files
+    volumes:
+      - ./shared-files:/shared-files
+    depends_on:
+      temporal:
+        condition: service_started

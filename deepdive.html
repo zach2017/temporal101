@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporal.io — Document Management Tutorial</title>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#fcfbf9;--bg2:#f3f1ec;--bg3:#fff;--ink:#181714;--ink2:#5c5850;--ink3:#918b7e;
+--accent:#3d5af1;--accent2:#6b82f9;--accent-bg:#ebeffe;
+--teal:#0d9373;--teal-bg:#e6f5f0;--teal-dk:#076b54;
+--coral:#d4502c;--coral-bg:#fceee9;--coral-dk:#a93b1e;
+--amber:#c17f12;--amber-bg:#fdf4e0;--amber-dk:#8f5d08;
+--blue:#2176cc;--blue-bg:#e7f1fb;--blue-dk:#165496;
+--border:#ddd9d1;--border2:#c8c3b9;
+--mono:'JetBrains Mono',monospace;--sans:'Outfit',system-ui,sans-serif;--serif:'Literata',Georgia,serif;
+--r:8px;--rl:14px
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);line-height:1.72;-webkit-font-smoothing:antialiased;font-size:15px}
+::selection{background:var(--accent-bg);color:var(--accent)}
+.wrap{max-width:960px;margin:0 auto;padding:2rem 1.5rem 4rem}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.82em;background:var(--bg2);padding:2px 6px;border-radius:4px}
+
+/* Header */
+header{padding:3.5rem 0 2rem;border-bottom:1.5px solid var(--border)}
+header .eyebrow{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.5rem}
+header h1{font-family:var(--serif);font-size:clamp(1.8rem,4.5vw,2.7rem);font-weight:700;line-height:1.18;margin-bottom:.6rem}
+header h1 em{font-style:normal;color:var(--accent)}
+header .lead{font-size:1.05rem;color:var(--ink2);max-width:620px;font-weight:300}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:1.5px solid var(--border);margin:2rem 0 0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:11px 20px;font-size:.8rem;font-weight:500;color:var(--ink3);cursor:pointer;border:none;background:none;border-bottom:2.5px solid transparent;transition:all .18s;white-space:nowrap;font-family:var(--sans)}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+.pane{display:none;padding:2.25rem 0 0;animation:up .3s ease}
+.pane.on{display:block}
+@keyframes up{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+
+/* Typography */
+h2{font-family:var(--serif);font-size:1.55rem;font-weight:700;margin:2.25rem 0 .7rem;line-height:1.28}
+h2:first-child{margin-top:0}
+h3{font-size:1rem;font-weight:600;margin:1.5rem 0 .4rem}
+p,li{color:var(--ink2);margin-bottom:.9rem}
+strong{color:var(--ink);font-weight:600}
+
+/* Info boxes */
+.box{border-radius:var(--r);padding:.9rem 1.15rem;margin:1.2rem 0;font-size:.88rem;line-height:1.6}
+.box.teal{background:var(--teal-bg);border-left:3px solid var(--teal)}
+.box.blue{background:var(--blue-bg);border-left:3px solid var(--blue)}
+.box.coral{background:var(--coral-bg);border-left:3px solid var(--coral)}
+.box.amber{background:var(--amber-bg);border-left:3px solid var(--amber)}
+.box strong{color:var(--ink)}
+
+/* Code */
+.cw{position:relative;margin:1.15rem 0;border-radius:var(--r);overflow:hidden;border:1px solid var(--border)}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:.72rem;font-weight:600;color:var(--ink3)}
+.ch .lng{background:var(--accent-bg);color:var(--accent);padding:2px 10px;border-radius:99px;font-size:.65rem;letter-spacing:.02em}
+.ch button{background:none;border:1px solid var(--border);border-radius:5px;padding:2px 9px;font-size:.68rem;color:var(--ink3);cursor:pointer;font-family:var(--sans)}
+.ch button:hover{background:var(--bg);border-color:var(--border2)}
+pre{background:#1e1e2e;color:#cdd6f4;padding:1.1rem 1.3rem;overflow-x:auto;font-family:var(--mono);font-size:.78rem;line-height:1.8;margin:0}
+pre .kw{color:#cba6f7}pre .fn{color:#89b4fa}pre .st{color:#a6e3a1}pre .cm{color:#6c7086;font-style:italic}
+pre .ty{color:#f9e2af}pre .nm{color:#fab387}pre .an{color:#f38ba8}pre .op{color:#89dceb}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:1.3rem 0}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.1rem 1.2rem;transition:border-color .2s}
+.card:hover{border-color:var(--border2)}
+.card .ic{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:700;margin-bottom:.6rem}
+.card h4{font-size:.88rem;font-weight:600;margin-bottom:.2rem}
+.card p{font-size:.8rem;margin:0;color:var(--ink3)}
+
+/* Steps */
+.step{display:flex;gap:.9rem;margin:1.1rem 0;align-items:flex-start}
+.sn{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;margin-top:1px}
+.step h4{font-size:.9rem;font-weight:600;margin-bottom:.15rem}
+.step p{font-size:.84rem;margin:0}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;margin:1.2rem 0;font-size:.84rem}
+.tbl th{text-align:left;padding:8px 12px;background:var(--bg2);font-weight:600;border-bottom:1.5px solid var(--border)}
+.tbl td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--ink2)}
+.tbl tr:hover td{background:var(--bg2)}
+
+/* Pipeline SVG */
+.pipeline{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.5rem;margin:1.3rem 0;overflow-x:auto}
+.pipeline svg{display:block;margin:0 auto;max-width:100%;height:auto}
+
+/* Footer */
+footer{text-align:center;padding:1.5rem 0;color:var(--ink3);font-size:.75rem;border-top:1px solid var(--border);margin-top:2.5rem}
+
+@media(max-width:640px){
+  .wrap{padding:1rem}
+  header h1{font-size:1.5rem}
+  .tab{padding:8px 12px;font-size:.75rem}
+  pre{font-size:.72rem;padding:.8rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Temporal.io Deep Dive</div>
+  <h1>Document Management with <em>Temporal</em></h1>
+  <p class="lead">Build a fault-tolerant document processing pipeline using Temporal workflows, LocalStack S3, Elasticsearch, and Tesseract OCR — with Docker Compose.</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab on" data-t="how">How Temporal works</button>
+  <button class="tab" data-t="pipeline">The pipeline</button>
+  <button class="tab" data-t="scaling">Scaling &amp; recovery</button>
+  <button class="tab" data-t="docker">Docker Compose</button>
+  <button class="tab" data-t="activities">Activities</button>
+  <button class="tab" data-t="workflow">Workflow</button>
+  <button class="tab" data-t="run">Run it</button>
+</nav>
+
+<!-- ═══════ HOW TEMPORAL WORKS ═══════ -->
+<section class="pane on" id="how">
+<h2>How Temporal works</h2>
+<p>Temporal is a <strong>durable execution engine</strong>. You write workflows as ordinary code — loops, conditionals, try/catch — and Temporal makes that code survive crashes, restarts, and network failures by recording every step in a persistent event history.</p>
+
+<h3>The three core primitives</h3>
+<div class="cards">
+  <div class="card"><div class="ic" style="background:var(--accent-bg);color:var(--accent)">W</div><h4>Workflows</h4><p>Orchestrators. Deterministic code that sequences activities, handles errors, and maintains state. Workflows can run for seconds or years.</p></div>
+  <div class="card"><div class="ic" style="background:var(--teal-bg);color:var(--teal-dk)">A</div><h4>Activities</h4><p>Side effects. API calls, S3 uploads, database writes, OCR processing — anything non-deterministic goes here. Independently retryable.</p></div>
+  <div class="card"><div class="ic" style="background:var(--coral-bg);color:var(--coral-dk)">Q</div><h4>Task queues</h4><p>Routing layer. Workers poll task queues for work. Multiple workers can poll the same queue for horizontal scaling.</p></div>
+</div>
+
+<h3>The event history model</h3>
+<p>Every decision your workflow makes — every activity call, every timer, every signal — is appended as an <strong>event</strong> to a durable log stored in the database. This is the key to fault tolerance:</p>
+
+<div class="step"><div class="sn">1</div><div><h4>Client starts a workflow</h4><p>Your app sends <code>execute_workflow(ProcessDocument, "report.pdf")</code> to the Temporal Server. The server creates an event history with <code>WorkflowExecutionStarted</code>.</p></div></div>
+<div class="step"><div class="sn">2</div><div><h4>Worker picks up the workflow task</h4><p>A worker polling the task queue receives the task. It runs your workflow code up to the first <code>execute_activity()</code> call — say, <code>detect_file_type</code>.</p></div></div>
+<div class="step"><div class="sn">3</div><div><h4>Activity executes as a separate task</h4><p>The server creates an <code>ActivityTaskScheduled</code> event. A worker picks it up, runs the file detection, and reports the result. The server records <code>ActivityTaskCompleted</code> with the return value.</p></div></div>
+<div class="step"><div class="sn">4</div><div><h4>Workflow continues to the next step</h4><p>The worker receives the activity result and advances the workflow to the next <code>execute_activity()</code> — storing in S3. The cycle repeats for each step.</p></div></div>
+<div class="step"><div class="sn">5</div><div><h4>If a worker crashes...</h4><p>Another worker picks up the task and <strong>replays</strong> the event history. Completed activities are skipped (their results are already recorded). The workflow resumes exactly where it left off.</p></div></div>
+
+<div class="box teal">
+  <strong>The determinism rule:</strong> Workflow code must produce the same decisions given the same event history. No <code>random()</code>, no <code>datetime.now()</code>, no I/O. All side effects go in Activities.
+</div>
+
+<h3>Why this matters for document processing</h3>
+<p>A PDF processing pipeline touches many external systems — S3, Elasticsearch, Tesseract, the filesystem. Any of them can fail at any time. Without Temporal, you'd need to build retry logic, dead-letter queues, state checkpointing, and idempotency guards for every step. With Temporal, you write <code>text = await extract_text_from_pdf(path)</code> and the platform handles the rest.</p>
+</section>
+
+<!-- ═══════ PIPELINE ═══════ -->
+<section class="pane" id="pipeline">
+<h2>Document processing pipeline</h2>
+<p>When a document is uploaded, the <code>DocumentProcessingWorkflow</code> orchestrates 8 types of activities across 8 steps. Each activity is a separate function that can be retried independently and run on different workers.</p>
+
+<div class="pipeline">
+<svg viewBox="0 0 820 580" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="aw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+  <!-- Step 1: Upload -->
+  <rect x="320" y="10" width="180" height="40" rx="8" fill="#ebeffe" stroke="#3d5af1" stroke-width="1"/>
+  <text x="410" y="35" text-anchor="middle" font-family="Outfit" font-size="13" font-weight="600" fill="#3d5af1">Upload document</text>
+  <!-- Arrow -->
+  <line x1="410" y1="50" x2="410" y2="80" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <!-- Step 2: Detect -->
+  <rect x="320" y="82" width="180" height="40" rx="8" fill="#e6f5f0" stroke="#0d9373" stroke-width="1"/>
+  <text x="410" y="107" text-anchor="middle" font-family="Outfit" font-size="13" font-weight="600" fill="#076b54">Detect file type</text>
+  <!-- Arrow -->
+  <line x1="410" y1="122" x2="410" y2="152" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <!-- Step 3: Store raw (parallel) -->
+  <rect x="200" y="155" width="140" height="40" rx="8" fill="#fdf4e0" stroke="#c17f12" stroke-width="1"/>
+  <text x="270" y="180" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#8f5d08">Store in S3</text>
+  <rect x="360" y="155" width="140" height="40" rx="8" fill="#fdf4e0" stroke="#c17f12" stroke-width="1"/>
+  <text x="430" y="180" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#8f5d08">Store on disk</text>
+  <text x="540" y="180" font-family="Outfit" font-size="11" fill="#918b7e">parallel</text>
+  <!-- Arrows from detect to stores -->
+  <path d="M370 122 L370 140 L270 140 L270 153" fill="none" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <path d="M450 122 L450 140 L430 140 L430 153" fill="none" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <!-- Arrow down from stores -->
+  <line x1="350" y1="195" x2="350" y2="230" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <!-- Step 4: Extract text (branching) -->
+  <rect x="80" y="232" width="140" height="50" rx="8" fill="#e7f1fb" stroke="#2176cc" stroke-width="1"/>
+  <text x="150" y="253" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#165496">PDF → text</text>
+  <text x="150" y="269" text-anchor="middle" font-family="Outfit" font-size="10" fill="#918b7e">PyPDF2 + pdfplumber</text>
+  <rect x="240" y="232" width="140" height="50" rx="8" fill="#e7f1fb" stroke="#2176cc" stroke-width="1"/>
+  <text x="310" y="253" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#165496">DOCX → text</text>
+  <text x="310" y="269" text-anchor="middle" font-family="Outfit" font-size="10" fill="#918b7e">python-docx</text>
+  <rect x="400" y="232" width="140" height="50" rx="8" fill="#e7f1fb" stroke="#2176cc" stroke-width="1"/>
+  <text x="470" y="253" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#165496">Plain text</text>
+  <text x="470" y="269" text-anchor="middle" font-family="Outfit" font-size="10" fill="#918b7e">Direct read</text>
+  <rect x="560" y="232" width="140" height="50" rx="8" fill="#fceee9" stroke="#d4502c" stroke-width="1"/>
+  <text x="630" y="253" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#a93b1e">Image → OCR</text>
+  <text x="630" y="269" text-anchor="middle" font-family="Outfit" font-size="10" fill="#918b7e">Tesseract</text>
+  <!-- Route label -->
+  <text x="400" y="225" text-anchor="middle" font-family="Outfit" font-size="11" font-style="italic" fill="#918b7e">route by detected type</text>
+  <!-- Arrows from store to extractors -->
+  <path d="M260 195 L260 210 L150 210 L150 230" fill="none" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <path d="M310 195 L310 230" fill="none" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <path d="M420 195 L420 210 L470 210 L470 230" fill="none" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <path d="M480 195 L500 210 L630 210 L630 230" fill="none" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <!-- Step 5: PDF → extract images -->
+  <rect x="80" y="310" width="140" height="40" rx="8" fill="#fceee9" stroke="#d4502c" stroke-width="1"/>
+  <text x="150" y="335" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#a93b1e">Extract images</text>
+  <line x1="150" y1="282" x2="150" y2="308" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <text x="64" y="303" font-family="Outfit" font-size="10" fill="#918b7e">PDF only</text>
+  <!-- Step 5b: OCR on extracted images -->
+  <rect x="250" y="310" width="160" height="40" rx="8" fill="#fceee9" stroke="#d4502c" stroke-width="1"/>
+  <text x="330" y="335" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#a93b1e">Batch OCR images</text>
+  <line x1="220" y1="330" x2="248" y2="330" stroke="#d4502c" stroke-width="1" marker-end="url(#aw)"/>
+  <!-- Step 6: Store text (triple parallel) -->
+  <line x1="350" y1="290" x2="350" y2="395" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <rect x="120" y="398" width="130" height="40" rx="8" fill="#fdf4e0" stroke="#c17f12" stroke-width="1"/>
+  <text x="185" y="423" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#8f5d08">Text → S3</text>
+  <rect x="270" y="398" width="130" height="40" rx="8" fill="#fdf4e0" stroke="#c17f12" stroke-width="1"/>
+  <text x="335" y="423" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#8f5d08">Text → disk</text>
+  <rect x="420" y="398" width="175" height="40" rx="8" fill="#fdf4e0" stroke="#c17f12" stroke-width="1"/>
+  <text x="507" y="423" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#8f5d08">Text → Elasticsearch</text>
+  <text x="630" y="423" font-family="Outfit" font-size="11" fill="#918b7e">parallel</text>
+  <!-- Step 7: Store images -->
+  <rect x="630" y="310" width="160" height="40" rx="8" fill="#fdf4e0" stroke="#c17f12" stroke-width="1"/>
+  <text x="710" y="335" text-anchor="middle" font-family="Outfit" font-size="12" font-weight="600" fill="#8f5d08">Images → S3 + disk</text>
+  <path d="M410 330 L590 330 L628 330" fill="none" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <!-- Step 8: Index metadata -->
+  <line x1="350" y1="438" x2="350" y2="475" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <rect x="250" y="478" width="220" height="44" rx="8" fill="#ebeffe" stroke="#3d5af1" stroke-width="1"/>
+  <text x="360" y="497" text-anchor="middle" font-family="Outfit" font-size="13" font-weight="600" fill="#3d5af1">Index metadata</text>
+  <text x="360" y="513" text-anchor="middle" font-family="Outfit" font-size="10" fill="#918b7e">Elasticsearch document index</text>
+  <!-- Done -->
+  <line x1="360" y1="522" x2="360" y2="555" stroke="#c8c3b9" stroke-width="1" marker-end="url(#aw)"/>
+  <text x="360" y="572" text-anchor="middle" font-family="Outfit" font-size="13" font-weight="700" fill="#0d9373">Done</text>
+</svg>
+</div>
+
+<h3>Activity registry</h3>
+<table class="tbl">
+<tr><th>Activity</th><th>Input</th><th>Output</th><th>Retry</th></tr>
+<tr><td><code>detect_file_type</code></td><td>File path</td><td>MIME type, category, size</td><td>3 attempts, 1s backoff</td></tr>
+<tr><td><code>store_document_s3</code></td><td>Doc ID, path, MIME</td><td>S3 key</td><td>5 attempts, 2s backoff</td></tr>
+<tr><td><code>store_document_filesystem</code></td><td>Doc ID, path</td><td>Dest path</td><td>5 attempts, 2s backoff</td></tr>
+<tr><td><code>extract_text_from_pdf</code></td><td>File path</td><td>Text, pages, word count</td><td>3 attempts, 5s backoff</td></tr>
+<tr><td><code>extract_text_from_docx</code></td><td>File path</td><td>Text, paragraphs, tables</td><td>3 attempts, 1s backoff</td></tr>
+<tr><td><code>extract_images_from_pdf</code></td><td>File path, doc ID</td><td>Image paths, count</td><td>3 attempts, 5s backoff</td></tr>
+<tr><td><code>ocr_single_image</code></td><td>Image path</td><td>Text, confidence %</td><td>3 attempts, 5s backoff</td></tr>
+<tr><td><code>ocr_batch_images</code></td><td>Image paths[]</td><td>Combined text, per-page</td><td>3 attempts, 5s backoff</td></tr>
+<tr><td><code>store_text_s3</code></td><td>Doc ID, text</td><td>S3 key</td><td>5 attempts, 2s backoff</td></tr>
+<tr><td><code>store_text_elasticsearch</code></td><td>Doc ID, text, meta</td><td>ES doc ID</td><td>5 attempts, 2s backoff</td></tr>
+<tr><td><code>index_document_metadata</code></td><td>Doc ID, stats</td><td>ES doc ID</td><td>5 attempts, 2s backoff</td></tr>
+</table>
+</section>
+
+<!-- ═══════ SCALING & RECOVERY ═══════ -->
+<section class="pane" id="scaling">
+<h2>Scaling &amp; failure recovery</h2>
+
+<h3>How Temporal scales this pipeline</h3>
+<p>Temporal scales at <strong>three levels</strong>: the server, the task queues, and your workers. Each level is independent.</p>
+
+<div class="cards">
+  <div class="card"><div class="ic" style="background:var(--accent-bg);color:var(--accent)">1</div><h4>Worker-level scaling</h4><p>Run more <code>python worker.py</code> instances. Each polls the same task queue. Double the workers → double the throughput. No config changes needed.</p></div>
+  <div class="card"><div class="ic" style="background:var(--teal-bg);color:var(--teal-dk)">2</div><h4>Queue-level scaling</h4><p>Route different activities to different queues. Put OCR on <code>document-ocr</code> queue with GPU workers. Put storage on <code>document-storage</code> queue near the S3 cluster.</p></div>
+  <div class="card"><div class="ic" style="background:var(--amber-bg);color:var(--amber-dk)">3</div><h4>Server-level scaling</h4><p>Temporal's server is sharded. Add more History Service instances → more concurrent workflows. Add more Matching Service instances → more task queue throughput.</p></div>
+</div>
+
+<h3>Scaling strategy for this pipeline</h3>
+<table class="tbl">
+<tr><th>Bottleneck</th><th>Solution</th><th>Command</th></tr>
+<tr><td>Lots of documents uploading</td><td>More main workers</td><td><code>python worker.py</code> × 5</td></tr>
+<tr><td>Large PDFs / slow OCR</td><td>Dedicated OCR workers</td><td><code>python worker.py --queue document-ocr</code> × 10</td></tr>
+<tr><td>S3 or ES slow</td><td>Dedicated storage workers</td><td><code>python worker.py --queue document-storage</code> × 3</td></tr>
+<tr><td>Many concurrent workflows</td><td>More Temporal history shards</td><td>Scale Temporal server config</td></tr>
+</table>
+
+<h3>Failure recovery scenarios</h3>
+<p>Here's what happens when things go wrong — and why your code doesn't need to handle any of it:</p>
+
+<div class="box teal">
+<strong>Scenario: Worker crashes during OCR</strong><br>
+The OCR activity sends heartbeats every 60 seconds. When a heartbeat is missed, Temporal marks the activity as timed out, puts it back on the task queue, and another worker picks it up. The workflow is unaware a crash happened — it just awaits the result.
+</div>
+
+<div class="box blue">
+<strong>Scenario: S3 (LocalStack) is temporarily unreachable</strong><br>
+The <code>store_document_s3</code> activity fails. Temporal retries with exponential backoff: 2s → 4s → 8s → 16s → 32s, up to 5 attempts. If S3 comes back within that window, the activity succeeds. The workflow never sees the transient failure.
+</div>
+
+<div class="box coral">
+<strong>Scenario: Elasticsearch is down for 10 minutes</strong><br>
+Text storage to S3 and filesystem complete normally (they're independent activities). Only the ES activities retry. When ES recovers, the pending activities succeed and the workflow finishes. Partial failures don't block the rest of the pipeline.
+</div>
+
+<div class="box amber">
+<strong>Scenario: The entire Temporal server restarts</strong><br>
+All event histories are persisted in PostgreSQL. When the server comes back, every in-flight workflow resumes from its last recorded event. Workers reconnect and continue polling. Zero data loss, zero manual intervention.
+</div>
+
+<h3>Without Temporal vs. with Temporal</h3>
+<table class="tbl">
+<tr><th>Concern</th><th>Without Temporal</th><th>With Temporal</th></tr>
+<tr><td>Retry logic</td><td>Hand-code per service</td><td>Declarative retry policies</td></tr>
+<tr><td>State persistence</td><td>Redis/DB + manual checkpoints</td><td>Automatic event history</td></tr>
+<tr><td>Crash recovery</td><td>Dead-letter queues + reprocessing</td><td>Transparent replay</td></tr>
+<tr><td>Visibility</td><td>Scattered logs, hard to debug</td><td>Full event history + Web UI</td></tr>
+<tr><td>Long timeouts</td><td>Cron + state DB + polling</td><td><code>workflow.sleep(timedelta(days=30))</code></td></tr>
+<tr><td>Parallel execution</td><td>Thread pools + join logic</td><td><code>asyncio.gather(a1, a2, a3)</code> natively</td></tr>
+<tr><td>Scaling</td><td>Redesign per service</td><td>Add workers</td></tr>
+</table>
+</section>
+
+<!-- ═══════ DOCKER ═══════ -->
+<section class="pane" id="docker">
+<h2>Docker Compose stack</h2>
+<p>The full infrastructure — Temporal Server, PostgreSQL, LocalStack S3, Elasticsearch, and the Web UI — all running locally.</p>
+
+<div class="cw"><div class="ch"><span>docker-compose.yml — services</span><span class="lng">YAML</span></div>
+<pre><span class="kw">services</span>:
+
+  <span class="cm"># Workflow event history persistence</span>
+  <span class="fn">postgresql</span>:
+    <span class="kw">image</span>: <span class="st">postgres:15-alpine</span>
+    <span class="kw">ports</span>: [<span class="st">"5432:5432"</span>]
+
+  <span class="cm"># Durable execution engine</span>
+  <span class="fn">temporal</span>:
+    <span class="kw">image</span>: <span class="st">temporalio/auto-setup:latest</span>
+    <span class="kw">ports</span>: [<span class="st">"7233:7233"</span>]   <span class="cm"># gRPC</span>
+
+  <span class="cm"># Visual workflow debugger</span>
+  <span class="fn">temporal-ui</span>:
+    <span class="kw">image</span>: <span class="st">temporalio/ui:latest</span>
+    <span class="kw">ports</span>: [<span class="st">"8080:8080"</span>]   <span class="cm"># Web UI</span>
+
+  <span class="cm"># AWS S3 emulation (document + text + image storage)</span>
+  <span class="fn">localstack</span>:
+    <span class="kw">image</span>: <span class="st">localstack/localstack:3.0</span>
+    <span class="kw">ports</span>: [<span class="st">"4566:4566"</span>]
+    <span class="kw">environment</span>:
+      - <span class="ty">SERVICES</span>=s3
+    <span class="kw">volumes</span>:
+      - <span class="st">./localstack-init:/etc/localstack/init/ready.d</span>
+
+  <span class="cm"># Full-text search + document metadata index</span>
+  <span class="fn">elasticsearch</span>:
+    <span class="kw">image</span>: <span class="st">elasticsearch:8.11.3</span>
+    <span class="kw">ports</span>: [<span class="st">"9200:9200"</span>]
+    <span class="kw">environment</span>:
+      - <span class="ty">discovery.type</span>=single-node
+      - <span class="ty">xpack.security.enabled</span>=false</pre>
+</div>
+
+<div class="box teal">
+  <strong>S3 buckets created automatically:</strong><br>
+  <code>docmgr-raw-documents</code> — original uploaded files<br>
+  <code>docmgr-extracted-text</code> — extracted text content<br>
+  <code>docmgr-extracted-images</code> — images extracted from PDFs
+</div>
+
+<h3>Start / stop commands</h3>
+<div class="cw"><div class="ch"><span>Terminal</span><span class="lng">BASH</span></div>
+<pre><span class="cm"># Start everything</span>
+docker compose up -d
+
+<span class="cm"># Verify health (wait for all "healthy")</span>
+docker compose ps
+
+<span class="cm"># View Temporal UI → http://localhost:8080</span>
+<span class="cm"># Test Elasticsearch → curl http://localhost:9200</span>
+<span class="cm"># Test LocalStack S3 → aws --endpoint http://localhost:4566 s3 ls</span>
+
+<span class="cm"># Stop (keep data)</span>
+docker compose down
+
+<span class="cm"># Full reset</span>
+docker compose down -v</pre>
+</div>
+</section>
+
+<!-- ═══════ ACTIVITIES ═══════ -->
+<section class="pane" id="activities">
+<h2>Activity implementations</h2>
+<p>Each activity is a standalone async function decorated with <code>@activity.defn</code>. They contain all the "dangerous" code — I/O, network calls, OCR — that Temporal makes retryable.</p>
+
+<h3>Storage: upload to S3</h3>
+<div class="cw"><div class="ch"><span>storage_activities.py</span><span class="lng">PYTHON</span></div>
+<pre><span class="an">@activity.defn</span>
+<span class="kw">async def</span> <span class="fn">store_document_s3</span>(
+    doc_id: <span class="ty">str</span>, file_path: <span class="ty">str</span>, content_type: <span class="ty">str</span>
+) -> <span class="ty">str</span>:
+    <span class="st">"""Upload raw document to LocalStack S3."""</span>
+    s3 = boto3.client(<span class="st">"s3"</span>,
+        endpoint_url=<span class="st">"http://localhost:4566"</span>)
+    s3_key = <span class="st">f"documents/{doc_id}/{os.path.basename(file_path)}"</span>
+
+    <span class="kw">with</span> open(file_path, <span class="st">"rb"</span>) <span class="kw">as</span> f:
+        s3.put_object(
+            Bucket=<span class="st">"docmgr-raw-documents"</span>,
+            Key=s3_key,
+            Body=f.read(),
+            ContentType=content_type,
+        )
+    <span class="kw">return</span> s3_key</pre>
+</div>
+
+<h3>Text extraction: PDF</h3>
+<div class="cw"><div class="ch"><span>text_extraction_activities.py</span><span class="lng">PYTHON</span></div>
+<pre><span class="an">@activity.defn</span>
+<span class="kw">async def</span> <span class="fn">extract_text_from_pdf</span>(file_path: <span class="ty">str</span>) -> <span class="ty">dict</span>:
+    <span class="st">"""Extract text with PyPDF2, fallback to pdfplumber."""</span>
+    <span class="kw">import</span> PyPDF2
+
+    <span class="kw">with</span> open(file_path, <span class="st">"rb"</span>) <span class="kw">as</span> f:
+        reader = PyPDF2.PdfReader(f)
+        text_pages = []
+
+        <span class="kw">for</span> i, page <span class="kw">in</span> enumerate(reader.pages):
+            text_pages.append(page.extract_text() <span class="kw">or</span> <span class="st">""</span>)
+            <span class="cm"># Heartbeat tells Temporal we're still alive</span>
+            activity.heartbeat(<span class="st">f"Page {i+1}/{len(reader.pages)}"</span>)
+
+    <span class="kw">return</span> {
+        <span class="st">"text"</span>: <span class="st">"\n\n"</span>.join(text_pages),
+        <span class="st">"page_count"</span>: len(reader.pages),
+    }</pre>
+</div>
+
+<h3>OCR: Tesseract on images</h3>
+<div class="cw"><div class="ch"><span>ocr_activities.py</span><span class="lng">PYTHON</span></div>
+<pre><span class="an">@activity.defn</span>
+<span class="kw">async def</span> <span class="fn">ocr_single_image</span>(image_path: <span class="ty">str</span>) -> <span class="ty">dict</span>:
+    <span class="st">"""Extract text from an image using Tesseract OCR."""</span>
+    <span class="kw">import</span> pytesseract
+    <span class="kw">from</span> PIL <span class="kw">import</span> Image, ImageFilter
+
+    img = Image.open(image_path)
+    img = img.convert(<span class="st">"L"</span>)             <span class="cm"># Grayscale</span>
+    img = img.filter(ImageFilter.SHARPEN) <span class="cm"># Sharpen edges</span>
+
+    text = pytesseract.image_to_string(img, lang=<span class="st">"eng"</span>)
+
+    <span class="cm"># Get confidence scores</span>
+    data = pytesseract.image_to_data(
+        img, output_type=pytesseract.Output.DICT)
+    confidences = [int(c) <span class="kw">for</span> c <span class="kw">in</span> data[<span class="st">"conf"</span>]
+                   <span class="kw">if</span> str(c).strip() <span class="kw">and</span> int(c) > <span class="nm">0</span>]
+
+    <span class="kw">return</span> {
+        <span class="st">"text"</span>: text.strip(),
+        <span class="st">"confidence"</span>: sum(confidences) / len(confidences),
+    }</pre>
+</div>
+
+<h3>Elasticsearch indexing</h3>
+<div class="cw"><div class="ch"><span>storage_activities.py</span><span class="lng">PYTHON</span></div>
+<pre><span class="an">@activity.defn</span>
+<span class="kw">async def</span> <span class="fn">store_text_elasticsearch</span>(
+    doc_id: <span class="ty">str</span>, text: <span class="ty">str</span>,
+    filename: <span class="ty">str</span>, file_type: <span class="ty">str</span>, metadata: <span class="ty">dict</span>,
+) -> <span class="ty">str</span>:
+    <span class="st">"""Index extracted text in ES for full-text search."""</span>
+    es = Elasticsearch(<span class="st">"http://localhost:9200"</span>)
+
+    result = es.index(
+        index=<span class="st">"document_text"</span>,
+        id=doc_id,
+        body={
+            <span class="st">"doc_id"</span>: doc_id,
+            <span class="st">"filename"</span>: filename,
+            <span class="st">"text_content"</span>: text,
+            <span class="st">"word_count"</span>: len(text.split()),
+            **metadata,
+        },
+    )
+    <span class="kw">return</span> result[<span class="st">"_id"</span>]</pre>
+</div>
+</section>
+
+<!-- ═══════ WORKFLOW ═══════ -->
+<section class="pane" id="workflow">
+<h2>The workflow orchestrator</h2>
+<p>The <code>DocumentProcessingWorkflow</code> ties everything together. Notice how it reads like a normal Python script — but every <code>await</code> is a durable checkpoint. If the process crashes after step 3, Temporal replays steps 1-3 from history and continues from step 4.</p>
+
+<div class="cw"><div class="ch"><span>document_workflow.py — core logic</span><span class="lng">PYTHON</span></div>
+<pre><span class="an">@workflow.defn</span>
+<span class="kw">class</span> <span class="ty">DocumentProcessingWorkflow</span>:
+
+    <span class="an">@workflow.run</span>
+    <span class="kw">async def</span> <span class="fn">run</span>(self, file_path: <span class="ty">str</span>, doc_id: <span class="ty">str</span>) -> <span class="ty">dict</span>:
+
+        <span class="cm"># Step 1: Detect file type</span>
+        file_info = <span class="kw">await</span> workflow.execute_activity(
+            detect_file_type, file_path,
+            start_to_close_timeout=timedelta(seconds=<span class="nm">30</span>),
+        )
+
+        <span class="cm"># Step 2: Store raw document (S3 + filesystem in PARALLEL)</span>
+        s3_task = workflow.execute_activity(
+            store_document_s3, args=[doc_id, file_path, file_info[<span class="st">"mime_type"</span>]],
+            start_to_close_timeout=timedelta(seconds=<span class="nm">120</span>),
+        )
+        fs_task = workflow.execute_activity(
+            store_document_filesystem, args=[doc_id, file_path],
+            start_to_close_timeout=timedelta(seconds=<span class="nm">60</span>),
+        )
+        s3_key = <span class="kw">await</span> s3_task   <span class="cm"># Both run concurrently</span>
+        fs_path = <span class="kw">await</span> fs_task
+
+        <span class="cm"># Step 3: Route to correct extractor</span>
+        category = file_info[<span class="st">"category"</span>]
+
+        <span class="kw">if</span> category == <span class="st">"pdf"</span>:
+            text_result = <span class="kw">await</span> workflow.execute_activity(
+                extract_text_from_pdf, file_path, ...)
+            <span class="cm"># Also extract images from the PDF</span>
+            images = <span class="kw">await</span> workflow.execute_activity(
+                extract_images_from_pdf, args=[file_path, doc_id], ...)
+            <span class="cm"># OCR on the extracted images</span>
+            ocr = <span class="kw">await</span> workflow.execute_activity(
+                ocr_batch_images, images[<span class="st">"image_paths"</span>], ...)
+
+        <span class="kw">elif</span> category == <span class="st">"image"</span>:
+            text_result = <span class="kw">await</span> workflow.execute_activity(
+                ocr_single_image, file_path, ...)
+
+        <span class="kw">elif</span> category == <span class="st">"docx"</span>:
+            text_result = <span class="kw">await</span> workflow.execute_activity(
+                extract_text_from_docx, file_path, ...)
+
+        <span class="cm"># Step 4: Store text everywhere (PARALLEL)</span>
+        <span class="kw">await</span> workflow.execute_activity(store_text_s3, ...)
+        <span class="kw">await</span> workflow.execute_activity(store_text_filesystem, ...)
+        <span class="kw">await</span> workflow.execute_activity(store_text_elasticsearch, ...)
+
+        <span class="cm"># Step 5: Index metadata</span>
+        <span class="kw">await</span> workflow.execute_activity(index_document_metadata, ...)
+
+        <span class="kw">return</span> result</pre>
+</div>
+
+<div class="box blue">
+  <strong>Signal: cancel mid-processing</strong><br>
+  <code>handle = client.get_workflow_handle("doc-123")</code><br>
+  <code>await handle.signal(DocumentProcessingWorkflow.cancel_processing)</code><br><br>
+  <strong>Query: check status without side effects</strong><br>
+  <code>status = await handle.query(DocumentProcessingWorkflow.get_status)</code>
+</div>
+</section>
+
+<!-- ═══════ RUN IT ═══════ -->
+<section class="pane" id="run">
+<h2>Run the complete demo</h2>
+
+<div class="step"><div class="sn">1</div><div><h4>Start infrastructure</h4>
+<div class="cw"><div class="ch"><span>Terminal</span><span class="lng">BASH</span></div>
+<pre>docker compose up -d
+<span class="cm"># Wait ~60s for all services to be healthy</span>
+docker compose ps</pre></div>
+</div></div>
+
+<div class="step"><div class="sn">2</div><div><h4>Install Python dependencies</h4>
+<div class="cw"><div class="ch"><span>Terminal</span><span class="lng">BASH</span></div>
+<pre>pip install -r requirements.txt
+
+<span class="cm"># Ubuntu/Debian: OCR + PDF rendering</span>
+sudo apt-get install tesseract-ocr tesseract-ocr-eng poppler-utils
+
+<span class="cm"># macOS</span>
+brew install tesseract poppler</pre></div>
+</div></div>
+
+<div class="step"><div class="sn">3</div><div><h4>Start workers</h4>
+<div class="cw"><div class="ch"><span>Terminal 1</span><span class="lng">BASH</span></div>
+<pre><span class="cm"># Full worker — handles all activity types</span>
+python worker.py
+
+<span class="cm"># OR: specialized workers for scaling</span>
+<span class="cm"># python worker.py --queue document-processing</span>
+<span class="cm"># python worker.py --queue document-ocr</span>
+<span class="cm"># python worker.py --queue document-storage</span></pre></div>
+</div></div>
+
+<div class="step"><div class="sn">4</div><div><h4>Upload a document</h4>
+<div class="cw"><div class="ch"><span>Terminal 2</span><span class="lng">BASH</span></div>
+<pre><span class="cm"># Process a PDF (waits for full pipeline to complete)</span>
+python upload.py sample-docs/report.pdf
+
+<span class="cm"># Process an image with OCR</span>
+python upload.py sample-docs/invoice.png --id inv-001
+
+<span class="cm"># Fire and forget</span>
+python upload.py sample-docs/contract.docx --no-wait
+
+<span class="cm"># Check status of a running workflow</span>
+python upload.py --status report
+
+<span class="cm"># Search in Elasticsearch</span>
+python upload.py --search <span class="st">"quarterly revenue"</span>
+
+<span class="cm"># List all files in S3</span>
+python upload.py --list-s3</pre></div>
+</div></div>
+
+<div class="step"><div class="sn">5</div><div><h4>Explore in Temporal UI</h4>
+<p>Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> and click on your workflow. You'll see every event — every activity scheduled, started, completed, and failed — in a visual timeline. Click any event to see the exact input/output data.</p>
+</div></div>
+
+<div class="box amber">
+  <strong>Try the failure recovery demo:</strong><br>
+  1. Start a workflow: <code>python upload.py large-file.pdf --no-wait</code><br>
+  2. Kill the worker mid-processing: <code>Ctrl+C</code><br>
+  3. Check status: <code>python upload.py --status large-file</code> (still "running")<br>
+  4. Start a new worker: <code>python worker.py</code><br>
+  5. Watch it replay and resume from exactly where it left off!
+</div>
+</section>
+
+</div>
+
+<footer>Temporal.io Document Management Tutorial</footer>
+
+<script>
+document.getElementById('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('.tab');if(!b)return;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById(b.dataset.t).classList.add('on');
+});
+document.querySelectorAll('.ch').forEach(h=>{
+  const btn=document.createElement('button');btn.textContent='Copy';
+  btn.addEventListener('click',()=>{
+    navigator.clipboard.writeText(h.nextElementSibling.textContent).then(()=>{
+      btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',1200);
+    });
+  });h.appendChild(btn);
+});
+</script>
+</body>
+</html>

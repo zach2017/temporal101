@@ -121,6 +121,8 @@ footer{text-align:center;padding:2rem 0;color:var(--text3);font-size:.8rem;borde
   <button class="tab" data-tab="docker">Docker Compose</button>
   <button class="tab" data-tab="java">Java Tutorial</button>
   <button class="tab" data-tab="python">Python Tutorial</button>
+  <button class="tab" data-tab="deep1">Deep Dive Tutorial</button>
+
 </nav>
 
 <!-- ═══════════════ OVERVIEW ═══════════════ -->
@@ -932,6 +934,7 @@ python starter.py
 <script>
 // Tab switching
 document.getElementById('tabs').addEventListener('click', e => {
+  alert(btn)
   const btn = e.target.closest('.tab');
   if (!btn) return;
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -942,6 +945,7 @@ document.getElementById('tabs').addEventListener('click', e => {
 
 // Copy code buttons
 document.querySelectorAll('.code-header').forEach(header => {
+  alert(btn)
   const btn = document.createElement('button');
   btn.textContent = 'Copy';
   btn.addEventListener('click', () => {
