@@ -29,7 +29,7 @@ async def main() -> None:
         HelloWorldWorkflow.run,
         name,
         id=f"hello-world-{name.lower().replace(' ', '-')}",
-        task_queue="hello-world-queue",
+        task_queue="hello-world-python-queue",
     )
 
     print(f"Workflow started: id={handle.id}, run_id={handle.result_run_id}")

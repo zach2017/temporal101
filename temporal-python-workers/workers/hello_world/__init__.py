@@ -8,7 +8,7 @@ from workers.hello_world.activities import say_hello_long_running
 from workers.hello_world.workflows import HelloWorldWorkflow
 
 register = {
-    "task_queue": "hello-world-queue",
+    "task_queue": "hello-world--python-queue",
     "workflows": [HelloWorldWorkflow],
     "activities": [say_hello_long_running],
 }

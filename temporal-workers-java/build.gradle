@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.temporal.workers'
+version = '0.1.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Temporal SDK
+    implementation 'io.temporal:temporal-sdk:1.25.0'
+
+    // Logging
+    implementation 'org.slf4j:slf4j-api:2.0.13'
+    implementation 'ch.qos.logback:logback-classic:1.5.6'
+
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'io.temporal:temporal-testing:1.25.0'
+}
+
+application {
+    mainClass = 'com.temporal.workers.WorkerRunner'
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.temporal.workers.WorkerRunner'
+    }
+}
+
+// Fat jar for Docker
+tasks.register('fatJar', Jar) {
+    archiveClassifier = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': 'com.temporal.workers.WorkerRunner'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    with jar
+}
