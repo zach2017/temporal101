@@ -137,3 +137,8 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+docupload/target/
+temporal-demo/java-worker/target/
+temporal-demo/spring-boot-app/target/
+temporal-doc-processor/java-worker/bin/
+temporal-doc-processor/java-worker/.gradle/
