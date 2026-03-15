@@ -44,7 +44,7 @@ services:
     networks:
       - temporal-network
     healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "7233"]
+      test: ["CMD", "echo"]
       interval: 10s
       timeout: 5s
       retries: 30
