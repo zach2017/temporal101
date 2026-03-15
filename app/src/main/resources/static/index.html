@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-10">
+    <div class="max-auto bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-4">Temporal Polyglot Demo</h1>
+        <input id="filename" type="text" placeholder="Enter filename" class="border p-2 w-full mb-4">
+        <button onclick="startWork()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Process File
+        </button>
+        
+        <div id="result" class="mt-6 p-4 bg-green-50 hidden">
+            <p><strong>Type:</strong> <span id="type"></span></p>
+            <p><strong>Size:</strong> <span id="size"></span> bytes</p>
+        </div>
+    </div>
+
+    <script>
+        async function startWork() {
+            const filename = document.getElementById('filename').value;
+            const res = await fetch('/start-workflow', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ filename })
+            });
+            const data = await res.json();
+            document.getElementById('result').classList.remove('hidden');
+            document.getElementById('type').innerText = data.fileType;
+            document.getElementById('size').innerText = data.size;
+        }
+    </script>
+</body>
+</html>
