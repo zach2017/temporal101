@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Temporal.io Developer Quiz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { display: ['Outfit','sans-serif'], mono: ['IBM Plex Mono','monospace'] },
+      colors: {
+        temporal: { 50:'#effcfc',100:'#d7f6f7',200:'#b3ecef',300:'#7edde3',400:'#42c5cf',500:'#27a9b5',600:'#238998',700:'#236f7c',800:'#245b66',900:'#224c56',950:'#11323a' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  @keyframes slide-up { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes timer-glow { 0%,100% { box-shadow:0 0 8px rgba(239,68,68,0.3); } 50% { box-shadow:0 0 20px rgba(239,68,68,0.7); } }
+  @keyframes confetti-fall { 0% { transform:translateY(-10vh) rotate(0deg); opacity:1; } 100% { transform:translateY(100vh) rotate(720deg); opacity:0; } }
+  .anim-up { animation: slide-up 0.4s ease-out forwards; }
+  .timer-urgent { animation: timer-glow 0.5s ease-in-out infinite; }
+  .confetti-piece { position:fixed; top:0; pointer-events:none; z-index:100; animation:confetti-fall linear forwards; }
+  .opt-btn { transition: all 0.15s ease; }
+  .opt-btn:hover:not(:disabled) { transform: translateX(4px); }
+  .opt-btn:disabled { cursor: default; }
+  .opt-correct { background: linear-gradient(90deg, rgba(6,95,70,0.19), rgba(16,185,129,0.13)) !important; border-color: #10b981 !important; }
+  .opt-wrong  { background: linear-gradient(90deg, rgba(127,29,29,0.19), rgba(239,68,68,0.13)) !important; border-color: #ef4444 !important; }
+  .opt-missed { border-color: rgba(16,185,129,0.5) !important; opacity:0.6; }
+  .progress-fill { transition: width 0.4s ease; }
+  .timer-bar-fill { transition: width 0.1s linear; }
+
+  /* Light mode overrides */
+  html:not(.dark) .opt-correct { background: linear-gradient(90deg, rgba(6,95,70,0.08), rgba(16,185,129,0.08)) !important; }
+  html:not(.dark) .opt-wrong  { background: linear-gradient(90deg, rgba(127,29,29,0.08), rgba(239,68,68,0.08)) !important; }
+
+  @media print {
+    body > *:not(#cert-screen) { display: none !important; }
+    #cert-screen { display: flex !important; }
+    .no-print { display: none !important; }
+    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  }
+</style>
+</head>
+
+<body class="font-display min-h-screen transition-colors duration-300
+  dark:bg-gray-950 dark:text-gray-200
+  bg-gray-50 text-gray-800">
+
+<!-- ══════════ THEME TOGGLE (always visible) ══════════ -->
+<button id="theme-toggle" onclick="toggleTheme()"
+  class="no-print fixed top-4 right-4 z-50 p-2.5 rounded-xl border transition-all
+  dark:bg-gray-900 dark:border-gray-700 dark:hover:border-temporal-600 dark:text-gray-400
+  bg-white border-gray-200 hover:border-temporal-500 text-gray-500 shadow-sm"
+  title="Toggle dark/light mode">
+  <svg id="icon-sun" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+  <svg id="icon-moon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+</button>
+
+<!-- ══════════ START SCREEN ══════════ -->
+<div id="start-screen" class="min-h-screen flex items-center justify-center p-6">
+  <div class="max-w-2xl w-full text-center anim-up">
+    <div class="inline-flex items-center gap-3 mb-8 px-5 py-2.5 rounded-full border
+      dark:bg-temporal-950/60 dark:border-temporal-800/40
+      bg-temporal-50 border-temporal-200">
+      <div class="w-3 h-3 rounded-full bg-temporal-400 shadow-[0_0_12px_rgba(66,197,207,0.5)]"></div>
+      <span class="font-mono text-sm tracking-widest uppercase dark:text-temporal-300 text-temporal-700">Temporal.io</span>
+    </div>
+
+    <h1 class="text-5xl sm:text-6xl font-extrabold mb-4 leading-tight
+      dark:bg-gradient-to-r dark:from-white dark:via-temporal-200 dark:to-temporal-400 dark:bg-clip-text dark:text-transparent
+      text-gray-900">
+      Developer Quiz
+    </h1>
+    <p class="text-lg mb-10 max-w-lg mx-auto leading-relaxed dark:text-gray-400 text-gray-500">
+      25 questions covering Temporal basics, workflows, activities, workers,
+      Java &amp; Python SDKs, async patterns, and production best practices.
+    </p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 text-left">
+      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
+        <div class="text-2xl font-bold text-temporal-500 mb-1">30s</div>
+        <div class="text-sm dark:text-gray-400 text-gray-500">per question timer</div>
+      </div>
+      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
+        <div class="text-2xl font-bold text-emerald-500 mb-1">10 / 5</div>
+        <div class="text-sm dark:text-gray-400 text-gray-500">pts fast / pts regular</div>
+      </div>
+      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
+        <div class="text-2xl font-bold text-amber-500 mb-1">75%</div>
+        <div class="text-sm dark:text-gray-400 text-gray-500">to earn certificate</div>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <label class="block text-sm mb-2 dark:text-gray-500 text-gray-400">Your Name (for certificate)</label>
+      <input id="player-name" type="text" placeholder="Enter your name..."
+        class="w-full max-w-sm mx-auto block px-4 py-3 border rounded-lg text-center font-mono placeholder-gray-400 focus:outline-none focus:ring-1 transition-colors
+        dark:bg-gray-900 dark:border-gray-700 dark:text-temporal-300 dark:focus:border-temporal-500 dark:focus:ring-temporal-500/30
+        bg-white border-gray-300 text-temporal-700 focus:border-temporal-500 focus:ring-temporal-500/30">
+    </div>
+
+    <button onclick="startQuiz()"
+      class="px-10 py-4 bg-temporal-600 hover:bg-temporal-500 text-white font-bold text-lg rounded-xl transition-all hover:shadow-[0_0_30px_rgba(39,169,181,0.3)] hover:-translate-y-0.5 active:translate-y-0">
+      Start Quiz
+    </button>
+  </div>
+</div>
+
+<!-- ══════════ QUIZ SCREEN ══════════ -->
+<div id="quiz-screen" class="hidden min-h-screen p-4 sm:p-6">
+  <div class="max-w-3xl mx-auto">
+    <!-- Top bar -->
+    <div class="flex items-center justify-between mb-6 gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-temporal-400 shadow-[0_0_8px_rgba(66,197,207,0.4)]"></div>
+        <span class="font-mono text-xs tracking-wider uppercase dark:text-temporal-400/70 text-temporal-600/70">Temporal Quiz</span>
+      </div>
+      <div class="flex items-center gap-4 font-mono text-sm">
+        <span class="dark:text-gray-500 text-gray-400">Score:</span>
+        <span id="score-display" class="font-bold text-lg dark:text-temporal-300 text-temporal-600">0</span>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-2">
+        <span id="q-counter" class="font-mono text-xs dark:text-gray-500 text-gray-400"></span>
+        <span id="q-category" class="font-mono text-[11px] px-2.5 py-1 rounded-full border
+          dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700/50
+          bg-gray-100 text-gray-500 border-gray-200"></span>
+      </div>
+      <div class="w-full h-1.5 rounded-full overflow-hidden dark:bg-gray-800 bg-gray-200">
+        <div id="progress-bar" class="progress-fill h-full bg-gradient-to-r from-temporal-600 to-temporal-400 rounded-full" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Timer -->
+    <div id="timer-wrap" class="mb-6">
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="font-mono text-xs dark:text-gray-600 text-gray-400">TIME</span>
+        <span id="timer-text" class="font-mono text-sm font-bold dark:text-gray-300 text-gray-600">30s</span>
+      </div>
+      <div class="w-full h-2 rounded-full overflow-hidden dark:bg-gray-800 bg-gray-200">
+        <div id="timer-bar" class="timer-bar-fill h-full bg-gradient-to-r from-emerald-500 to-temporal-400 rounded-full" style="width:100%"></div>
+      </div>
+    </div>
+
+    <!-- Question card -->
+    <div id="question-card" class="rounded-2xl p-6 sm:p-8 mb-4 anim-up border
+      dark:bg-gray-900/80 dark:border-gray-800
+      bg-white border-gray-200 shadow-sm">
+      <div id="q-difficulty" class="inline-block font-mono text-[11px] px-2.5 py-1 rounded-full mb-4 border"></div>
+      <h2 id="q-text" class="text-xl sm:text-2xl font-bold leading-snug mb-2 dark:text-white text-gray-900"></h2>
+      <pre id="q-code" class="hidden rounded-lg p-4 mb-6 font-mono text-sm overflow-x-auto whitespace-pre-wrap border
+        dark:bg-gray-950 dark:border-gray-800 dark:text-temporal-300
+        bg-gray-50 border-gray-200 text-temporal-700"></pre>
+      <div id="q-options" class="space-y-3 mt-6"></div>
+      <div id="q-explanation" class="hidden mt-6 p-4 rounded-xl border
+        dark:bg-gray-950/60 dark:border-gray-700/50
+        bg-gray-50 border-gray-200">
+        <div class="text-xs font-mono uppercase tracking-wider mb-2 dark:text-gray-500 text-gray-400">Explanation</div>
+        <p id="q-explanation-text" class="text-sm leading-relaxed dark:text-gray-300 text-gray-600"></p>
+      </div>
+    </div>
+
+    <!-- Help / Next -->
+    <div class="flex items-center justify-between gap-3">
+      <button id="help-btn" onclick="toggleHelp()"
+        class="flex items-center gap-2 px-4 py-2.5 border rounded-lg text-sm font-mono transition-all
+        dark:bg-gray-800/60 dark:hover:bg-gray-800 dark:border-gray-700/50 dark:text-gray-400 dark:hover:text-temporal-300
+        bg-white hover:bg-gray-50 border-gray-200 text-gray-500 hover:text-temporal-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Help &amp; Docs
+      </button>
+      <button id="next-btn" onclick="nextQuestion()"
+        class="hidden px-6 py-2.5 bg-temporal-600 hover:bg-temporal-500 text-white font-semibold rounded-lg transition-all hover:shadow-[0_0_20px_rgba(39,169,181,0.2)]">
+        Next Question →
+      </button>
+    </div>
+
+    <!-- Help panel -->
+    <div id="help-panel" class="hidden mt-4 p-5 rounded-xl anim-up border
+      dark:bg-gray-900/80 dark:border-temporal-800/30
+      bg-white border-temporal-200">
+      <div class="text-xs font-mono uppercase tracking-wider mb-3 dark:text-temporal-500 text-temporal-600">Hint &amp; Documentation</div>
+      <p id="help-hint" class="text-sm mb-4 leading-relaxed dark:text-gray-300 text-gray-600"></p>
+      <a id="help-link" href="#" target="_blank"
+        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors border
+        dark:bg-temporal-950/60 dark:hover:bg-temporal-900/60 dark:border-temporal-700/30 dark:text-temporal-300
+        bg-temporal-50 hover:bg-temporal-100 border-temporal-200 text-temporal-700">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        <span id="help-link-text">Temporal Docs</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ RESULTS SCREEN ══════════ -->
+<div id="results-screen" class="hidden min-h-screen flex items-center justify-center p-6">
+  <div class="max-w-2xl w-full text-center anim-up">
+    <div id="results-icon" class="text-7xl mb-6"></div>
+    <h2 id="results-title" class="text-4xl font-extrabold mb-3"></h2>
+    <p id="results-subtitle" class="text-lg mb-8 dark:text-gray-400 text-gray-500"></p>
+
+    <div class="grid grid-cols-3 gap-4 mb-8">
+      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
+        <div id="r-score" class="text-3xl font-bold text-temporal-500 mb-1"></div>
+        <div class="text-xs font-mono dark:text-gray-500 text-gray-400">POINTS</div>
+      </div>
+      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
+        <div id="r-correct" class="text-3xl font-bold text-emerald-500 mb-1"></div>
+        <div class="text-xs font-mono dark:text-gray-500 text-gray-400">CORRECT</div>
+      </div>
+      <div class="rounded-xl p-5 border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
+        <div id="r-pct" class="text-3xl font-bold text-amber-500 mb-1"></div>
+        <div class="text-xs font-mono dark:text-gray-500 text-gray-400">ACCURACY</div>
+      </div>
+    </div>
+
+    <div class="rounded-xl p-5 mb-8 text-left border dark:bg-gray-900/60 dark:border-gray-800 bg-white border-gray-200">
+      <div class="text-xs font-mono uppercase tracking-wider mb-3 dark:text-gray-500 text-gray-400">Breakdown</div>
+      <div class="grid grid-cols-2 gap-3 text-sm font-mono">
+        <div class="flex justify-between"><span class="dark:text-gray-500 text-gray-400">Fast (10pts)</span><span id="r-fast" class="text-emerald-500"></span></div>
+        <div class="flex justify-between"><span class="dark:text-gray-500 text-gray-400">Regular (5pts)</span><span id="r-regular" class="text-temporal-500"></span></div>
+        <div class="flex justify-between"><span class="dark:text-gray-500 text-gray-400">Wrong / Timeout</span><span id="r-wrong" class="text-red-500"></span></div>
+        <div class="flex justify-between"><span class="dark:text-gray-500 text-gray-400">Max possible</span><span class="dark:text-gray-400 text-gray-500">250</span></div>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap justify-center gap-4">
+      <button onclick="restartQuiz()"
+        class="px-8 py-3 border font-semibold rounded-xl transition-all
+        dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 dark:text-white
+        bg-white hover:bg-gray-50 border-gray-200 text-gray-700">Try Again</button>
+      <button id="cert-btn" onclick="showCertificate()"
+        class="hidden px-8 py-3 bg-temporal-600 hover:bg-temporal-500 text-white font-bold rounded-xl transition-all hover:shadow-[0_0_20px_rgba(39,169,181,0.3)]">
+        View Certificate
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CERTIFICATE SCREEN ══════════ -->
+<div id="cert-screen" class="hidden min-h-screen flex items-center justify-center p-6 dark:bg-gray-950 bg-gray-100">
+  <div class="max-w-3xl w-full">
+    <div class="bg-gradient-to-br from-gray-900 via-gray-900 to-temporal-950 border-2 border-temporal-700/40 rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden text-gray-200">
+      <div class="absolute top-0 left-0 w-24 h-24 border-t-2 border-l-2 border-temporal-600/30 rounded-tl-3xl"></div>
+      <div class="absolute top-0 right-0 w-24 h-24 border-t-2 border-r-2 border-temporal-600/30 rounded-tr-3xl"></div>
+      <div class="absolute bottom-0 left-0 w-24 h-24 border-b-2 border-l-2 border-temporal-600/30 rounded-bl-3xl"></div>
+      <div class="absolute bottom-0 right-0 w-24 h-24 border-b-2 border-r-2 border-temporal-600/30 rounded-br-3xl"></div>
+
+      <div class="font-mono text-xs text-temporal-500 tracking-[0.3em] uppercase mb-6">Certificate of Completion</div>
+      <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-temporal-600/20 border border-temporal-500/30 flex items-center justify-center">
+        <svg class="w-8 h-8 text-temporal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+      </div>
+
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-2">Temporal.io</h2>
+      <p class="text-lg text-temporal-300 mb-8">Developer Proficiency Assessment</p>
+
+      <div class="text-sm text-gray-500 mb-1">This certifies that</div>
+      <div id="cert-name" class="text-3xl font-bold text-white mb-6 border-b border-gray-700 pb-4 mx-auto max-w-md"></div>
+
+      <p class="text-sm text-gray-400 mb-8 max-w-md mx-auto leading-relaxed">
+        has demonstrated proficiency in Temporal.io concepts including workflows,
+        activities, workers, Java &amp; Python SDK usage, async patterns,
+        and production best practices.
+      </p>
+
+      <div class="grid grid-cols-3 gap-4 mb-8 max-w-sm mx-auto">
+        <div><div id="cert-score" class="text-xl font-bold text-temporal-400"></div><div class="text-[10px] text-gray-500 font-mono uppercase">Score</div></div>
+        <div><div id="cert-pct" class="text-xl font-bold text-emerald-400"></div><div class="text-[10px] text-gray-500 font-mono uppercase">Accuracy</div></div>
+        <div><div id="cert-date" class="text-xl font-bold text-gray-300"></div><div class="text-[10px] text-gray-500 font-mono uppercase">Date</div></div>
+      </div>
+      <div class="font-mono text-[10px] text-gray-600 tracking-wider">TEMPORAL-CERT-<span id="cert-id"></span></div>
+    </div>
+
+    <div class="flex justify-center gap-4 mt-8 no-print">
+      <button onclick="hideCertificate()" class="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all border dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-700 bg-white hover:bg-gray-50 border-gray-200">← Back</button>
+      <button onclick="window.print()" class="px-6 py-2.5 bg-temporal-600 hover:bg-temporal-500 text-white font-semibold rounded-lg transition-all">Print Certificate</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═════════════════════════════════════════════════════
+//  THEME
+// ═════════════════════════════════════════════════════
+function toggleTheme() {
+  document.documentElement.classList.toggle('dark');
+  localStorage.setItem('temporal-quiz-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+}
+(function() {
+  const saved = localStorage.getItem('temporal-quiz-theme');
+  if (saved === 'light') document.documentElement.classList.remove('dark');
+})();
+
+// ═════════════════════════════════════════════════════
+//  QUESTION BANK — correct answer is "correctText"
+//  Options will be SHUFFLED at runtime
+// ═════════════════════════════════════════════════════
+const QUESTIONS = [
+  {
+    category:"Fundamentals", difficulty:"beginner",
+    text:"What is Temporal.io primarily used for?",
+    correctText:"Building durable, fault-tolerant distributed applications",
+    wrong:["Managing container orchestration like Kubernetes","Real-time stream processing like Apache Kafka","Serving static web content"],
+    explanation:"Temporal is a platform for building durable, fault-tolerant applications. It persists your application's state so that if a process crashes, execution resumes automatically.",
+    hint:"Think about what happens when your microservice crashes mid-operation.",
+    docUrl:"https://docs.temporal.io/temporal", docLabel:"What is Temporal?"
+  },
+  {
+    category:"Fundamentals", difficulty:"beginner",
+    text:"What are the two core building blocks of a Temporal application?",
+    correctText:"Workflows and Activities",
+    wrong:["Producers and Consumers","Controllers and Services","Publishers and Subscribers"],
+    explanation:"Workflows define the orchestration logic (durable, deterministic). Activities contain the actual work (API calls, DB writes, etc.) that can fail and be retried.",
+    hint:"One is deterministic and orchestrates; the other does the actual side-effect work.",
+    docUrl:"https://docs.temporal.io/workflows", docLabel:"Workflows & Activities"
+  },
+  {
+    category:"Fundamentals", difficulty:"beginner",
+    text:"Where does Temporal persist workflow execution state?",
+    correctText:"In a database (PostgreSQL, MySQL, or Cassandra)",
+    wrong:["In the worker's local memory","In a distributed file system","In browser localStorage"],
+    explanation:"Temporal Server persists every workflow event in a supported database. This is what makes workflows durable — they survive crashes, restarts, and network partitions.",
+    hint:"Temporal Server needs a backing datastore to make workflows survive crashes.",
+    docUrl:"https://docs.temporal.io/clusters", docLabel:"Temporal Clusters"
+  },
+  {
+    category:"Fundamentals", difficulty:"beginner",
+    text:"What is a Task Queue in Temporal?",
+    correctText:"A named queue that routes tasks from the server to the correct workers",
+    wrong:["A priority queue for ordering workflow executions","A message broker like RabbitMQ","A database table that stores pending activities"],
+    explanation:"Task Queues are lightweight named queues that route workflow and activity tasks to workers that poll them. Multiple workers can poll the same queue for load balancing.",
+    hint:"Workers poll these to receive work. The name determines which workers get which tasks.",
+    docUrl:"https://docs.temporal.io/workers#task-queue", docLabel:"Task Queues"
+  },
+  {
+    category:"Fundamentals", difficulty:"beginner",
+    text:"What happens when a Temporal worker crashes in the middle of executing a workflow?",
+    correctText:"Another worker replays the event history and resumes execution",
+    wrong:["The workflow is lost and must be restarted manually","Temporal sends an error to the client and stops","The database rolls back all completed activities"],
+    explanation:"Temporal records every state transition as an event. A new worker replays events to reconstruct state and continues from where the crash occurred.",
+    hint:"Event Sourcing is the key mechanism — every step is persisted as an immutable event.",
+    docUrl:"https://docs.temporal.io/workflows#event-history", docLabel:"Event History"
+  },
+  {
+    category:"Core Concepts", difficulty:"beginner",
+    text:"Why must Temporal Workflow code be deterministic?",
+    correctText:"So the workflow can be reconstructed by replaying its event history",
+    wrong:["To optimize database query performance","Because Temporal only supports functional programming","To prevent race conditions in the task queue"],
+    explanation:"During replay, the same workflow code runs again but Temporal feeds it previously recorded results. Non-deterministic code would produce different decisions, causing a NonDeterministicException.",
+    hint:"Think about what happens during replay — the same code runs again to rebuild state.",
+    docUrl:"https://docs.temporal.io/workflows#deterministic-constraints", docLabel:"Deterministic Constraints"
+  },
+  {
+    category:"Core Concepts", difficulty:"intermediate",
+    text:"What is the purpose of Activity Heartbeats in Temporal?",
+    correctText:"To report progress and prove the activity is still alive",
+    wrong:["To send data back to the workflow every second","To synchronize clocks between workers","To trigger workflow signals from inside activities"],
+    explanation:"Long-running activities should heartbeat periodically. If the worker crashes, Temporal detects the missing heartbeats and schedules the activity on another worker.",
+    hint:"It's a liveness signal — if it stops, Temporal knows the activity may be stuck or dead.",
+    docUrl:"https://docs.temporal.io/activities#activity-heartbeat", docLabel:"Activity Heartbeats"
+  },
+  {
+    category:"Core Concepts", difficulty:"intermediate",
+    text:"What does a Retry Policy control in Temporal?",
+    correctText:"How many times and with what backoff an activity is retried on failure",
+    wrong:["How many workers can poll the same task queue","How long workflow history is retained after completion","The maximum number of concurrent workflows"],
+    explanation:"RetryPolicy configures maximum attempts, initial interval, backoff coefficient, and maximum interval. Temporal automatically retries failed activities — no manual retry code needed.",
+    hint:"It controls automatic retries: attempts, delays, and exponential backoff.",
+    docUrl:"https://docs.temporal.io/retry-policies", docLabel:"Retry Policies"
+  },
+  {
+    category:"Core Concepts", difficulty:"intermediate",
+    text:"How do you check the status of a running workflow without blocking?",
+    correctText:"Use a Workflow Query to read the workflow's state",
+    wrong:["Check the database directly for the workflow row","Send an HTTP request to the worker process","Read the workflow's log file"],
+    explanation:"Queries are read-only operations that run against the workflow's in-memory state. They return instantly and don't affect execution.",
+    hint:"It's a read-only operation defined with @QueryMethod (Java) or @workflow.query (Python).",
+    docUrl:"https://docs.temporal.io/workflows#query", docLabel:"Workflow Queries"
+  },
+  {
+    category:"Core Concepts", difficulty:"intermediate",
+    text:"What is the difference between Workflow.sleep() and Thread.sleep() in a Temporal workflow?",
+    correctText:"Workflow.sleep() is durable and survives crashes; Thread.sleep() would break determinism",
+    wrong:["Thread.sleep() is faster and preferred for short durations","They are identical — both work inside workflows","Workflow.sleep() runs on the server; Thread.sleep() runs on the worker"],
+    explanation:"Workflow.sleep() creates a durable timer persisted in the event history. If the worker restarts, the timer resumes correctly. Thread.sleep() would violate determinism.",
+    hint:"One is durable (survives restarts), the other is not. Determinism is the key concern.",
+    docUrl:"https://docs.temporal.io/develop/java/timers", docLabel:"Timers"
+  },
+  {
+    category:"Java SDK", difficulty:"intermediate",
+    text:"Which annotation marks a Java interface as a Temporal Workflow?",
+    code:"// Which annotation goes here?\npublic interface OrderWorkflow {\n    @WorkflowMethod\n    String processOrder(String orderId);\n}",
+    correctText:"@WorkflowInterface",
+    wrong:["@TemporalWorkflow","@WorkflowDefinition","@DurableFunction"],
+    explanation:"In the Java SDK, @WorkflowInterface marks the interface and @WorkflowMethod marks the entry point method.",
+    hint:"The Java SDK uses two annotations: one on the interface, one on the method.",
+    docUrl:"https://docs.temporal.io/develop/java/core-application#develop-workflows", docLabel:"Java Workflows"
+  },
+  {
+    category:"Java SDK", difficulty:"intermediate",
+    text:"How do you create an Activity stub inside a Java workflow?",
+    code:"// Inside the workflow implementation:\nprivate final MyActivities activities = ???",
+    correctText:"Workflow.newActivityStub(MyActivities.class, activityOptions)",
+    wrong:["new MyActivitiesImpl()","ActivityStub.create(MyActivities.class)","WorkflowClient.newActivityStub(MyActivities.class)"],
+    explanation:"Workflow.newActivityStub() creates a proxy that serializes calls and dispatches them through Temporal for durable execution with retry and timeout support.",
+    hint:"Workflows never call 'new' on activity implementations — they use stubs/proxies.",
+    docUrl:"https://docs.temporal.io/develop/java/core-application#activity-execution", docLabel:"Java Activity Execution"
+  },
+  {
+    category:"Java SDK", difficulty:"intermediate",
+    text:"How do you register a workflow and activity with a Java worker?",
+    code:"Worker worker = factory.newWorker(\"my-queue\");\n// What comes next?",
+    correctText:"worker.registerWorkflowImplementationTypes(Impl.class) and worker.registerActivitiesImplementations(new Impl())",
+    wrong:["worker.addWorkflow(new Impl()) and worker.addActivity(new Impl())","worker.register(Workflow.class, Activities.class)","WorkerRegistry.register(worker, Impl.class)"],
+    explanation:"Workflows are registered by class (Temporal instantiates them). Activities are registered by instance (you control construction and can inject dependencies).",
+    hint:"Workflow types are registered, activity instances are registered — notice the difference.",
+    docUrl:"https://docs.temporal.io/develop/java/core-application#run-a-dev-worker", docLabel:"Java Workers"
+  },
+  {
+    category:"Java SDK", difficulty:"advanced",
+    text:"What is the purpose of the Temporal Spring Boot Starter?",
+    correctText:"Auto-configures WorkflowClient, WorkerFactory, and worker registration via Spring beans",
+    wrong:["Provides a REST API that replaces the need for Temporal Server","Converts Spring MVC controllers into Temporal workflows automatically","Embeds a Temporal Server inside the Spring Boot application"],
+    explanation:"The temporal-spring-boot-starter auto-configures Temporal beans in the Spring context. Workers and registrations are managed through dependency injection and configuration properties.",
+    hint:"It's a Spring Boot auto-configuration — think @Bean and application.yml.",
+    docUrl:"https://docs.temporal.io/develop/java/testing-suite#spring-boot", docLabel:"Spring Boot Integration"
+  },
+  {
+    category:"Java SDK", difficulty:"advanced",
+    text:"How do you start a workflow asynchronously (fire-and-forget) from a Java client?",
+    code:"WorkflowStub stub = client.newUntypedWorkflowStub(\n    \"MyWorkflow\", options);\n// Start without waiting for result:",
+    correctText:"stub.start(arg) — returns WorkflowExecution immediately",
+    wrong:["stub.startAsync(arg) — returns a CompletableFuture","stub.execute(arg, false) — the false means don't wait","WorkflowClient.startAsync(stub, arg)"],
+    explanation:"stub.start() fires the workflow and returns a WorkflowExecution (containing workflowId and runId) immediately. To get the result later, call stub.getResult().",
+    hint:"start() vs getResult() — one fires, the other blocks for the result.",
+    docUrl:"https://docs.temporal.io/develop/java/core-application#start-workflow-execution", docLabel:"Start Workflow"
+  },
+  {
+    category:"Python SDK", difficulty:"intermediate",
+    text:"How do you define a workflow in the Temporal Python SDK?",
+    code:"# Which decorators are needed?\nclass GreetingWorkflow:\n    async def run(self, name: str) -> str:\n        ...",
+    correctText:"@workflow.defn on the class and @workflow.run on the method",
+    wrong:["@temporal.workflow on the class only","@workflow.define() on the class and @workflow.entry on the method","Inherit from temporal.Workflow base class"],
+    explanation:"Python uses @workflow.defn to mark the class and @workflow.run to mark the entry point method. The class name becomes the workflow type name.",
+    hint:"Two decorators needed — one for the class definition, one for the entry point method.",
+    docUrl:"https://docs.temporal.io/develop/python/core-application#develop-workflows", docLabel:"Python Workflows"
+  },
+  {
+    category:"Python SDK", difficulty:"intermediate",
+    text:"How do you execute an activity from inside a Python workflow?",
+    code:"@workflow.defn\nclass MyWorkflow:\n    @workflow.run\n    async def run(self, data: str) -> str:",
+    correctText:"await workflow.execute_activity(my_activity, data, start_to_close_timeout=timedelta(seconds=10))",
+    wrong:["await my_activity(data)","self.run_activity(my_activity, data)","activity.execute(my_activity, data)"],
+    explanation:"workflow.execute_activity() schedules the activity through Temporal with specified timeouts and retry policies.",
+    hint:"You can't call activities directly — they must go through Temporal's scheduling.",
+    docUrl:"https://docs.temporal.io/develop/python/core-application#activity-execution", docLabel:"Python Activity Execution"
+  },
+  {
+    category:"Python SDK", difficulty:"intermediate",
+    text:"Why does the Python SDK use 'with workflow.unsafe.imports_passed_through()' when importing activities?",
+    correctText:"To bypass the workflow sandbox so the activity module isn't re-imported on every replay",
+    wrong:["To enable unsafe multithreading in the workflow","To allow the activity to access environment variables","To disable type checking on the activity parameters"],
+    explanation:"Python workflows run in a sandbox. Activities are side-effect code that shouldn't be sandboxed, so imports_passed_through() uses the already-loaded module reference.",
+    hint:"The Python SDK sandboxes workflow files. This bypasses the sandbox for activity imports.",
+    docUrl:"https://docs.temporal.io/develop/python/core-application#workflow-sandbox", docLabel:"Workflow Sandbox"
+  },
+  {
+    category:"Python SDK", difficulty:"advanced",
+    text:"How do you start a Python Temporal Worker that polls a specific task queue?",
+    code:"client = await Client.connect(\"localhost:7233\")\n# Create and run the worker:",
+    correctText:"worker = Worker(client, task_queue=\"q\", workflows=[Wf], activities=[act]); await worker.run()",
+    wrong:["worker = TemporalWorker(client, \"q\"); worker.register(Wf, act); worker.start()","await client.start_worker(\"q\", Wf, act)","Worker.create(client).poll(\"q\").run()"],
+    explanation:"Create a Worker instance with the client, task queue name, list of workflow classes, and list of activity functions. Then await worker.run() to start long-polling.",
+    hint:"Constructor takes client, queue name, workflow classes, activity functions. Then .run().",
+    docUrl:"https://docs.temporal.io/develop/python/core-application#run-a-dev-worker", docLabel:"Python Workers"
+  },
+  {
+    category:"Python SDK", difficulty:"advanced",
+    text:"How do you define a workflow query in Python that works cross-language (e.g., called from Java)?",
+    code:"@workflow.defn\nclass MyWorkflow:\n    # Define a query named \"getProgress\":",
+    correctText:"@workflow.query(name=\"getProgress\") with an explicit name parameter",
+    wrong:["@workflow.query followed by def getProgress(self)","@query(\"getProgress\") async def progress(self)","def query_getProgress(self)"],
+    explanation:"Use @workflow.query(name=\"getProgress\") to set an explicit query name. Without it, Python uses the snake_case method name which wouldn't match Java's camelCase.",
+    hint:"Cross-language queries need matching names. Python snake_case won't match Java camelCase.",
+    docUrl:"https://docs.temporal.io/develop/python/message-passing#queries", docLabel:"Python Queries"
+  },
+  {
+    category:"Patterns", difficulty:"advanced",
+    text:"How do you scale a Temporal application to handle more workflow throughput?",
+    correctText:"Add more worker processes polling the same task queue",
+    wrong:["Increase the database connection pool size","Deploy multiple Temporal Servers on different ports","Add more namespaces for each workflow type"],
+    explanation:"Workers are stateless — just add more. Multiple workers poll the same task queue and Temporal distributes tasks automatically. Scale with 'docker compose up --scale worker=10'.",
+    hint:"Workers are stateless. Scaling means adding more of them on the same queue.",
+    docUrl:"https://docs.temporal.io/workers#worker-processes", docLabel:"Scaling Workers"
+  },
+  {
+    category:"Patterns", difficulty:"advanced",
+    text:"What is the key difference between a Temporal Signal and a Query?",
+    correctText:"Signals mutate workflow state; Queries only read it without side effects",
+    wrong:["Signals are synchronous; Queries are asynchronous","Signals work only in Java; Queries work in all SDKs","Signals use HTTP; Queries use gRPC"],
+    explanation:"Signals are async messages that can change workflow state. Queries are read-only — they inspect current state without affecting execution. Both use gRPC and work in all SDKs.",
+    hint:"One is write/mutate, the other is read-only. Think about side effects.",
+    docUrl:"https://docs.temporal.io/workflows#signals-and-queries", docLabel:"Signals & Queries"
+  },
+  {
+    category:"Patterns", difficulty:"advanced",
+    text:"What is the correct way to handle a 24-hour delay inside a Temporal workflow?",
+    code:"// Need to wait 24 hours before next step:",
+    correctText:"Workflow.sleep(Duration.ofHours(24)) in Java or await asyncio.sleep via workflow.sleep(86400) in Python",
+    wrong:["Thread.sleep(86400000) in Java or time.sleep(86400) in Python","Use a cron job scheduled 24 hours from now","Schedule a new workflow to run after 24 hours"],
+    explanation:"Workflow.sleep() creates a durable timer. Even if it spans days, no worker is occupied. The timer event is persisted and the workflow resumes automatically.",
+    hint:"Temporal timers are durable and free (no worker held). They survive restarts.",
+    docUrl:"https://docs.temporal.io/develop/java/timers", docLabel:"Durable Timers"
+  },
+  {
+    category:"Integration", difficulty:"advanced",
+    text:"To add Temporal to an existing Python web app (e.g., FastAPI), what are the minimum steps?",
+    correctText:"Install temporalio, create a Client, define workflow + activity, start a Worker, call client.execute_workflow() from your endpoint",
+    wrong:["Replace all API endpoints with Temporal activities","Install a Temporal plugin that auto-converts endpoints to workflows","Rewrite the entire app in Go since Temporal is Go-native"],
+    explanation:"Temporal is additive — keep your web framework. Create a Client on startup, define workflows/activities for durable operations, run a Worker process, and call client.execute_workflow() from route handlers.",
+    hint:"Temporal is additive, not a replacement. Your web framework stays — you add workflow calls.",
+    docUrl:"https://docs.temporal.io/develop/python", docLabel:"Python SDK Guide"
+  },
+  {
+    category:"Integration", difficulty:"advanced",
+    text:"What can you find in the Temporal Web UI for debugging a failed workflow?",
+    correctText:"Complete event history with inputs, outputs, retry attempts, error messages, and timing for every step",
+    wrong:["Only the final error message and stack trace","CPU and memory usage of the worker processes","Network packet captures between services"],
+    explanation:"The Temporal UI shows the full immutable event history: every ActivityScheduled/Completed/Failed with payloads, retry attempts with errors, timer events, signals, queries — all with timestamps.",
+    hint:"Every single state transition is recorded — inputs, outputs, retries, errors, timing.",
+    docUrl:"https://docs.temporal.io/web-ui", docLabel:"Temporal Web UI"
+  }
+];
+
+// ═════════════════════════════════════════════════════
+//  SHUFFLE OPTIONS — returns { options:[], correctIndex: N }
+// ═════════════════════════════════════════════════════
+function shuffleOptions(q) {
+  const all = [q.correctText, ...q.wrong];
+  // Fisher-Yates shuffle
+  for (let i = all.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return { options: all, correctIndex: all.indexOf(q.correctText) };
+}
+
+// ═════════════════════════════════════════════════════
+//  STATE
+// ═════════════════════════════════════════════════════
+let S = { name:'', qs:[], qi:0, score:0, correct:0, fast:0, regular:0, wrong:0, timer:null, timeLeft:30, answered:false, shuffled:null };
+
+function show(id) {
+  ['start-screen','quiz-screen','results-screen','cert-screen'].forEach(s=>document.getElementById(s).classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+// ═════════════════════════════════════════════════════
+//  START
+// ═════════════════════════════════════════════════════
+function startQuiz() {
+  S.name = document.getElementById('player-name').value.trim() || 'Anonymous Developer';
+  S.qs = [...QUESTIONS].sort(() => Math.random() - 0.5);
+  S.qi=0; S.score=0; S.correct=0; S.fast=0; S.regular=0; S.wrong=0;
+  show('quiz-screen');
+  renderQ();
+}
+
+// ═════════════════════════════════════════════════════
+//  RENDER
+// ═════════════════════════════════════════════════════
+function renderQ() {
+  const q = S.qs[S.qi];
+  S.answered = false;
+  S.timeLeft = 30;
+  S.shuffled = shuffleOptions(q);
+
+  document.getElementById('q-counter').textContent = `Question ${S.qi+1} / ${S.qs.length}`;
+  document.getElementById('progress-bar').style.width = `${(S.qi/S.qs.length)*100}%`;
+  document.getElementById('score-display').textContent = S.score;
+  document.getElementById('q-category').textContent = q.category;
+
+  const diffEl = document.getElementById('q-difficulty');
+  const dc = { beginner:'text-emerald-500 border-emerald-700 bg-emerald-950/40 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
+    intermediate:'text-amber-600 border-amber-300 bg-amber-50 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
+    advanced:'text-red-600 border-red-300 bg-red-50 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800' };
+  diffEl.className = `inline-block font-mono text-[11px] px-2.5 py-1 rounded-full mb-4 border ${dc[q.difficulty]}`;
+  diffEl.textContent = q.difficulty.toUpperCase();
+
+  document.getElementById('q-text').textContent = q.text;
+  const codeEl = document.getElementById('q-code');
+  if (q.code) { codeEl.textContent = q.code; codeEl.classList.remove('hidden'); }
+  else codeEl.classList.add('hidden');
+
+  const optEl = document.getElementById('q-options');
+  optEl.innerHTML = '';
+  S.shuffled.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn w-full text-left px-5 py-3.5 border rounded-xl font-mono text-sm transition-all ' +
+      'dark:bg-gray-800/60 dark:hover:bg-gray-800 dark:border-gray-700/60 dark:text-gray-300 dark:hover:text-white dark:hover:border-temporal-600/40 ' +
+      'bg-gray-50 hover:bg-white border-gray-200 text-gray-600 hover:text-gray-900 hover:border-temporal-400';
+    btn.innerHTML = `<span class="mr-3 font-bold dark:text-gray-500 text-gray-400">${String.fromCharCode(65+i)}</span>${opt}`;
+    btn.onclick = () => selectAnswer(i);
+    optEl.appendChild(btn);
+  });
+
+  document.getElementById('q-explanation').classList.add('hidden');
+  document.getElementById('next-btn').classList.add('hidden');
+  document.getElementById('help-panel').classList.add('hidden');
+
+  const card = document.getElementById('question-card');
+  card.classList.remove('anim-up'); void card.offsetWidth; card.classList.add('anim-up');
+
+  startTimer();
+}
+
+// ═════════════════════════════════════════════════════
+//  TIMER
+// ═════════════════════════════════════════════════════
+function startTimer() {
+  clearInterval(S.timer);
+  S.timeLeft = 30;
+  updTimer();
+  S.timer = setInterval(() => {
+    S.timeLeft -= 0.1;
+    if (S.timeLeft <= 0) { S.timeLeft=0; clearInterval(S.timer); if(!S.answered) timeUp(); }
+    updTimer();
+  }, 100);
+}
+
+function updTimer() {
+  const t = Math.max(0, S.timeLeft), pct = (t/30)*100;
+  const bar = document.getElementById('timer-bar');
+  const txt = document.getElementById('timer-text');
+  const wrap = document.getElementById('timer-wrap');
+  bar.style.width = pct+'%';
+  txt.textContent = Math.ceil(t)+'s';
+  if (t<=5) { bar.className='timer-bar-fill h-full bg-red-500 rounded-full'; txt.className='font-mono text-sm font-bold text-red-500'; wrap.classList.add('timer-urgent'); }
+  else if (t<=15) { bar.className='timer-bar-fill h-full bg-gradient-to-r from-amber-500 to-yellow-400 rounded-full'; txt.className='font-mono text-sm font-bold text-amber-500'; wrap.classList.remove('timer-urgent'); }
+  else { bar.className='timer-bar-fill h-full bg-gradient-to-r from-emerald-500 to-temporal-400 rounded-full'; txt.className='font-mono text-sm font-bold dark:text-gray-300 text-gray-600'; wrap.classList.remove('timer-urgent'); }
+}
+
+function timeUp() {
+  S.answered=true; S.wrong++;
+  const ci = S.shuffled.correctIndex;
+  document.querySelectorAll('#q-options .opt-btn').forEach((btn,i)=>{ btn.disabled=true; if(i===ci) btn.classList.add('opt-missed'); });
+  showExp("⏰ Time's up! The correct answer was highlighted.");
+  document.getElementById('next-btn').classList.remove('hidden');
+}
+
+// ═════════════════════════════════════════════════════
+//  ANSWER
+// ═════════════════════════════════════════════════════
+function selectAnswer(idx) {
+  if (S.answered) return;
+  S.answered=true; clearInterval(S.timer);
+
+  const ci = S.shuffled.correctIndex;
+  const correct = idx === ci;
+  const elapsed = 30 - S.timeLeft;
+
+  document.querySelectorAll('#q-options .opt-btn').forEach((btn,i)=>{
+    btn.disabled=true;
+    if (i===ci) btn.classList.add('opt-correct');
+    if (i===idx && !correct) btn.classList.add('opt-wrong');
+  });
+
+  if (correct) {
+    S.correct++;
+    if (elapsed <= 15) { S.score+=10; S.fast++; showExp(`⚡ Fast answer! +10 points (${elapsed.toFixed(1)}s)`); }
+    else { S.score+=5; S.regular++; showExp(`✓ Correct! +5 points (${elapsed.toFixed(1)}s)`); }
+  } else {
+    S.wrong++; showExp(`✗ Incorrect. The right answer is highlighted above.`);
+  }
+
+  document.getElementById('score-display').textContent = S.score;
+  document.getElementById('next-btn').classList.remove('hidden');
+}
+
+function showExp(prefix) {
+  const q = S.qs[S.qi];
+  document.getElementById('q-explanation').classList.remove('hidden');
+  document.getElementById('q-explanation-text').textContent = prefix + '\n\n' + q.explanation;
+}
+
+// ═════════════════════════════════════════════════════
+//  HELP
+// ═════════════════════════════════════════════════════
+function toggleHelp() {
+  const p = document.getElementById('help-panel');
+  if (!p.classList.contains('hidden')) { p.classList.add('hidden'); return; }
+  const q = S.qs[S.qi];
+  document.getElementById('help-hint').textContent = q.hint;
+  document.getElementById('help-link').href = q.docUrl;
+  document.getElementById('help-link-text').textContent = q.docLabel;
+  p.classList.remove('hidden');
+}
+
+// ═════════════════════════════════════════════════════
+//  NEXT
+// ═════════════════════════════════════════════════════
+function nextQuestion() { S.qi++; if(S.qi >= S.qs.length) showResults(); else renderQ(); }
+
+// ═════════════════════════════════════════════════════
+//  RESULTS
+// ═════════════════════════════════════════════════════
+function showResults() {
+  clearInterval(S.timer); show('results-screen');
+  const pct = Math.round((S.correct/S.qs.length)*100);
+  const passed = pct >= 75;
+  document.getElementById('results-icon').textContent = passed ? '🏆' : '📚';
+  document.getElementById('results-title').textContent = passed ? 'Outstanding!' : 'Keep Learning!';
+  document.getElementById('results-title').className = `text-4xl font-extrabold mb-3 ${passed ? 'text-temporal-500' : 'dark:text-gray-200 text-gray-800'}`;
+  document.getElementById('results-subtitle').textContent = passed
+    ? `You scored ${pct}% — you've earned your Temporal Developer Certificate!`
+    : `You scored ${pct}% — review the docs and try again (75% required).`;
+  document.getElementById('r-score').textContent = S.score;
+  document.getElementById('r-correct').textContent = `${S.correct}/${S.qs.length}`;
+  document.getElementById('r-pct').textContent = pct+'%';
+  document.getElementById('r-fast').textContent = S.fast;
+  document.getElementById('r-regular').textContent = S.regular;
+  document.getElementById('r-wrong').textContent = S.wrong;
+  document.getElementById('cert-btn').classList.toggle('hidden', !passed);
+  if (passed) confetti();
+}
+
+// ═════════════════════════════════════════════════════
+//  CERTIFICATE
+// ═════════════════════════════════════════════════════
+function showCertificate() {
+  show('cert-screen');
+  const pct = Math.round((S.correct/S.qs.length)*100);
+  document.getElementById('cert-name').textContent = S.name;
+  document.getElementById('cert-score').textContent = `${S.score}/250`;
+  document.getElementById('cert-pct').textContent = pct+'%';
+  document.getElementById('cert-date').textContent = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('cert-id').textContent = Math.random().toString(36).substring(2,10).toUpperCase();
+}
+function hideCertificate() { show('results-screen'); }
+function restartQuiz() { document.getElementById('player-name').value = S.name; show('start-screen'); }
+
+// ═════════════════════════════════════════════════════
+//  CONFETTI
+// ═════════════════════════════════════════════════════
+function confetti() {
+  const colors = ['#42c5cf','#10b981','#f59e0b','#8b5cf6','#ef4444','#ec4899','#3b82f6'];
+  for (let i=0;i<60;i++) {
+    const el=document.createElement('div'); el.className='confetti-piece';
+    el.style.cssText=`left:${Math.random()*100}vw;background:${colors[Math.floor(Math.random()*colors.length)]};animation-duration:${2+Math.random()*3}s;animation-delay:${Math.random()*2}s;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;border-radius:${Math.random()>0.5?'50%':'2px'}`;
+    document.body.appendChild(el); setTimeout(()=>el.remove(),6000);
+  }
+}
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (document.getElementById('quiz-screen').classList.contains('hidden')) return;
+  if ('aAbBcCdD'.includes(e.key)) selectAnswer('aAbBcCdD'.indexOf(e.key) >> 1);
+  else if (e.key>='1'&&e.key<='4') selectAnswer(+e.key-1);
+  else if (e.key==='Enter'||e.key===' ') { if(!document.getElementById('next-btn').classList.contains('hidden')) nextQuestion(); }
+  else if (e.key==='h'||e.key==='H') toggleHelp();
+});
+</script>
+</body>
+</html>
