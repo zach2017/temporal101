@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DAL Explorer — Data Access Layer Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans:  ['"DM Sans"', 'system-ui', 'sans-serif'],
+                        mono:  ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        ink:    { 50: "#f4f4f6", 100: "#e2e3e8", 200: "#c5c7d0", 400: "#7c7f94", 600: "#4a4d63", 800: "#23253a", 900: "#141627", 950: "#0b0c1a" },
+                        acid:   { 400: "#a3e635", 500: "#84cc16" },
+                        coral:  { 400: "#fb7185", 500: "#f43f5e" },
+                        sky:    { 400: "#38bdf8", 500: "#0ea5e9" },
+                        amber:  { 400: "#fbbf24", 500: "#f59e0b" },
+                    },
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        body { background: #0b0c1a; }
+        .fade-in   { animation: fadeIn .4s ease-out both; }
+        .slide-up  { animation: slideUp .5s ease-out both; }
+        @keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .badge { @apply text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full; }
+        .glow  { box-shadow: 0 0 40px -12px rgba(163,230,53,.25); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4a4d63; border-radius: 3px; }
+    </style>
+</head>
+
+<body class="font-sans text-ink-100 min-h-screen">
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  #login-screen                                         ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="login-screen" class="min-h-screen flex items-center justify-center px-4 fade-in">
+    <div class="w-full max-w-sm space-y-8">
+        <!-- Logo / Title -->
+        <div class="text-center space-y-2">
+            <div class="inline-flex items-center gap-2 text-acid-400 font-mono text-sm tracking-widest uppercase">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z"/></svg>
+                DAL Explorer
+            </div>
+            <h1 class="text-3xl font-bold text-white">Sign in to the Data Access Layer</h1>
+            <p class="text-ink-400 text-sm">Pick a user below to see how RBAC + ABAC filter data.</p>
+        </div>
+
+        <!-- Quick-pick user buttons -->
+        <div class="grid grid-cols-2 gap-3" id="quick-pick">
+            <!-- populated by JS -->
+        </div>
+
+        <!-- Manual login -->
+        <div class="border-t border-ink-800 pt-6 space-y-4">
+            <input id="inp-user" type="text" placeholder="Username"
+                   class="w-full bg-ink-900 border border-ink-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-acid-400/40" />
+            <input id="inp-pass" type="password" placeholder="Password"
+                   class="w-full bg-ink-900 border border-ink-800 rounded-lg px-4 py-2.5 text-sm text-white placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-acid-400/40" />
+            <button onclick="doLogin()" id="btn-login"
+                    class="w-full bg-acid-400 text-ink-950 font-semibold rounded-lg py-2.5 text-sm hover:bg-acid-500 transition">
+                Sign In
+            </button>
+            <p id="login-error" class="text-coral-400 text-xs text-center hidden"></p>
+        </div>
+    </div>
+</section>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  #app-screen  (hidden until login)                     ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<section id="app-screen" class="hidden min-h-screen">
+
+    <!-- Top bar -->
+    <header class="sticky top-0 z-30 backdrop-blur bg-ink-950/80 border-b border-ink-800">
+        <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+            <span class="font-mono text-acid-400 text-sm tracking-widest uppercase flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 10-8 0v4h8z"/></svg>
+                DAL Explorer
+            </span>
+            <div class="flex items-center gap-4 text-sm">
+                <span id="hdr-user" class="text-ink-200"></span>
+                <span id="hdr-role" class="badge bg-ink-800 text-acid-400"></span>
+                <button onclick="logout()" class="text-ink-400 hover:text-coral-400 transition text-xs font-mono">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8 space-y-10">
+
+        <!-- ── DAL Pipeline Diagram ─────────────────────────── -->
+        <div id="pipeline-section" class="slide-up">
+            <h2 class="text-lg font-bold text-white mb-4">DAL Pipeline for this request</h2>
+            <div id="pipeline" class="flex flex-wrap gap-2 items-center"></div>
+        </div>
+
+        <!-- ── Tabs ─────────────────────────────────────────── -->
+        <div class="flex gap-1 border-b border-ink-800">
+            <button onclick="switchTab('docs')"  id="tab-docs"  class="tab-btn px-4 py-2 text-sm font-medium border-b-2 transition">Documents</button>
+            <button onclick="switchTab('acl')"   id="tab-acl"   class="tab-btn px-4 py-2 text-sm font-medium border-b-2 transition">ACL Rules</button>
+            <button onclick="switchTab('audit')" id="tab-audit" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 transition">Audit Log</button>
+        </div>
+
+        <!-- Documents -->
+        <div id="panel-docs" class="tab-panel space-y-3"></div>
+
+        <!-- ACL Rules -->
+        <div id="panel-acl" class="tab-panel hidden space-y-4"></div>
+
+        <!-- Audit -->
+        <div id="panel-audit" class="tab-panel hidden"></div>
+
+    </main>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     JavaScript — DAL client
+     ══════════════════════════════════════════════════════════ -->
+<script>
+const API = "";   // same-origin, proxied by nginx
+let TOKEN = null;
+let USER  = null;
+
+const DEMO_USERS = [
+    { username: "alice",   password: "password123", role: "admin",   dept: "engineering", color: "acid" },
+    { username: "bob",     password: "password123", role: "editor",  dept: "marketing",   color: "sky" },
+    { username: "charlie", password: "password123", role: "viewer",  dept: "engineering", color: "amber" },
+    { username: "diana",   password: "password123", role: "viewer",  dept: "marketing",   color: "amber" },
+    { username: "eve",     password: "password123", role: "auditor", dept: "compliance",  color: "coral" },
+];
+
+const ROLE_COLORS = {
+    admin:   "bg-acid-400/15 text-acid-400",
+    editor:  "bg-sky-400/15 text-sky-400",
+    viewer:  "bg-amber-400/15 text-amber-400",
+    auditor: "bg-coral-400/15 text-coral-400",
+};
+
+const CLS_COLORS = {
+    public:       "bg-acid-400/15 text-acid-400",
+    internal:     "bg-sky-400/15 text-sky-400",
+    confidential: "bg-coral-400/15 text-coral-400",
+};
+
+// ── Helpers ──────────────────────────────────────────────────
+async function api(path, opts = {}) {
+    const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+    if (TOKEN) headers["Authorization"] = `Bearer ${TOKEN}`;
+    const res = await fetch(API + path, { ...opts, headers });
+    const data = await res.json();
+    if (!res.ok) throw { status: res.status, ...data };
+    return data;
+}
+
+function $(id) { return document.getElementById(id); }
+function show(el) { el.classList.remove("hidden"); }
+function hide(el) { el.classList.add("hidden"); }
+
+// ── Quick-pick buttons ───────────────────────────────────────
+function renderQuickPick() {
+    $("quick-pick").innerHTML = DEMO_USERS.map(u => `
+        <button onclick="quickLogin('${u.username}','${u.password}')"
+                class="flex flex-col items-start gap-1 bg-ink-900 border border-ink-800 rounded-lg px-4 py-3 hover:border-ink-600 transition text-left group">
+            <span class="text-white font-medium text-sm group-hover:text-acid-400 transition">${u.username}</span>
+            <span class="flex items-center gap-2">
+                <span class="badge ${ROLE_COLORS[u.role]}">${u.role}</span>
+                <span class="text-ink-400 text-[10px] font-mono">${u.dept}</span>
+            </span>
+        </button>
+    `).join("");
+}
+
+// ── Auth ─────────────────────────────────────────────────────
+async function doLogin(username, password) {
+    username = username || $("inp-user").value;
+    password = password || $("inp-pass").value;
+    try {
+        const d = await api("/api/login", { method: "POST", body: JSON.stringify({ username, password }) });
+        TOKEN = d.token;
+        USER  = d.user;
+        hide($("login-screen"));
+        show($("app-screen"));
+        $("hdr-user").textContent = USER.username;
+        $("hdr-role").textContent = USER.role;
+        $("hdr-role").className = `badge ${ROLE_COLORS[USER.role]}`;
+        loadPipeline();
+        switchTab("docs");
+    } catch (e) {
+        const err = $("login-error");
+        err.textContent = e.error || "Login failed";
+        show(err);
+    }
+}
+function quickLogin(u, p) { doLogin(u, p); }
+function logout() { TOKEN = null; USER = null; hide($("app-screen")); show($("login-screen")); }
+
+// ── Pipeline Visualisation ──────────────────────────────────
+async function loadPipeline() {
+    try {
+        const info = await api("/api/dal-info");
+        $("pipeline").innerHTML = info.pipeline.map((s, i) => `
+            <div class="flex items-center gap-2 slide-up" style="animation-delay:${i * 80}ms">
+                <div class="bg-ink-900 border border-ink-800 rounded-lg px-3 py-2 text-center min-w-[110px]">
+                    <div class="text-[10px] font-mono text-acid-400 mb-0.5">Step ${s.step}</div>
+                    <div class="text-xs font-semibold text-white">${s.name}</div>
+                    <div class="text-[10px] text-ink-400 mt-1 leading-tight">${s.desc.split(".")[0]}</div>
+                </div>
+                ${i < info.pipeline.length - 1 ? '<svg class="w-4 h-4 text-ink-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>' : ''}
+            </div>
+        `).join("");
+    } catch (e) { console.warn("pipeline", e); }
+}
+
+// ── Tabs ─────────────────────────────────────────────────────
+function switchTab(tab) {
+    document.querySelectorAll(".tab-btn").forEach(b => {
+        b.classList.remove("border-acid-400", "text-white");
+        b.classList.add("border-transparent", "text-ink-400");
+    });
+    const btn = $(`tab-${tab}`);
+    btn.classList.add("border-acid-400", "text-white");
+    btn.classList.remove("border-transparent", "text-ink-400");
+
+    document.querySelectorAll(".tab-panel").forEach(p => hide(p));
+    show($(`panel-${tab}`));
+
+    if (tab === "docs")  loadDocs();
+    if (tab === "acl")   loadACL();
+    if (tab === "audit") loadAudit();
+}
+
+// ── Documents ────────────────────────────────────────────────
+async function loadDocs() {
+    const panel = $("panel-docs");
+    panel.innerHTML = '<p class="text-ink-400 text-sm animate-pulse">Loading…</p>';
+    try {
+        const docs = await api("/api/documents");
+        if (docs.error) { panel.innerHTML = `<p class="text-coral-400 text-sm">${docs.error}</p>`; return; }
+        if (!docs.length) { panel.innerHTML = '<p class="text-ink-400 text-sm">No documents visible for your role.</p>'; return; }
+        panel.innerHTML = docs.map((d, i) => `
+            <div class="bg-ink-900 border border-ink-800 rounded-lg p-4 slide-up" style="animation-delay:${i * 60}ms">
+                <div class="flex items-start justify-between gap-4 mb-2">
+                    <h3 class="text-white font-semibold text-sm">${esc(d.title)}</h3>
+                    <span class="badge ${CLS_COLORS[d.classification]} shrink-0">${d.classification}</span>
+                </div>
+                <p class="text-ink-200 text-sm leading-relaxed ${d.content.startsWith('[REDACTED') ? 'italic text-coral-400/70' : ''}">${esc(d.content)}</p>
+                <div class="flex items-center gap-4 mt-3 text-[11px] text-ink-400 font-mono">
+                    <span>dept: ${d.department}</span>
+                    <span>owner: ${d.owner}</span>
+                    <span>id: ${d.id}</span>
+                </div>
+            </div>
+        `).join("");
+    } catch (e) {
+        panel.innerHTML = `<p class="text-coral-400 text-sm">${e.error || "Failed to load documents"}</p>`;
+    }
+}
+
+// ── ACL Rules ────────────────────────────────────────────────
+async function loadACL() {
+    const panel = $("panel-acl");
+    panel.innerHTML = '<p class="text-ink-400 text-sm animate-pulse">Loading…</p>';
+    try {
+        const rules = await api("/api/acl");
+        panel.innerHTML = `
+            <p class="text-ink-400 text-xs font-mono mb-2">ACL rules active for role: <span class="text-acid-400">${USER.role}</span></p>
+            ${rules.map(r => `
+                <div class="bg-ink-900 border border-ink-800 rounded-lg p-4 font-mono text-xs space-y-2">
+                    <div class="flex gap-6">
+                        <span class="text-ink-400">resource</span>
+                        <span class="text-white">${r.resource}</span>
+                    </div>
+                    <div class="flex gap-6">
+                        <span class="text-ink-400">actions </span>
+                        <span class="text-acid-400">${r.allowed_actions.join(", ")}</span>
+                    </div>
+                    <div class="flex gap-6">
+                        <span class="text-ink-400">ABAC   </span>
+                        <span class="text-sky-400">${JSON.stringify(r.attribute_filter)}</span>
+                    </div>
+                </div>
+            `).join("")}
+        `;
+    } catch (e) {
+        panel.innerHTML = `<p class="text-coral-400 text-sm">${e.error || "Failed"}</p>`;
+    }
+}
+
+// ── Audit Log ────────────────────────────────────────────────
+async function loadAudit() {
+    const panel = $("panel-audit");
+    panel.innerHTML = '<p class="text-ink-400 text-sm animate-pulse">Loading…</p>';
+    try {
+        const rows = await api("/api/audit");
+        if (rows.error) { panel.innerHTML = `<p class="text-coral-400 text-sm">${rows.error}</p>`; return; }
+        panel.innerHTML = `
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs font-mono">
+                    <thead>
+                        <tr class="text-ink-400 text-left border-b border-ink-800">
+                            <th class="py-2 pr-4">time</th>
+                            <th class="py-2 pr-4">user</th>
+                            <th class="py-2 pr-4">action</th>
+                            <th class="py-2 pr-4">resource</th>
+                            <th class="py-2">details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(r => `
+                            <tr class="border-b border-ink-900 hover:bg-ink-900/50">
+                                <td class="py-1.5 pr-4 text-ink-400">${new Date(r.created_at).toLocaleString()}</td>
+                                <td class="py-1.5 pr-4 text-white">${r.username}</td>
+                                <td class="py-1.5 pr-4 ${r.action === 'DENIED' ? 'text-coral-400' : 'text-acid-400'}">${r.action}</td>
+                                <td class="py-1.5 pr-4">${r.resource}</td>
+                                <td class="py-1.5 text-ink-400">${JSON.stringify(r.details)}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } catch (e) {
+        panel.innerHTML = `<p class="text-coral-400 text-sm">${e.error || "Failed — only admin & auditor can view"}</p>`;
+    }
+}
+
+function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+// ── Boot ─────────────────────────────────────────────────────
+renderQuickPick();
+</script>
+</body>
+</html>

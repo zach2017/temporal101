@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  # ─── PostgreSQL with Row-Level Security ───
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: dal_demo
+      POSTGRES_USER: dal_admin
+      POSTGRES_PASSWORD: s3cretPass99
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dal_admin -d dal_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ─── Python DAL API (Flask) ───
+  dal-api:
+    build: ./dal
+    environment:
+      DATABASE_URL: postgresql://dal_admin:s3cretPass99@postgres:5432/dal_demo
+      JWT_SECRET: demo-jwt-secret-change-in-production
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─── Frontend (Nginx serving static HTML/JS/Tailwind) ───
+  frontend:
+    image: nginx:alpine
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - dal-api
+
+volumes:
+  pgdata:

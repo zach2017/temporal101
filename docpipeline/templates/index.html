@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Document Pipeline — Upload & Track</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0c0e12;--bg2:#151820;--bg3:#1a1e28;--bg4:#222838;
+  --ink:#e4e7ed;--ink2:#9ba3b5;--ink3:#5e6578;
+  --accent:#6c8cff;--accent2:#4a6bff;--accent-glow:rgba(108,140,255,.15);
+  --green:#3dd68c;--green-bg:rgba(61,214,140,.1);
+  --amber:#f0b429;--amber-bg:rgba(240,180,41,.1);
+  --red:#f05e5e;--red-bg:rgba(240,94,94,.1);
+  --teal:#3dd6c8;--teal-bg:rgba(61,214,200,.1);
+  --border:#2a3040;--border2:#3a4258;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --r:10px;--rl:16px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh}
+::selection{background:var(--accent);color:#fff}
+
+.shell{max-width:1000px;margin:0 auto;padding:2rem 1.5rem 4rem}
+
+/* ── Header ── */
+header{padding:2.5rem 0 2rem;display:flex;align-items:flex-end;gap:1.5rem;border-bottom:1px solid var(--border);margin-bottom:2rem}
+header .badge{background:var(--accent-glow);border:1px solid rgba(108,140,255,.25);color:var(--accent);font-size:.65rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:99px}
+header h1{font-size:1.6rem;font-weight:700;letter-spacing:-.02em}
+header h1 span{color:var(--accent)}
+
+/* ── Upload Zone ── */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:var(--rl);padding:3rem 2rem;
+  text-align:center;cursor:pointer;transition:all .25s;position:relative;
+  background:var(--bg2);margin-bottom:2rem;
+}
+.upload-zone:hover,.upload-zone.dragover{
+  border-color:var(--accent);background:var(--accent-glow);
+}
+.upload-zone .icon{font-size:2.5rem;margin-bottom:.8rem;opacity:.6}
+.upload-zone p{color:var(--ink2);font-size:.9rem;margin-bottom:.5rem}
+.upload-zone .sub{font-size:.75rem;color:var(--ink3)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:10px 24px;border:none;border-radius:8px;font-family:var(--sans);
+  font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s;
+}
+.btn-primary{background:var(--accent2);color:#fff}
+.btn-primary:hover{background:var(--accent);box-shadow:0 0 20px rgba(108,140,255,.3)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--ink2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+.upload-controls{display:flex;gap:.75rem;align-items:center;justify-content:center;margin-top:1rem}
+.selected-file{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:8px 16px;font-size:.8rem;color:var(--ink2);display:none;
+  align-items:center;gap:.5rem;margin:1rem auto 0;width:fit-content;
+}
+.selected-file.show{display:flex}
+.selected-file .fname{color:var(--ink);font-weight:500;font-family:var(--mono);font-size:.78rem}
+.selected-file .fsize{color:var(--ink3)}
+
+/* ── Pipeline Steps ── */
+.section-label{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin:2rem 0 1rem}
+
+.pipeline-track{
+  display:flex;flex-direction:column;gap:0;
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);
+  overflow:hidden;
+}
+.pipe-step{
+  display:grid;grid-template-columns:42px 1fr auto;align-items:center;
+  padding:12px 16px;border-bottom:1px solid var(--border);
+  transition:background .3s;
+}
+.pipe-step:last-child{border-bottom:none}
+.pipe-step.active{background:var(--accent-glow)}
+.pipe-step.done{background:var(--green-bg)}
+.pipe-step.error{background:var(--red-bg)}
+
+.pipe-dot{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:700;
+  background:var(--bg4);color:var(--ink3);border:2px solid var(--border);
+  transition:all .3s;
+}
+.pipe-step.done .pipe-dot{background:var(--green);color:#fff;border-color:var(--green)}
+.pipe-step.active .pipe-dot{background:var(--accent);color:#fff;border-color:var(--accent);animation:pulse 1.5s infinite}
+.pipe-step.error .pipe-dot{background:var(--red);color:#fff;border-color:var(--red)}
+
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(108,140,255,.4)}50%{box-shadow:0 0 0 6px rgba(108,140,255,0)}}
+
+.pipe-name{font-size:.82rem;font-weight:500;color:var(--ink)}
+.pipe-sub{font-size:.72rem;color:var(--ink3);margin-top:1px}
+.pipe-status{font-family:var(--mono);font-size:.7rem;color:var(--ink3)}
+.pipe-step.done .pipe-status{color:var(--green)}
+.pipe-step.active .pipe-status{color:var(--accent)}
+.pipe-step.error .pipe-status{color:var(--red)}
+
+/* ── Progress Bar ── */
+.progress-bar{
+  height:4px;background:var(--bg4);border-radius:2px;margin:1.5rem 0;overflow:hidden;
+  display:none;
+}
+.progress-bar.show{display:block}
+.progress-fill{
+  height:100%;background:linear-gradient(90deg,var(--accent2),var(--green));
+  border-radius:2px;transition:width .5s ease;width:0;
+}
+
+/* ── Result Panel ── */
+.result-panel{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);
+  padding:1.5rem;margin-top:1.5rem;display:none;
+}
+.result-panel.show{display:block}
+.result-panel h3{font-size:.9rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.result-json{
+  background:var(--bg);border:1px solid var(--border);border-radius:var(--r);
+  padding:1rem;font-family:var(--mono);font-size:.72rem;line-height:1.7;
+  color:var(--ink2);max-height:300px;overflow:auto;white-space:pre-wrap;word-break:break-all;
+}
+
+/* ── Workflow List ── */
+.workflow-list{margin-top:2rem}
+.wf-item{
+  display:grid;grid-template-columns:1fr auto auto;gap:1rem;align-items:center;
+  padding:12px 16px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);margin-bottom:.5rem;font-size:.82rem;
+}
+.wf-item .wf-name{font-weight:500;font-family:var(--mono);font-size:.78rem}
+.wf-item .wf-time{color:var(--ink3);font-size:.72rem}
+.wf-badge{
+  font-size:.65rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+  padding:3px 10px;border-radius:99px;
+}
+.wf-badge.running{background:var(--accent-glow);color:var(--accent)}
+.wf-badge.completed{background:var(--green-bg);color:var(--green)}
+.wf-badge.failed{background:var(--red-bg);color:var(--red)}
+.wf-badge.started{background:var(--amber-bg);color:var(--amber)}
+
+/* ── Links ── */
+.temporal-link{
+  display:inline-flex;align-items:center;gap:.4rem;
+  font-size:.78rem;color:var(--accent);text-decoration:none;
+  margin-top:1rem;
+}
+.temporal-link:hover{text-decoration:underline}
+
+/* ── Responsive ── */
+@media(max-width:640px){
+  .shell{padding:1rem}
+  header h1{font-size:1.2rem}
+  .upload-zone{padding:2rem 1rem}
+  .pipe-step{grid-template-columns:32px 1fr auto}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<header>
+  <div>
+    <div class="badge">Temporal Pipeline</div>
+    <h1>Document <span>Processing</span> Pipeline</h1>
+  </div>
+</header>
+
+<!-- Upload Zone -->
+<div class="upload-zone" id="dropZone">
+  <div class="icon">&#128196;</div>
+  <p>Drop a file here or click to browse</p>
+  <div class="sub">PDF, DOCX, TXT, PNG, JPG — any document type</div>
+  <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.md,.csv,.png,.jpg,.jpeg,.tiff,.gif,.webp">
+</div>
+
+<div class="selected-file" id="selectedFile">
+  <span>&#128206;</span>
+  <span class="fname" id="fileName"></span>
+  <span class="fsize" id="fileSize"></span>
+</div>
+
+<div class="upload-controls">
+  <button class="btn btn-primary" id="uploadBtn" disabled>Upload &amp; Process</button>
+  <button class="btn btn-ghost" id="clearBtn" style="display:none">Clear</button>
+</div>
+
+<!-- Progress -->
+<div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+
+<!-- Pipeline Steps -->
+<div class="section-label" id="pipelineLabel" style="display:none">Pipeline Progress</div>
+<div class="pipeline-track" id="pipelineTrack" style="display:none">
+  <div class="pipe-step" data-step="detect_file_type">
+    <div class="pipe-dot">1</div>
+    <div><div class="pipe-name">Detect File Type</div><div class="pipe-sub">MIME detection &amp; categorization</div></div>
+    <div class="pipe-status">waiting</div>
+  </div>
+  <div class="pipe-step" data-step="store_document_s3">
+    <div class="pipe-dot">2</div>
+    <div><div class="pipe-name">Store Raw → S3</div><div class="pipe-sub">Upload to LocalStack S3 bucket</div></div>
+    <div class="pipe-status">waiting</div>
+  </div>
+  <div class="pipe-step" data-step="store_document_filesystem">
+    <div class="pipe-dot">3</div>
+    <div><div class="pipe-name">Store Raw → Filesystem</div><div class="pipe-sub">Copy to managed storage</div></div>
+    <div class="pipe-status">waiting</div>
+  </div>
+  <div class="pipe-step" data-step="extract_text">
+    <div class="pipe-dot">4</div>
+    <div><div class="pipe-name">Extract Text</div><div class="pipe-sub">Routed by file type: PDF / DOCX / text / OCR</div></div>
+    <div class="pipe-status">waiting</div>
+  </div>
+  <div class="pipe-step" data-step="extract_images_from_pdf">
+    <div class="pipe-dot">5</div>
+    <div><div class="pipe-name">Extract Images</div><div class="pipe-sub">PDF only — embedded image extraction</div></div>
+    <div class="pipe-status">waiting</div>
+  </div>
+  <div class="pipe-step" data-step="ocr_batch_images">
+    <div class="pipe-dot">6</div>
+    <div><div class="pipe-name">Batch OCR</div><div class="pipe-sub">Tesseract on extracted images</div></div>
+    <div class="pipe-status">waiting</div>
+  </div>
+  <div class="pipe-step" data-step="store_text">
+    <div class="pipe-dot">7</div>
+    <div><div class="pipe-name">Store Text → S3 + FS + Elasticsearch</div><div class="pipe-sub">Parallel text storage across 3 targets</div></div>
+    <div class="pipe-status">waiting</div>
+  </div>
+  <div class="pipe-step" data-step="index_document_metadata">
+    <div class="pipe-dot">8</div>
+    <div><div class="pipe-name">Index Metadata</div><div class="pipe-sub">Elasticsearch document metadata index</div></div>
+    <div class="pipe-status">waiting</div>
+  </div>
+</div>
+
+<!-- Result -->
+<div class="result-panel" id="resultPanel">
+  <h3>&#9989; Pipeline Complete</h3>
+  <div class="result-json" id="resultJson"></div>
+  <a class="temporal-link" id="temporalLink" href="http://localhost:8080" target="_blank">
+    &#128279; View in Temporal UI →
+  </a>
+</div>
+
+<!-- Previous Workflows -->
+<div class="section-label">Recent Workflows</div>
+<div class="workflow-list" id="workflowList">
+  <div style="color:var(--ink3);font-size:.82rem;padding:1rem;text-align:center">No workflows yet. Upload a document to start.</div>
+</div>
+
+</div>
+
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const clearBtn = document.getElementById('clearBtn');
+const selectedFile = document.getElementById('selectedFile');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+const pipelineLabel = document.getElementById('pipelineLabel');
+const pipelineTrack = document.getElementById('pipelineTrack');
+const resultPanel = document.getElementById('resultPanel');
+const resultJson = document.getElementById('resultJson');
+const temporalLink = document.getElementById('temporalLink');
+const workflowList = document.getElementById('workflowList');
+
+let currentFile = null;
+let pollTimer = null;
+
+// ── Drag & Drop ──
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) selectFile(e.target.files[0]); });
+
+function selectFile(file) {
+  currentFile = file;
+  fileName.textContent = file.name;
+  fileSize.textContent = formatBytes(file.size);
+  selectedFile.classList.add('show');
+  uploadBtn.disabled = false;
+  clearBtn.style.display = 'inline-flex';
+}
+
+clearBtn.addEventListener('click', () => {
+  currentFile = null;
+  fileInput.value = '';
+  selectedFile.classList.remove('show');
+  uploadBtn.disabled = true;
+  clearBtn.style.display = 'none';
+});
+
+// ── Upload ──
+uploadBtn.addEventListener('click', async () => {
+  if (!currentFile) return;
+  uploadBtn.disabled = true;
+  uploadBtn.textContent = 'Starting...';
+
+  // Reset pipeline UI
+  resetPipeline();
+  pipelineLabel.style.display = 'block';
+  pipelineTrack.style.display = 'flex';
+  progressBar.classList.add('show');
+  resultPanel.classList.remove('show');
+
+  const formData = new FormData();
+  formData.append('file', currentFile);
+
+  try {
+    const res = await fetch('/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      uploadBtn.textContent = 'Processing...';
+      temporalLink.href = `http://localhost:8080/namespaces/default/workflows/doc-${data.doc_id}`;
+      startPolling(data.doc_id);
+      addWorkflowToList(data);
+    } else {
+      alert('Upload failed: ' + (data.error || 'Unknown error'));
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload & Process';
+    }
+  } catch (err) {
+    alert('Network error: ' + err.message);
+    uploadBtn.disabled = false;
+    uploadBtn.textContent = 'Upload & Process';
+  }
+});
+
+// ── Status Polling ──
+function startPolling(docId) {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => pollStatus(docId), 800);
+  pollStatus(docId);
+}
+
+async function pollStatus(docId) {
+  try {
+    const res = await fetch(`/status/${docId}`);
+    const data = await res.json();
+    updatePipeline(data);
+
+    if (data.status === 'completed' || data.status === 'failed' || data.status === 'cancelled') {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload & Process';
+
+      if (data.status === 'completed') {
+        fetchResult(docId);
+      }
+      updateWorkflowList();
+    }
+  } catch (err) {
+    console.error('Poll error:', err);
+  }
+}
+
+async function fetchResult(docId) {
+  try {
+    const res = await fetch(`/result/${docId}`);
+    const data = await res.json();
+    resultPanel.classList.add('show');
+    resultJson.textContent = JSON.stringify(data.result || data, null, 2);
+  } catch (err) {
+    resultPanel.classList.add('show');
+    resultJson.textContent = `Error fetching result: ${err.message}`;
+  }
+}
+
+// ── Pipeline UI Updates ──
+const STEP_MAP = {
+  'detect_file_type': 'detect_file_type',
+  'store_document_s3': 'store_document_s3',
+  'store_document_filesystem': 'store_document_filesystem',
+  'extract_text_from_pdf': 'extract_text',
+  'extract_text_from_docx': 'extract_text',
+  'extract_text_plain': 'extract_text',
+  'ocr_single_image': 'extract_text',
+  'extract_images_from_pdf': 'extract_images_from_pdf',
+  'ocr_batch_images': 'ocr_batch_images',
+  'store_text_s3': 'store_text',
+  'store_text_filesystem': 'store_text',
+  'store_text_elasticsearch': 'store_text',
+  'store_images_s3': 'store_text',
+  'index_document_metadata': 'index_document_metadata',
+  'skip_extraction_unknown_type': 'extract_text',
+};
+
+function updatePipeline(data) {
+  const completed = new Set((data.steps_completed || []).map(s => STEP_MAP[s] || s));
+  const currentRaw = data.current_step || '';
+  const progress = data.progress || 0;
+
+  progressFill.style.width = `${Math.round(progress * 100)}%`;
+
+  document.querySelectorAll('.pipe-step').forEach(el => {
+    const step = el.dataset.step;
+    el.classList.remove('done', 'active', 'error');
+    const statusEl = el.querySelector('.pipe-status');
+
+    if (completed.has(step)) {
+      el.classList.add('done');
+      statusEl.textContent = '✓ done';
+    } else if (currentRaw.includes(step) || (step === 'extract_text' && currentRaw.includes('extract_text'))) {
+      el.classList.add('active');
+      statusEl.textContent = '⟳ running';
+    } else if (data.status === 'failed') {
+      // Mark remaining as skipped
+    }
+  });
+
+  if (data.status === 'completed') {
+    progressFill.style.width = '100%';
+    document.querySelectorAll('.pipe-step').forEach(el => {
+      if (!el.classList.contains('done')) {
+        // Mark non-applicable steps as skipped
+        const statusEl = el.querySelector('.pipe-status');
+        statusEl.textContent = '— skipped';
+        statusEl.style.color = 'var(--ink3)';
+      }
+    });
+  }
+
+  if (data.status === 'failed') {
+    progressFill.style.background = 'var(--red)';
+  }
+}
+
+function resetPipeline() {
+  document.querySelectorAll('.pipe-step').forEach(el => {
+    el.classList.remove('done', 'active', 'error');
+    const statusEl = el.querySelector('.pipe-status');
+    statusEl.textContent = 'waiting';
+    statusEl.style.color = '';
+  });
+  progressFill.style.width = '0';
+  progressFill.style.background = '';
+}
+
+// ── Workflow List ──
+function addWorkflowToList(data) {
+  const html = `
+    <div class="wf-item">
+      <div>
+        <div class="wf-name">${data.filename}</div>
+        <div class="wf-time">${data.workflow_id} — just now</div>
+      </div>
+      <span class="wf-badge started" data-wf="${data.doc_id}">started</span>
+      <button class="btn btn-ghost" style="padding:4px 12px;font-size:.72rem"
+        onclick="window.open('http://localhost:8080/namespaces/default/workflows/${data.workflow_id}','_blank')">
+        Temporal UI
+      </button>
+    </div>
+  `;
+  const placeholder = workflowList.querySelector('[style*="text-align:center"]');
+  if (placeholder) placeholder.remove();
+  workflowList.insertAdjacentHTML('afterbegin', html);
+}
+
+async function updateWorkflowList() {
+  // Update badge statuses
+  document.querySelectorAll('.wf-badge[data-wf]').forEach(async badge => {
+    try {
+      const res = await fetch(`/status/${badge.dataset.wf}`);
+      const data = await res.json();
+      badge.textContent = data.status;
+      badge.className = `wf-badge ${data.status}`;
+    } catch (e) {}
+  });
+}
+
+// ── Utilities ──
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Initial workflow list load
+fetch('/workflows').then(r => r.json()).then(data => {
+  if (data.count > 0) {
+    workflowList.innerHTML = '';
+    data.workflows.forEach(wf => addWorkflowToList(wf));
+    updateWorkflowList();
+  }
+}).catch(() => {});
+</script>
+</body>
+</html>

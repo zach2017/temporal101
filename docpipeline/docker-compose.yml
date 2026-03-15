@@ -1,0 +1,113 @@
+version: "3.8"
+
+services:
+
+  # ── Workflow event history persistence ──
+  postgresql:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── Durable execution engine ──
+  temporal:
+    image: temporalio/auto-setup:latest
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD-SHELL", "echo"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # ── Visual workflow debugger ──
+  temporal-ui:
+    image: temporalio/ui:latest
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:8080
+    ports:
+      - "8080:8080"
+
+  # ── AWS S3 emulation ──
+  localstack:
+    image: localstack/localstack:3.0
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=us-east-1
+    volumes:
+      - ./localstack-init:/etc/localstack/init/ready.d
+      - localstack_data:/var/lib/localstack
+
+  # ── Full-text search + metadata index ──
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  # ── Python upload app + worker (all-in-one) ──
+  docapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      temporal:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      localstack:
+        condition: service_started
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - S3_ENDPOINT=http://localstack:4566
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5555
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./storage:/app/storage
+
+volumes:
+  pgdata:
+  localstack_data:
+  esdata:
