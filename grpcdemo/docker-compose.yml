@@ -1,0 +1,29 @@
+services:
+  # ── gRPC Server ──────────────────────────────────────────
+  server:
+    build:
+      context: .
+      target: server
+    ports:
+      - "50051:50051"
+    healthcheck:
+      # lightweight TCP check — port open means the server is listening
+      test: ["CMD-SHELL", "python -c \"import socket; s=socket.create_connection(('127.0.0.1',50051),2); s.close()\""]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  # ── gRPC Client (runs once, then exits) ──────────────────
+  client:
+    build:
+      context: .
+      target: client
+    environment:
+      GRPC_SERVER_ADDR: "server:50051"
+      MAX_RETRIES: "10"
+      RETRY_DELAY: "2"
+    depends_on:
+      server:
+        condition: service_healthy

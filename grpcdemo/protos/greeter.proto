@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package greeter;
+
+// The Greeter service definition
+service Greeter {
+  // Unary RPC — send a name, get a greeting back
+  rpc SayHello (HelloRequest) returns (HelloReply);
+
+  // Server-streaming RPC — send a name, get multiple greetings streamed back
+  rpc SayHelloStream (HelloRequest) returns (stream HelloReply);
+}
+
+message HelloRequest {
+  string name = 1;
+  int32  times = 2;  // how many greetings to stream (used by SayHelloStream)
+}
+
+message HelloReply {
+  string message = 1;
+  string timestamp = 2;
+}
