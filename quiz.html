@@ -277,25 +277,46 @@ tailwind.config = {
   </div>
 
   <!-- Reference links -->
-  <h3 class="font-display font-600 text-xl mb-4">📚 Official Documentation</h3>
+  <h3 class="font-display font-600 text-xl mb-4">📚 Java Official Documentation</h3>
   <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-    <a href="https://docs.temporal.io/dev-guide/java" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+    <a href="https://docs.temporal.io/develop/java" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
       <span class="text-amber">📖</span> Temporal Java Dev Guide
     </a>
-    <a href="https://docs.temporal.io/concepts/what-is-a-workflow" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+    <a href="https://docs.temporal.io/develop/java/core-application#develop-workflows" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
       <span class="text-amber">📖</span> What is a Workflow?
     </a>
-    <a href="https://docs.temporal.io/concepts/what-is-an-activity" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+    <a href="https://docs.temporal.io/develop/java/core-application#develop-activities" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
       <span class="text-amber">📖</span> What is an Activity?
     </a>
-    <a href="https://docs.temporal.io/concepts/what-is-a-worker" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+    <a href="https://docs.temporal.io/develop/java/core-application#run-a-dev-worker" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
       <span class="text-amber">📖</span> What is a Worker?
     </a>
-    <a href="https://docs.temporal.io/concepts/what-is-a-task-queue" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+    <a href="https://docs.temporal.io/task-queue" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
       <span class="text-amber">📖</span> Task Queues Explained
     </a>
     <a href="https://github.com/temporalio/sdk-java" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
       <span class="text-amber">⭐</span> temporal-sdk-java on GitHub
+    </a>
+  </div>
+  <h3 class="font-display font-600 text-xl mb-4">📚 Python Official Documentation</h3>
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <a href="https://docs.temporal.io/develop/python" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> Temporal Python Dev Guide
+    </a>
+    <a href="https://docs.temporal.io/develop/python/core-application#develop-workflows" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> What is a Workflow?
+    </a>
+    <a href="https://docs.temporal.io/develop/python/core-application#develop-activities" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> What is an Activity?
+    </a>
+    <a href="https://docs.temporal.io/develop/python/core-application#run-a-dev-worker" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> What is a Worker?
+    </a>
+    <a href="https://docs.temporal.io/task-queue" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">📖</span> Task Queues Explained
+    </a>
+    <a href="https://github.com/temporalio/sdk-python" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">
+      <span class="text-amber">⭐</span> temporal-sdk-python on GitHub
     </a>
   </div>
 </div>
@@ -317,7 +338,10 @@ tailwind.config = {
           <h3 class="font-display font-600 text-lg mb-1">Workflow</h3>
           <p class="text-sm text-slate2 mb-3">A <strong>Workflow</strong> is a durable, fault-tolerant orchestrator. It defines the sequence of Activities to execute and the logic between them. Temporal persists its complete event history so it can resume after any failure.<br/><br/>
           <strong>Key rule:</strong> Workflow code must be <em>deterministic</em> — given the same event history it always produces the same execution path. Never call <code class="bg-warm px-1 rounded text-xs">System.currentTimeMillis()</code> or <code class="bg-warm px-1 rounded text-xs">Thread.sleep()</code> inside a Workflow.</p>
-          <a href="https://docs.temporal.io/concepts/what-is-a-workflow" target="_blank" class="ref-link">docs.temporal.io → Workflow concepts ↗</a>
+          <a href="https://docs.temporal.io/workflows" target="_blank" class="ref-link">docs.temporal.io → Workflow concepts ↗</a>
+          <br/>
+          <a href="https://docs.temporal.io/develop/java/core-application#develop-workflows" target="_blank" class="ref-link mt-1 inline-block">Java SDK → Workflows ↗</a>
+          <a href="https://docs.temporal.io/develop/python/core-application#develop-workflows" target="_blank" class="ref-link ml-4 mt-1 inline-block">Python SDK → Workflows ↗</a>
         </div>
       </div>
     </div>
@@ -329,7 +353,10 @@ tailwind.config = {
           <h3 class="font-display font-600 text-lg mb-1">Activity</h3>
           <p class="text-sm text-slate2 mb-3">An <strong>Activity</strong> is the unit of work — I/O, HTTP calls, database writes, OCR, NLP inference. Activities ARE allowed to be non-deterministic. They run on a Worker's thread pool and report heartbeats so Temporal knows they are alive.<br/><br/>
           Activities have their own retry policy (max attempts, backoff) configured via <code class="bg-warm px-1 rounded text-xs">ActivityOptions</code>.</p>
-          <a href="https://docs.temporal.io/concepts/what-is-an-activity" target="_blank" class="ref-link">docs.temporal.io → Activity concepts ↗</a>
+          <a href="https://docs.temporal.io/activities" target="_blank" class="ref-link">docs.temporal.io → Activity concepts ↗</a>
+          <br/>
+          <a href="https://docs.temporal.io/develop/java/core-application#develop-activities" target="_blank" class="ref-link mt-1 inline-block">Java SDK → Activities ↗</a>
+          <a href="https://docs.temporal.io/develop/python/core-application#develop-activities" target="_blank" class="ref-link ml-4 mt-1 inline-block">Python SDK → Activities ↗</a>
         </div>
       </div>
     </div>
@@ -341,7 +368,10 @@ tailwind.config = {
           <h3 class="font-display font-600 text-lg mb-1">Worker</h3>
           <p class="text-sm text-slate2 mb-3">A <strong>Worker</strong> is a long-running process that polls a Task Queue for Workflow and Activity tasks, executes the matching implementation, and reports the result back to Temporal.<br/><br/>
           In DocPulse, <code class="bg-warm px-1 rounded text-xs">DocumentWorkerRegistrar</code> creates a <code class="bg-warm px-1 rounded text-xs">WorkerFactory</code>, registers the three Activity impls and the WorkflowImpl, then starts polling <code class="bg-warm px-1 rounded text-xs">DOCUMENT_PROCESSING_TASK_QUEUE</code>.</p>
-          <a href="https://docs.temporal.io/concepts/what-is-a-worker" target="_blank" class="ref-link">docs.temporal.io → Worker concepts ↗</a>
+          <a href="https://docs.temporal.io/workers" target="_blank" class="ref-link">docs.temporal.io → Worker concepts ↗</a>
+          <br/>
+          <a href="https://docs.temporal.io/develop/java/core-application#run-a-dev-worker" target="_blank" class="ref-link mt-1 inline-block">Java SDK → Workers ↗</a>
+          <a href="https://docs.temporal.io/develop/python/core-application#run-a-dev-worker" target="_blank" class="ref-link ml-4 mt-1 inline-block">Python SDK → Workers ↗</a>
         </div>
       </div>
     </div>
@@ -353,7 +383,10 @@ tailwind.config = {
           <h3 class="font-display font-600 text-lg mb-1">Task Queue</h3>
           <p class="text-sm text-slate2 mb-3">A <strong>Task Queue</strong> is a named channel between the Temporal server and your Workers. When a Workflow schedules an Activity, Temporal places a task on the queue. A Worker polling that queue picks it up and executes it.<br/><br/>
           DocPulse uses one queue: <code class="bg-warm px-1 rounded text-xs">DOCUMENT_PROCESSING_TASK_QUEUE</code>. You can scale horizontally by running more Worker processes on the same queue.</p>
-          <a href="https://docs.temporal.io/concepts/what-is-a-task-queue" target="_blank" class="ref-link">docs.temporal.io → Task Queue concepts ↗</a>
+          <a href="https://docs.temporal.io/task-queue" target="_blank" class="ref-link">docs.temporal.io → Task Queue concepts ↗</a>
+          <br/>
+          <a href="https://docs.temporal.io/develop/java/core-application#task-queue" target="_blank" class="ref-link mt-1 inline-block">Java SDK → Task Queues ↗</a>
+          <a href="https://docs.temporal.io/develop/python/core-application#task-queue" target="_blank" class="ref-link ml-4 mt-1 inline-block">Python SDK → Task Queues ↗</a>
         </div>
       </div>
     </div>
@@ -367,8 +400,10 @@ tailwind.config = {
             <strong>@QueryMethod</strong> — a read-only, strongly-consistent view into the Workflow's in-memory state. The DocPulse frontend calls <code class="bg-warm px-1 rounded text-xs">GET /api/worker/status/{id}</code> which triggers <code class="bg-warm px-1 rounded text-xs">getStatus()</code> — no database needed.<br/><br/>
             <strong>@SignalMethod</strong> — an asynchronous message sent to a running Workflow. DocPulse uses <code class="bg-warm px-1 rounded text-xs">requestCancellation(reason)</code> to gracefully stop processing between Activity steps.
           </p>
-          <a href="https://docs.temporal.io/concepts/what-is-a-signal" target="_blank" class="ref-link">docs.temporal.io → Signals ↗</a>
-          <a href="https://docs.temporal.io/concepts/what-is-a-query" target="_blank" class="ref-link ml-4">docs.temporal.io → Queries ↗</a>
+          <a href="https://docs.temporal.io/encyclopedia/workflow-message-passing" target="_blank" class="ref-link">docs.temporal.io → Signals & Queries ↗</a>
+          <br/>
+          <a href="https://docs.temporal.io/develop/java/message-passing" target="_blank" class="ref-link mt-1 inline-block">Java SDK → Message Passing ↗</a>
+          <a href="https://docs.temporal.io/develop/python/message-passing" target="_blank" class="ref-link ml-4 mt-1 inline-block">Python SDK → Message Passing ↗</a>
         </div>
       </div>
     </div>
@@ -399,7 +434,10 @@ tailwind.config = {
         </ul>
       </div>
     </div>
-    <a href="https://docs.temporal.io/workflows#deterministic-constraints" target="_blank" class="ref-link mt-3 inline-block">docs.temporal.io → Deterministic constraints ↗</a>
+    <a href="https://docs.temporal.io/workflow-definition#deterministic-constraints" target="_blank" class="ref-link mt-3 inline-block">docs.temporal.io → Deterministic constraints ↗</a>
+    <br/>
+    <a href="https://docs.temporal.io/develop/java/core-application#develop-workflows" target="_blank" class="ref-link mt-1 inline-block">Java SDK → Workflow determinism ↗</a>
+    <a href="https://docs.temporal.io/develop/python/core-application#develop-workflows" target="_blank" class="ref-link ml-4 mt-1 inline-block">Python SDK → Workflow determinism ↗</a>
   </div>
 </div>
 
@@ -436,7 +474,7 @@ tailwind.config = {
   temporalio/auto-setup:latest \
   temporal server start-dev</div>
       </div>
-      <a href="https://docs.temporal.io/cli#installation" target="_blank" class="ref-link mt-2 inline-block">docs → CLI Installation ↗</a>
+      <a href="https://docs.temporal.io/cli/setup-cli" target="_blank" class="ref-link mt-2 inline-block">docs → CLI Installation ↗</a>
     </div>
 
     <!-- Step column 2 -->
@@ -585,7 +623,8 @@ spring.temporal.workers-auto-discovery.packages=<span class="str">com.docupload.
                 .build())
             .build()
     );</div>
-  <a href="https://docs.temporal.io/java/activity-options" target="_blank" class="ref-link mb-8 inline-block">docs → ActivityOptions reference ↗</a>
+  <a href="https://docs.temporal.io/develop/java/core-application#activity-options" target="_blank" class="ref-link mb-2 inline-block">docs → Java ActivityOptions reference ↗</a>
+  <a href="https://docs.temporal.io/develop/python/core-application#activity-timeouts" target="_blank" class="ref-link ml-4 mb-8 inline-block">docs → Python Activity timeouts ↗</a>
 
   <!-- Heartbeat code -->
   <h3 class="font-display font-600 text-xl mb-4 mt-6">Heartbeats in Activities</h3>
@@ -603,7 +642,10 @@ spring.temporal.workers-auto-discovery.packages=<span class="str">com.docupload.
         remaining -= chunk;
     }
 }</div>
-  <a href="https://docs.temporal.io/activities#activity-heartbeats" target="_blank" class="ref-link inline-block">docs → Activity Heartbeats ↗</a>
+  <a href="https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat" target="_blank" class="ref-link inline-block">docs → Activity Heartbeats ↗</a>
+  <br/>
+  <a href="https://docs.temporal.io/develop/java/failure-detection#activity-heartbeats" target="_blank" class="ref-link mt-1 inline-block">Java SDK → Heartbeats ↗</a>
+  <a href="https://docs.temporal.io/develop/python/failure-detection#activity-heartbeats" target="_blank" class="ref-link ml-4 mt-1 inline-block">Python SDK → Heartbeats ↗</a>
 </div>
 
 <!-- ════════════════════════════════════════════
@@ -629,6 +671,7 @@ spring.temporal.workers-auto-discovery.packages=<span class="str">com.docupload.
 <span class="kw">public class</span> <span class="cls">SecurityScanActivityImpl</span>
     <span class="kw">implements</span> <span class="cls">SecurityScanActivity</span> { … }</div>
       <a href="https://docs.temporal.io/develop/java/core-application" target="_blank" class="ref-link">docs → Core Application (Java) ↗</a>
+      <a href="https://docs.temporal.io/develop/python/core-application" target="_blank" class="ref-link ml-4">docs → Core Application (Python) ↗</a>
     </div>
 
     <div>
@@ -687,14 +730,18 @@ factory.start();</div>
   <div class="bg-forest/10 border-l-4 border-forest rounded-r-xl p-5 mb-6">
     <h4 class="font-display font-600 mb-2">🚀 Scaling Workers</h4>
     <p class="text-sm text-slate2">To scale horizontally, simply run more instances of the Spring Boot app. Each instance starts its own Worker polling the same task queue. Temporal distributes tasks round-robin across all available Workers automatically. No leader election or coordination code required.</p>
-    <a href="https://docs.temporal.io/workers#scaling-workers" target="_blank" class="ref-link mt-2 inline-block">docs → Scaling Workers ↗</a>
+    <a href="https://docs.temporal.io/workers" target="_blank" class="ref-link mt-2 inline-block">docs → Workers overview ↗</a>
   </div>
 
   <div class="grid sm:grid-cols-2 gap-4">
     <a href="https://docs.temporal.io/develop/java/temporal-clients" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Java WorkflowClient reference ↗</a>
-    <a href="https://docs.temporal.io/develop/java/failure-detection" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Failure Detection & Timeouts ↗</a>
-    <a href="https://docs.temporal.io/develop/java/observability" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Observability & Logging ↗</a>
-    <a href="https://docs.temporal.io/develop/java/testing" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Testing Workflows & Activities ↗</a>
+    <a href="https://docs.temporal.io/develop/python/temporal-client" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Python Temporal Client ↗</a>
+    <a href="https://docs.temporal.io/develop/java/failure-detection" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Java Failure Detection & Timeouts ↗</a>
+    <a href="https://docs.temporal.io/develop/python/failure-detection" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Python Failure Detection ↗</a>
+    <a href="https://docs.temporal.io/develop/java/observability" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Java Observability & Logging ↗</a>
+    <a href="https://docs.temporal.io/develop/python/observability" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Python Observability ↗</a>
+    <a href="https://docs.temporal.io/develop/java/testing-suite" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Java Testing Workflows & Activities ↗</a>
+    <a href="https://docs.temporal.io/develop/python/testing-suite" target="_blank" class="ref-link bg-white border border-warm rounded-lg p-3 hover:border-amber transition-colors block">📖 Python Testing Suite ↗</a>
   </div>
 </div>
 
@@ -841,6 +888,7 @@ factory.start();</div>
   <div class="flex justify-center gap-4 mt-2 flex-wrap">
     <a href="https://docs.temporal.io" target="_blank" class="ref-link">docs.temporal.io ↗</a>
     <a href="https://github.com/temporalio/sdk-java" target="_blank" class="ref-link">temporal-sdk-java ↗</a>
+    <a href="https://github.com/temporalio/sdk-python" target="_blank" class="ref-link">temporal-sdk-python ↗</a>
     <a href="http://localhost:8080" class="ref-link">← Back to DocPulse App</a>
   </div>
 </footer>
