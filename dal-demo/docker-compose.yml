@@ -5,9 +5,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: dal_demo
-      POSTGRES_USER: dal_admin
-      POSTGRES_PASSWORD: s3cretPass99
+      - POSTGRES_DB=dal_demo
+      - POSTGRES_USER=dal_admin
+      - POSTGRES_PASSWORD=s3cretPass99
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
       - pgdata:/var/lib/postgresql/data
@@ -23,8 +23,8 @@ services:
   dal-api:
     build: ./dal
     environment:
-      DATABASE_URL: postgresql://dal_admin:s3cretPass99@postgres:5432/dal_demo
-      JWT_SECRET: demo-jwt-secret-change-in-production
+      - DATABASE_URL=postgresql://dal_admin:s3cretPass99@postgres:5432/dal_demo
+      - JWT_SECRET=supersecretkey123
     ports:
       - "5000:5000"
     depends_on:
