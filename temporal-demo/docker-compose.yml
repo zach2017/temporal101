@@ -35,16 +35,20 @@ services:
       - POSTGRES_PWD=temporal
       - POSTGRES_SEEDS=postgresql
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     ports:
       - "7233:7233"
     networks:
       - temporal-network
     healthcheck:
-      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      test: ["CMD", "nc", "-z", "127.0.0.1", "7233"]
       interval: 10s
       timeout: 5s
-      retries: 20
-      start_period: 30s
+      retries: 30
+      start_period: 40s
 
   # ─── Temporal Web UI ────────────────────────────────────────
   temporal-ui:

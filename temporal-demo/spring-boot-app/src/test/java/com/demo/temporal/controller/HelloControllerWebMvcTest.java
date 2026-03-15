@@ -9,9 +9,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
@@ -23,13 +23,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Spring WebMvc slice test for HelloController.
  *
- * Loads only the web layer (not the full application context), mocking the
- * WorkflowClient bean. Validates HTTP status codes, content types, and JSON
- * response structure.
+ * Loads only the web layer (not the full application context),
+ * mocking the WorkflowClient bean. Validates HTTP status codes,
+ * content types, and JSON response structure.
  *
- * Test Flow: 1. Spring loads only @RestController + WebMvc auto-config 2.
- * WorkflowClient is a @MockBean (no real Temporal connection) 3. MockMvc sends
- * HTTP requests and asserts responses
+ * Test Flow:
+ *   1. Spring loads only @RestController + WebMvc auto-config
+ *   2. WorkflowClient is a @MockitoBean (no real Temporal connection)
+ *   3. MockMvc sends HTTP requests and asserts responses
  */
 @WebMvcTest(HelloController.class)
 class HelloControllerWebMvcTest {
@@ -59,8 +60,8 @@ class HelloControllerWebMvcTest {
 
         // Act & Assert
         mockMvc.perform(post("/api/hello")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"Test\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Test\"}"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.javaWorker.status").value("SUCCESS"))
@@ -87,8 +88,8 @@ class HelloControllerWebMvcTest {
         when(pythonStub.start(any())).thenThrow(new RuntimeException("timeout"));
 
         mockMvc.perform(post("/api/hello")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\": \"Fail\"}"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"Fail\"}"))
                 .andExpect(status().isOk()) // Controller handles errors gracefully
                 .andExpect(jsonPath("$.javaWorker.status").value("ERROR"))
                 .andExpect(jsonPath("$.pythonWorker.status").value("ERROR"))
@@ -108,7 +109,7 @@ class HelloControllerWebMvcTest {
     @DisplayName("POST /api/hello - missing body returns 400")
     void postHello_missingBody_returns400() throws Exception {
         mockMvc.perform(post("/api/hello")
-                .contentType(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
     }
 

@@ -170,11 +170,11 @@ MockMvc. Loads only the web slice (@WebMvcTest), not the full app context.
 ```
  Test Setup:
    @WebMvcTest(HelloController.class) ← Spring loads only web layer
-   @MockBean WorkflowClient           ← Spring injects mock into context
+   @MockitoBean WorkflowClient           ← Spring injects mock into context
    @Autowired MockMvc                  ← HTTP test client
 
  Test Execution:
-   1. Configure @MockBean behavior
+   1. Configure @MockitoBean behavior
    2. mockMvc.perform(post("/api/hello").content(...))
    3. Assert: status().isOk(), jsonPath("$.javaWorker.status").value("SUCCESS")
 ```
@@ -669,7 +669,7 @@ Spring's test client for HTTP-layer testing without starting a real server:
 
 ```java
 @WebMvcTest(HelloController.class)  // Only loads web layer
-@MockBean WorkflowClient            // Injects mock into Spring context
+@MockitoBean WorkflowClient         // Injects mock into Spring context
 
 mockMvc.perform(post("/api/hello")
         .contentType(MediaType.APPLICATION_JSON)
