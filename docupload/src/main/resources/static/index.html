@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DocPulse — Document Processor</title>
+
+  <!--
+    NOTE: cdn.tailwindcss.com is for development only.
+    For production, run: npx tailwindcss -o dist/tw.css --minify
+    and replace this tag with: <link rel="stylesheet" href="/css/tw.css" />
+  -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
@@ -14,20 +20,16 @@
         extend: {
           fontFamily: {
             display: ['Syne', 'sans-serif'],
-            mono: ['Space Mono', 'monospace'],
+            mono:    ['Space Mono', 'monospace'],
           },
           colors: {
-            ink:    '#0a0a0f',
-            paper:  '#f5f2eb',
-            acid:   '#c8f135',
-            rust:   '#e84b2a',
-            slate:  '#1e1e2e',
-            muted:  '#6b6b7b',
-          },
-          animation: {
-            'pulse-fast': 'pulse 0.8s cubic-bezier(0.4,0,0.6,1) infinite',
-            'slide-up':   'slideUp 0.5s ease forwards',
-            'scan':       'scan 2s linear infinite',
+            ink:   '#0a0a0f',
+            paper: '#f5f2eb',
+            acid:  '#c8f135',
+            plum:  '#6f4ff2',
+            rust:  '#e84b2a',
+            slate: '#1e1e2e',
+            muted: '#6b6b7b',
           },
           keyframes: {
             slideUp: {
@@ -39,357 +41,543 @@
               '100%': { transform: 'translateY(400%)' },
             },
           },
+          animation: {
+            'slide-up': 'slideUp 0.4s ease forwards',
+            'scan':     'scan 1.8s linear infinite',
+          },
         },
       },
     };
   </script>
 
   <style>
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; }
     body { font-family: 'Syne', sans-serif; background: #0a0a0f; color: #f5f2eb; }
 
-    /* ── Drop zone ───────────────────────────────────────────────── */
-    #dropzone {
-      border: 2px dashed #3a3a4e;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    #dropzone.drag-over {
-      border-color: #c8f135;
-      background: rgba(200,241,53,0.05);
-    }
+    /* ── Visibility helpers (avoid hidden+flex conflicts) ──────── */
+    /* Instead of toggling Tailwind's `hidden` class on flex containers,
+       we use display:none on a non-flex wrapper or use these helpers. */
+    .dp-none  { display: none !important; }
+    .dp-flex  { display: flex !important; }
+    .dp-block { display: block !important; }
 
-    /* ── File pill ───────────────────────────────────────────────── */
-    .file-pill {
-      animation: slideUp 0.35s ease forwards;
-    }
+    /* ── Drop zone ─────────────────────────────────────────────── */
+    #dropzone { border: 2px dashed #3a3a4e; transition: border-color .2s, background .2s; }
+    #dropzone.drag-over { border-color: #c8f135; background: rgba(200,241,53,.05); }
 
-    /* ── Progress bar fill ───────────────────────────────────────── */
-    #progress-bar {
-      background: linear-gradient(90deg, #c8f135, #7dfc00);
-      box-shadow: 0 0 12px rgba(200,241,53,0.5);
-      transition: width 0.4s ease;
-    }
+    /* ── File pill ─────────────────────────────────────────────── */
+    .file-pill { animation: slideUp .35s ease forwards; }
 
-    /* ── Scan line overlay ───────────────────────────────────────── */
-    .scan-line {
-      position: absolute;
-      left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent, #c8f135, transparent);
-      animation: scan 1.8s linear infinite;
-      pointer-events: none;
-    }
+    /* ── Stage dots ────────────────────────────────────────────── */
+    .sdot { width:8px; height:8px; border-radius:50%; background:#3a3a4e;
+            transition: background .35s, box-shadow .35s; flex-shrink:0; }
+    .sdot.run-cf { background:#c8f135; box-shadow:0 0 8px #c8f135; }
+    .sdot.run-tw { background:#6f4ff2; box-shadow:0 0 8px #6f4ff2; }
+    .sdot.done   { background:#7dfc00; box-shadow:none; }
 
-    /* ── Result text ─────────────────────────────────────────────── */
-    #result-text {
-      white-space: pre-wrap;
-      font-family: 'Space Mono', monospace;
-      font-size: 0.72rem;
-      line-height: 1.65;
-    }
+    /* ── Scan line ─────────────────────────────────────────────── */
+    .scan-line { position:absolute; left:0; right:0; height:3px;
+                 pointer-events:none; animation:scan 1.8s linear infinite; }
+    .sl-cf { background: linear-gradient(90deg, transparent, #c8f135, transparent); }
+    .sl-tw { background: linear-gradient(90deg, transparent, #6f4ff2, transparent); }
 
-    /* ── Stage dots ──────────────────────────────────────────────── */
-    .stage-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #3a3a4e;
-      transition: background 0.4s, box-shadow 0.4s;
-    }
-    .stage-dot.active {
-      background: #c8f135;
-      box-shadow: 0 0 8px #c8f135;
-    }
-    .stage-dot.done {
-      background: #7dfc00;
-    }
+    /* ── Progress bar ──────────────────────────────────────────── */
+    #pbar { transition: width .4s ease; }
+    .pb-cf { background: linear-gradient(90deg,#c8f135,#7dfc00);
+             box-shadow: 0 0 12px rgba(200,241,53,.45); }
+    .pb-tw { background: linear-gradient(90deg,#6f4ff2,#a78bfa);
+             box-shadow: 0 0 12px rgba(111,79,242,.45); }
 
-    /* ── Scrollbar ───────────────────────────────────────────────── */
-    #result-box::-webkit-scrollbar { width: 6px; }
-    #result-box::-webkit-scrollbar-track { background: #1e1e2e; }
-    #result-box::-webkit-scrollbar-thumb { background: #3a3a4e; border-radius: 3px; }
-    #result-box::-webkit-scrollbar-thumb:hover { background: #c8f135; }
+    /* ── Mode toggle pills ─────────────────────────────────────── */
+    .mpill { transition: background .22s, color .22s, box-shadow .22s; border-radius:8px; }
+    .mpill-cf { background:#c8f135; color:#0a0a0f; box-shadow:0 0 16px rgba(200,241,53,.35); }
+    .mpill-tw { background:#6f4ff2; color:#fff;    box-shadow:0 0 16px rgba(111,79,242,.4); }
+    .mpill-off { color:#6b6b7b; }
 
-    /* ── Badge glow ──────────────────────────────────────────────── */
-    .badge-success { color: #c8f135; border: 1px solid rgba(200,241,53,0.3); background: rgba(200,241,53,0.08); }
-    .badge-error   { color: #e84b2a; border: 1px solid rgba(232,75,42,0.3);  background: rgba(232,75,42,0.08);  }
+    /* ── Upload button accent swap ─────────────────────────────── */
+    #upload-btn { transition: transform .2s, box-shadow .2s; }
+    #upload-btn.btn-cf { background:#c8f135; color:#0a0a0f; }
+    #upload-btn.btn-cf:not(:disabled):hover { transform:scale(1.02); box-shadow:0 0 28px rgba(200,241,53,.35); }
+    #upload-btn.btn-tw { background:#6f4ff2; color:#fff; }
+    #upload-btn.btn-tw:not(:disabled):hover { transform:scale(1.02); box-shadow:0 0 28px rgba(111,79,242,.4); }
+    #upload-btn:disabled { opacity:.3; cursor:not-allowed; transform:none !important; box-shadow:none !important; }
+
+    /* ── Result text / scrollbar ───────────────────────────────── */
+    #result-text { white-space:pre-wrap; font-family:'Space Mono',monospace;
+                   font-size:.71rem; line-height:1.65; }
+    #result-box::-webkit-scrollbar       { width:6px; }
+    #result-box::-webkit-scrollbar-track { background:#1e1e2e; }
+    #result-box::-webkit-scrollbar-thumb { background:#3a3a4e; border-radius:3px; }
+
+    /* ── Inline badges ─────────────────────────────────────────── */
+    .bsuccess { color:#c8f135; border:1px solid rgba(200,241,53,.3);  background:rgba(200,241,53,.08); }
+    .berror   { color:#e84b2a; border:1px solid rgba(232,75,42,.3);   background:rgba(232,75,42,.08); }
+    .btw      { color:#a78bfa; border:1px solid rgba(111,79,242,.35); background:rgba(111,79,242,.1); }
+
+    /* ── Temporal pipeline card ────────────────────────────────── */
+    #tw-card { background:rgba(111,79,242,.08); border:1px solid rgba(111,79,242,.25); border-radius:12px; padding:16px; }
+    .wf-wire { width:2px; height:14px; background:#3a3a4e; margin:0 auto; }
   </style>
 </head>
 
 <body class="min-h-screen flex flex-col">
 
-  <!-- ── HEADER ─────────────────────────────────────────────────── -->
-  <header class="border-b border-white/10 px-8 py-5 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 bg-acid rounded-sm flex items-center justify-center">
-        <svg class="w-5 h-5 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0120 9.414V19a2 2 0 01-2 2z"/>
+<!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+<header class="border-b border-white/10 px-8 py-5 flex items-center justify-between flex-wrap gap-4">
+
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 bg-acid rounded-sm flex items-center justify-center">
+      <svg class="w-5 h-5 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0120 9.414V19a2 2 0 01-2 2z"/>
+      </svg>
+    </div>
+    <span class="font-display font-800 text-xl tracking-tight">DocPulse</span>
+    <span class="font-mono text-xs text-muted border border-white/10 px-2 py-0.5 rounded">v1.0</span>
+  </div>
+
+  <!-- Mode toggle -->
+  <div class="flex items-center gap-1 bg-slate rounded-xl p-1">
+    <button id="pill-cf" onclick="setMode('cf')"
+            class="mpill mpill-cf font-mono text-xs font-700 px-4 py-2">
+      CompletableFuture
+    </button>
+    <button id="pill-tw" onclick="setMode('tw')"
+            class="mpill mpill-off font-mono text-xs font-700 px-4 py-2">
+      Temporal Worker
+    </button>
+  </div>
+
+  <!-- Health indicators -->
+  <div class="flex items-center gap-4">
+    <div id="hlt-cf" class="flex items-center gap-1.5">
+      <span id="cf-dot" class="w-2 h-2 rounded-full bg-slate inline-block"></span>
+      <span id="cf-lbl" class="font-mono text-xs text-muted">CF API…</span>
+    </div>
+    <!-- hlt-tw starts hidden via dp-none so flex isn't blocked -->
+    <div id="hlt-tw" class="dp-none items-center gap-1.5">
+      <span id="tw-dot" class="w-2 h-2 rounded-full bg-slate inline-block"></span>
+      <span id="tw-lbl" class="font-mono text-xs text-muted">Worker API…</span>
+    </div>
+  </div>
+
+</header>
+
+<!-- ══ MODE BANNER ═════════════════════════════════════════════════ -->
+<div class="px-8 py-3 border-b border-white/5 bg-white/[0.02] flex items-center gap-3">
+  <span id="bn-dot" class="w-2 h-2 rounded-full bg-acid flex-shrink-0"></span>
+  <p id="bn-text" class="font-mono text-xs text-muted leading-relaxed"></p>
+</div>
+
+<!-- ══ MAIN ════════════════════════════════════════════════════════ -->
+<main class="flex-1 grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
+
+  <!-- ── LEFT: Upload ─────────────────────────────────────────────── -->
+  <section class="p-8 flex flex-col gap-6">
+
+    <div>
+      <h1 class="font-display font-800 text-3xl leading-tight">Upload &amp; Extract</h1>
+      <p id="panel-desc" class="text-muted text-sm mt-1"></p>
+    </div>
+
+    <!-- Drop zone -->
+    <div id="dropzone"
+         class="rounded-xl p-10 flex flex-col items-center justify-center gap-4 cursor-pointer select-none min-h-[200px]"
+         onclick="document.getElementById('file-input').click()"
+         ondragover="handleDragOver(event)"
+         ondragleave="handleDragLeave()"
+         ondrop="handleDrop(event)">
+      <div class="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center">
+        <svg class="w-7 h-7 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
         </svg>
       </div>
-      <span class="font-display font-800 text-xl tracking-tight">DocPulse</span>
-      <span class="font-mono text-xs text-muted border border-white/10 px-2 py-0.5 rounded">v1.0</span>
+      <div class="text-center">
+        <p class="font-display font-600 text-paper">
+          Drop files here or <span class="text-acid underline underline-offset-2">browse</span>
+        </p>
+        <p class="text-muted text-xs mt-1 font-mono">PDF, DOCX, TXT, PNG, JPG · max 50 MB</p>
+      </div>
+      <input id="file-input" type="file" class="hidden"
+             accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" multiple
+             onchange="handleFileSelect(event)" />
     </div>
-    <div class="flex items-center gap-2">
-      <span id="health-dot" class="inline-block w-2 h-2 rounded-full bg-slate"></span>
-      <span id="health-label" class="font-mono text-xs text-muted">connecting…</span>
+
+    <!-- File list — wrapper is block, inner is flex-col -->
+    <div id="file-list" class="dp-none flex-col gap-2">
+      <p class="font-mono text-xs text-muted uppercase tracking-widest mb-2">Selected Files</p>
+      <div id="file-pills" class="flex flex-col gap-2"></div>
     </div>
-  </header>
 
-  <!-- ── MAIN ───────────────────────────────────────────────────── -->
-  <main class="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-white/10">
-
-    <!-- LEFT PANEL — Upload -->
-    <section class="p-8 flex flex-col gap-6">
-      <div>
-        <h1 class="font-display font-800 text-3xl leading-tight">Upload &amp; Extract</h1>
-        <p class="text-muted text-sm mt-1">Upload any document. The server will scan, OCR, and extract content asynchronously.</p>
-      </div>
-
-      <!-- Drop zone -->
-      <div id="dropzone"
-           class="rounded-xl p-10 flex flex-col items-center justify-center gap-4 cursor-pointer select-none min-h-[200px]"
-           onclick="document.getElementById('file-input').click()"
-           ondragover="handleDragOver(event)"
-           ondragleave="handleDragLeave(event)"
-           ondrop="handleDrop(event)">
-        <div id="dropzone-icon" class="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center">
-          <svg class="w-7 h-7 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-          </svg>
+    <!-- Temporal pipeline info card -->
+    <div id="tw-card" class="dp-none flex-col gap-2">
+      <p class="font-display font-700 text-sm" style="color:#a78bfa">Temporal Worker Pipeline</p>
+      <div class="flex flex-col gap-1">
+        <div class="flex items-center gap-2 font-mono text-xs text-muted">
+          <span class="w-5 h-5 rounded flex items-center justify-center text-[10px]"
+                style="background:rgba(111,79,242,.2);color:#a78bfa">1</span>
+          SecurityScanActivity — virus / MIME validation
         </div>
-        <div class="text-center">
-          <p class="font-display font-600 text-paper">Drop files here or <span class="text-acid underline underline-offset-2">browse</span></p>
-          <p class="text-muted text-xs mt-1 font-mono">PDF, DOCX, TXT, PNG, JPG · max 50 MB</p>
+        <div class="wf-wire opacity-30 ml-2"></div>
+        <div class="flex items-center gap-2 font-mono text-xs text-muted">
+          <span class="w-5 h-5 rounded flex items-center justify-center text-[10px]"
+                style="background:rgba(111,79,242,.2);color:#a78bfa">2</span>
+          TextExtractionActivity — OCR / parser
         </div>
-        <input id="file-input" type="file" class="hidden" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" multiple onchange="handleFileSelect(event)" />
+        <div class="wf-wire opacity-30 ml-2"></div>
+        <div class="flex items-center gap-2 font-mono text-xs text-muted">
+          <span class="w-5 h-5 rounded flex items-center justify-center text-[10px]"
+                style="background:rgba(111,79,242,.2);color:#a78bfa">3</span>
+          NlpAnalysisActivity — entity extraction &amp; indexing
+        </div>
       </div>
+      <p class="font-mono mt-1" style="font-size:.63rem;color:rgba(111,79,242,.55)">
+        Polls GET /api/worker/status/{workflowId} every 2 s via Temporal @QueryMethod
+      </p>
+    </div>
 
-      <!-- Selected files list -->
-      <div id="file-list" class="flex flex-col gap-2 hidden">
-        <p class="font-mono text-xs text-muted uppercase tracking-widest">Selected Files</p>
-        <div id="file-pills" class="flex flex-col gap-2"></div>
-      </div>
+    <!-- Upload button -->
+    <button id="upload-btn" onclick="uploadFiles()" disabled
+            class="btn-cf mt-auto w-full py-4 rounded-xl font-display font-700 text-lg">
+      Process Documents →
+    </button>
 
-      <!-- Upload button -->
-      <button id="upload-btn"
-              onclick="uploadFiles()"
-              disabled
-              class="mt-auto w-full py-4 rounded-xl font-display font-700 text-lg
-                     bg-acid text-ink transition-all duration-200
-                     hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(200,241,53,0.3)]
-                     disabled:opacity-30 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none">
-        Process Documents →
-      </button>
-    </section>
+  </section>
 
-    <!-- RIGHT PANEL — Results -->
-    <section class="p-8 flex flex-col gap-6">
-      <div class="flex items-center justify-between">
-        <h2 class="font-display font-700 text-xl">Extraction Output</h2>
-        <button id="copy-btn"
-                onclick="copyResult()"
-                class="hidden font-mono text-xs text-muted border border-white/10 px-3 py-1.5 rounded-lg
+  <!-- ── RIGHT: Results ───────────────────────────────────────────── -->
+  <section class="p-8 flex flex-col gap-6">
+
+    <!-- Header row -->
+    <div class="flex items-center justify-between gap-2 flex-wrap">
+      <h2 class="font-display font-700 text-xl">Extraction Output</h2>
+      <div class="flex items-center gap-2">
+        <span id="wf-badge" class="dp-none font-mono text-xs btw px-2 py-0.5 rounded"></span>
+        <button id="copy-btn" onclick="copyResult()"
+                class="dp-none font-mono text-xs text-muted border border-white/10 px-3 py-1.5 rounded-lg
                        hover:border-acid hover:text-acid transition-colors">
           Copy ↗
         </button>
       </div>
+    </div>
 
-      <!-- Processing stages (shown while loading) -->
-      <div id="stages-panel" class="hidden">
-        <div class="bg-slate rounded-xl p-5 relative overflow-hidden">
-          <div class="scan-line"></div>
-          <p class="font-mono text-xs text-muted mb-4 uppercase tracking-widest">Processing Pipeline</p>
-          <div class="flex flex-col gap-3">
-            <div class="flex items-center gap-3">
-              <div id="stage-0" class="stage-dot"></div>
-              <span class="font-mono text-sm text-paper/80">Security Scan &amp; Validation</span>
-              <span id="stage-0-time" class="ml-auto font-mono text-xs text-muted"></span>
-            </div>
-            <div class="flex items-center gap-3">
-              <div id="stage-1" class="stage-dot"></div>
-              <span class="font-mono text-sm text-paper/80">OCR &amp; Content Parsing</span>
-              <span id="stage-1-time" class="ml-auto font-mono text-xs text-muted"></span>
-            </div>
-            <div class="flex items-center gap-3">
-              <div id="stage-2" class="stage-dot"></div>
-              <span class="font-mono text-sm text-paper/80">NLP Extraction &amp; Indexing</span>
-              <span id="stage-2-time" class="ml-auto font-mono text-xs text-muted"></span>
-            </div>
+    <!-- Processing stages panel -->
+    <div id="stages-panel" class="dp-none flex-col gap-4">
+      <div class="bg-slate rounded-xl p-5 relative overflow-hidden">
+        <div id="scan-ln" class="scan-line sl-cf"></div>
+        <div class="flex items-center justify-between mb-4">
+          <p class="font-mono text-xs text-muted uppercase tracking-widest">Processing Pipeline</p>
+          <span id="src-badge" class="font-mono text-xs px-2 py-0.5 rounded bsuccess">CompletableFuture</span>
+        </div>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-3">
+            <div id="s0" class="sdot"></div>
+            <span class="font-mono text-sm text-paper/80">Security Scan &amp; Validation</span>
+            <span id="s0t" class="ml-auto font-mono text-xs text-muted"></span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div id="s1" class="sdot"></div>
+            <span class="font-mono text-sm text-paper/80">OCR &amp; Text Extraction</span>
+            <span id="s1t" class="ml-auto font-mono text-xs text-muted"></span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div id="s2" class="sdot"></div>
+            <span class="font-mono text-sm text-paper/80">NLP Analysis &amp; Indexing</span>
+            <span id="s2t" class="ml-auto font-mono text-xs text-muted"></span>
           </div>
         </div>
+      </div>
 
-        <!-- Progress bar -->
-        <div class="mt-4">
-          <div class="flex justify-between font-mono text-xs text-muted mb-2">
-            <span id="progress-label">Initialising…</span>
-            <span id="progress-pct">0%</span>
-          </div>
-          <div class="h-1.5 bg-slate rounded-full overflow-hidden">
-            <div id="progress-bar" class="h-full w-0 rounded-full"></div>
-          </div>
+      <!-- Progress bar -->
+      <div>
+        <div class="flex justify-between font-mono text-xs text-muted mb-2">
+          <span id="prog-lbl">Initialising…</span>
+          <span id="prog-pct">0%</span>
         </div>
+        <div class="h-1.5 bg-slate rounded-full overflow-hidden">
+          <div id="pbar" class="h-full w-0 rounded-full pb-cf"></div>
+        </div>
+      </div>
 
-        <!-- Elapsed timer -->
-        <p class="font-mono text-xs text-muted mt-3">
-          Elapsed: <span id="elapsed-time" class="text-acid">0.0s</span>
+      <!-- Elapsed + poll indicator -->
+      <div class="flex items-center justify-between">
+        <p class="font-mono text-xs text-muted">
+          Elapsed: <span id="elapsed" class="text-acid">0.0s</span>
         </p>
-      </div>
-
-      <!-- Empty state -->
-      <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-center gap-4 py-16">
-        <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
-          <svg class="w-8 h-8 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+        <!-- poll-badge: hidden by default, shown in TW mode while polling -->
+        <div id="poll-badge" class="dp-none items-center gap-1.5 font-mono text-xs" style="color:#a78bfa">
+          <svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
           </svg>
-        </div>
-        <p class="font-mono text-xs text-white/20">No document processed yet.<br/>Upload a file to see extracted content here.</p>
-      </div>
-
-      <!-- Result box (shown after processing) -->
-      <div id="result-section" class="hidden flex flex-col gap-4 flex-1">
-        <!-- Meta row -->
-        <div id="result-meta" class="flex flex-wrap gap-2 font-mono text-xs"></div>
-        <!-- Text output -->
-        <div id="result-box" class="flex-1 bg-slate rounded-xl p-5 overflow-auto max-h-[460px]">
-          <pre id="result-text" class="text-paper/80"></pre>
+          polling /status…
         </div>
       </div>
+    </div><!-- /stages-panel -->
 
-      <!-- Error section -->
-      <div id="error-section" class="hidden">
-        <div class="bg-rust/10 border border-rust/30 rounded-xl p-5">
-          <p class="font-display font-700 text-rust mb-1">Processing Failed</p>
-          <p id="error-message" class="font-mono text-xs text-paper/60"></p>
-        </div>
+    <!-- Empty state -->
+    <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-center gap-4 py-16">
+      <div class="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+        <svg class="w-8 h-8 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5
+                   a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625
+                   c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75
+                   c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+        </svg>
       </div>
+      <p class="font-mono text-xs text-white/20">
+        No document processed yet.<br/>Upload a file to see extracted content here.
+      </p>
+    </div>
 
-      <!-- Batch results list (shown for multi-file) -->
-      <div id="batch-results" class="hidden flex flex-col gap-3"></div>
-    </section>
-  </main>
+    <!-- Result section -->
+    <div id="result-section" class="dp-none flex-col gap-4 flex-1">
+      <div id="result-meta" class="flex flex-wrap gap-2 font-mono text-xs"></div>
+      <div id="result-box" class="flex-1 bg-slate rounded-xl p-5 overflow-auto max-h-[460px]">
+        <pre id="result-text" class="text-paper/80"></pre>
+      </div>
+    </div>
 
-  <!-- ── FOOTER ─────────────────────────────────────────────────── -->
-  <footer class="border-t border-white/10 px-8 py-4 flex items-center justify-between">
-    <p class="font-mono text-xs text-muted">Spring Boot 3.5 · CompletableFuture · Async Processing</p>
-    <p class="font-mono text-xs text-muted">© 2025 DocPulse</p>
-  </footer>
+    <!-- Error section -->
+    <div id="error-section" class="dp-none">
+      <div class="rounded-xl p-5" style="background:rgba(232,75,42,.08);border:1px solid rgba(232,75,42,.3)">
+        <p class="font-display font-700 text-rust mb-1">Processing Failed</p>
+        <p id="error-msg" class="font-mono text-xs text-paper/60"></p>
+      </div>
+    </div>
 
+    <!-- Batch results -->
+    <div id="batch-results" class="dp-none flex-col gap-3"></div>
+
+  </section>
+</main>
+
+<!-- ══ FOOTER ══════════════════════════════════════════════════════ -->
+<footer class="border-t border-white/10 px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+  <p class="font-mono text-xs text-muted">
+    Spring Boot 3.5 · <span id="footer-mode">CompletableFuture</span> · Async Processing
+  </p>
+  <p class="font-mono text-xs text-muted">© 2025 DocPulse</p>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+  All const helpers are declared FIRST so every function below can
+  reference them. Regular `function` declarations are hoisted, but
+  `const` is not — this ordering is mandatory.
+══════════════════════════════════════════════════════════════════════ -->
 <script>
-/* ═══════════════════════════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════════════════════════ */
-let selectedFiles = [];
-let elapsedInterval = null;
+/* ═══════════════════════════════════════════════════════════════════
+   UTILS — declared first (const is NOT hoisted)
+═══════════════════════════════════════════════════════════════════ */
+const el   = id => document.getElementById(id);
 
-/* ═══════════════════════════════════════════════════════════════
-   HEALTH CHECK
-═══════════════════════════════════════════════════════════════ */
-async function checkHealth() {
-  try {
-    const res = await fetch('/api/documents/health');
-    const dot = document.getElementById('health-dot');
-    const lbl = document.getElementById('health-label');
-    if (res.ok) {
-      dot.className = 'inline-block w-2 h-2 rounded-full bg-acid';
-      lbl.textContent = 'API Online';
-      lbl.className = 'font-mono text-xs text-acid';
-    } else { throw new Error(); }
-  } catch {
-    const dot = document.getElementById('health-dot');
-    const lbl = document.getElementById('health-label');
-    dot.className = 'inline-block w-2 h-2 rounded-full bg-rust';
-    lbl.textContent = 'API Offline';
-    lbl.className = 'font-mono text-xs text-rust';
-  }
+/** Show an element. Uses dp-flex for flex containers, dp-block otherwise. */
+function show(id, display) {
+  const e = el(id);
+  e.classList.remove('dp-none');
+  e.classList.add(display || 'dp-block');
 }
+
+/** Hide an element with display:none. */
+function hide(id) {
+  const e = el(id);
+  e.classList.add('dp-none');
+  e.classList.remove('dp-flex', 'dp-block');
+}
+
+function fmtBytes(b) {
+  if (!b) return '0 B';
+  if (b < 1024) return b + ' B';
+  if (b < 1_048_576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1_048_576).toFixed(2) + ' MB';
+}
+
+function ela(t0) { return ((Date.now() - t0) / 1000).toFixed(1) + 's'; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════════ */
+let selectedFiles = [];
+let mode          = 'cf';   // 'cf' | 'tw'
+let timerID       = null;   // elapsed counter interval
+let pollID        = null;   // status-poll interval (TW mode)
+let activeWfId    = null;   // current Temporal workflowId
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOOT — runs after DOM is parsed (script is at end of body)
+═══════════════════════════════════════════════════════════════════ */
+setMode('cf');
 checkHealth();
 setInterval(checkHealth, 10_000);
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
+   MODE SWITCH
+═══════════════════════════════════════════════════════════════════ */
+function setMode(m) {
+  mode = m;
+  const tw = m === 'tw';
+
+  /* pills */
+  el('pill-cf').className = 'mpill font-mono text-xs font-700 px-4 py-2 ' + (tw ? 'mpill-off' : 'mpill-cf');
+  el('pill-tw').className = 'mpill font-mono text-xs font-700 px-4 py-2 ' + (tw ? 'mpill-tw' : 'mpill-off');
+
+  /* health strip */
+  if (tw) { hide('hlt-cf'); show('hlt-tw', 'dp-flex'); }
+  else     { show('hlt-cf', 'dp-flex'); hide('hlt-tw'); }
+
+  /* banner */
+  el('bn-dot').style.background = tw ? '#6f4ff2' : '#c8f135';
+  el('bn-text').innerHTML = tw
+    ? `<span style="color:#a78bfa;font-weight:700">Temporal Worker mode</span>
+       — each upload starts a durable Temporal workflow. Pipeline status is polled
+       live from the server's <code style="color:rgba(255,255,255,.4)">@QueryMethod</code>.
+       Survives server restarts.`
+    : `<span style="color:#c8f135;font-weight:700">CompletableFuture mode</span>
+       — upload runs in-process on Spring's async thread pool using
+       <code style="color:rgba(255,255,255,.4)">@Async</code> +
+       <code style="color:rgba(255,255,255,.4)">CompletableFuture</code>.
+       Fast with no external dependencies.`;
+
+  /* panel description */
+  el('panel-desc').textContent = tw
+    ? 'Upload a document. A Temporal workflow starts immediately; status is polled live every 2 s.'
+    : 'Upload a document. The server will scan, OCR, and extract content asynchronously.';
+
+  /* temporal info card */
+  if (tw) show('tw-card', 'dp-flex'); else hide('tw-card');
+
+  /* upload button */
+  const btn = el('upload-btn');
+  btn.classList.toggle('btn-cf', !tw);
+  btn.classList.toggle('btn-tw',  tw);
+
+  /* pipeline panel labels */
+  el('scan-ln').className  = 'scan-line ' + (tw ? 'sl-tw' : 'sl-cf');
+  el('src-badge').className = 'font-mono text-xs px-2 py-0.5 rounded ' + (tw ? 'btw' : 'bsuccess');
+  el('src-badge').textContent = tw ? 'Temporal Workflow' : 'CompletableFuture';
+
+  /* progress bar colour */
+  el('pbar').classList.toggle('pb-cf', !tw);
+  el('pbar').classList.toggle('pb-tw',  tw);
+
+  /* footer */
+  el('footer-mode').textContent = tw ? 'Temporal Worker' : 'CompletableFuture';
+
+  resetResults();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HEALTH CHECKS
+═══════════════════════════════════════════════════════════════════ */
+async function checkHealth() {
+  await ping('/api/documents/health', 'cf-dot', 'cf-lbl', 'CF Online');
+  await ping('/api/worker/health',    'tw-dot', 'tw-lbl', 'Worker Online');
+}
+
+async function ping(url, dotId, lblId, okText) {
+  try {
+    const r = await fetch(url);
+    if (r.ok) setDot(dotId, lblId, okText, '#c8f135', '#c8f135');
+    else throw 0;
+  } catch {
+    setDot(dotId, lblId, 'Offline', '#e84b2a', '#e84b2a');
+  }
+}
+
+function setDot(dotId, lblId, text, dotColor, textColor) {
+  el(dotId).style.background  = dotColor;
+  el(lblId).textContent        = text;
+  el(lblId).style.color        = textColor;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    DRAG & DROP
-═══════════════════════════════════════════════════════════════ */
-function handleDragOver(e) {
-  e.preventDefault();
-  document.getElementById('dropzone').classList.add('drag-over');
-}
-function handleDragLeave(e) {
-  document.getElementById('dropzone').classList.remove('drag-over');
-}
+═══════════════════════════════════════════════════════════════════ */
+function handleDragOver(e)  { e.preventDefault(); el('dropzone').classList.add('drag-over'); }
+function handleDragLeave()  { el('dropzone').classList.remove('drag-over'); }
 function handleDrop(e) {
   e.preventDefault();
-  document.getElementById('dropzone').classList.remove('drag-over');
+  el('dropzone').classList.remove('drag-over');
   addFiles(Array.from(e.dataTransfer.files));
 }
-function handleFileSelect(e) {
-  addFiles(Array.from(e.target.files));
-  e.target.value = '';
-}
+function handleFileSelect(e) { addFiles(Array.from(e.target.files)); e.target.value = ''; }
 
-/* ═══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
    FILE MANAGEMENT
-═══════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════════════ */
 function addFiles(files) {
   files.forEach(f => {
-    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size)) {
+    if (!selectedFiles.find(x => x.name === f.name && x.size === f.size))
       selectedFiles.push(f);
-    }
   });
-  renderFilePills();
-  document.getElementById('upload-btn').disabled = selectedFiles.length === 0;
+  renderPills();
+  el('upload-btn').disabled = selectedFiles.length === 0;
 }
 
-function removeFile(index) {
-  selectedFiles.splice(index, 1);
-  renderFilePills();
-  document.getElementById('upload-btn').disabled = selectedFiles.length === 0;
+function removeFile(i) {
+  selectedFiles.splice(i, 1);
+  renderPills();
+  el('upload-btn').disabled = selectedFiles.length === 0;
 }
 
-function renderFilePills() {
-  const list  = document.getElementById('file-list');
-  const pills = document.getElementById('file-pills');
-  if (selectedFiles.length === 0) { list.classList.add('hidden'); return; }
-  list.classList.remove('hidden');
+function renderPills() {
+  const list  = el('file-list');
+  const pills = el('file-pills');
+
+  if (!selectedFiles.length) {
+    list.classList.add('dp-none');
+    list.classList.remove('dp-flex');
+    return;
+  }
+
+  list.classList.remove('dp-none');
+  list.classList.add('dp-flex');
+
   pills.innerHTML = '';
   selectedFiles.forEach((f, i) => {
-    const pill = document.createElement('div');
-    pill.className = 'file-pill flex items-center gap-3 bg-slate rounded-lg px-4 py-2.5';
-    pill.innerHTML = `
-      <svg class="w-4 h-4 text-acid flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0120 9.414V19a2 2 0 01-2 2z"/>
+    const div = document.createElement('div');
+    div.className = 'file-pill flex items-center gap-3 bg-slate rounded-lg px-4 py-2.5';
+    div.innerHTML = `
+      <svg class="w-4 h-4 text-acid flex-shrink-0" fill="none" viewBox="0 0 24 24"
+           stroke="currentColor" stroke-width="2">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                 a1 1 0 01.707.293l5.414 5.414A1 1 0 0120 9.414V19a2 2 0 01-2 2z"/>
       </svg>
       <span class="font-mono text-xs text-paper/80 flex-1 truncate">${f.name}</span>
-      <span class="font-mono text-xs text-muted">${formatBytes(f.size)}</span>
-      <button onclick="removeFile(${i})" class="text-muted hover:text-rust transition-colors ml-1">
+      <span class="font-mono text-xs text-muted">${fmtBytes(f.size)}</span>
+      <button onclick="removeFile(${i})"
+              class="text-muted hover:text-rust transition-colors ml-1 flex-shrink-0">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path d="M6 18L18 6M6 6l12 12"/>
         </svg>
-      </button>
-    `;
-    pills.appendChild(pill);
+      </button>`;
+    pills.appendChild(div);
   });
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   UPLOAD
-═══════════════════════════════════════════════════════════════ */
-async function uploadFiles() {
-  if (selectedFiles.length === 0) return;
+/* ═══════════════════════════════════════════════════════════════════
+   UPLOAD DISPATCH
+═══════════════════════════════════════════════════════════════════ */
+function uploadFiles() {
+  if (!selectedFiles.length) return;
+  mode === 'tw' ? uploadTemporal() : uploadCF();
+}
 
+/* ── CompletableFuture path ──────────────────────────────────────── */
+async function uploadCF() {
   resetResults();
-  showProcessingUI();
-
+  beginProcessingUI();
   const isBatch = selectedFiles.length > 1;
-  const startTime = Date.now();
+  const t0 = Date.now();
 
-  // Elapsed timer
-  elapsedInterval = setInterval(() => {
-    const s = ((Date.now() - startTime) / 1000).toFixed(1);
-    document.getElementById('elapsed-time').textContent = s + 's';
-  }, 100);
+  timerID = setInterval(() => { el('elapsed').textContent = ela(t0); }, 100);
 
-  // Simulated stage timings (matching backend: 1.5s, 2.5s, 1.5s)
-  animateStage(0, 1500,  0,   33, 'Security Scan…');
-  animateStage(1, 2500, 1500, 66, 'OCR & Parsing…');
-  animateStage(2, 1500, 4000, 95, 'NLP Extraction…');
+  // Drive stage dots on server-matching timing (1.5 s / 2.5 s / 1.5 s)
+  animCFStage(0, 1500,    0,  33, 'Security Scan…');
+  animCFStage(1, 2500, 1500,  66, 'OCR & Parsing…');
+  animCFStage(2, 1500, 4000,  95, 'NLP Extraction…');
 
   try {
     let data;
@@ -405,198 +593,266 @@ async function uploadFiles() {
       data = await res.json();
     }
 
-    // Final progress
-    clearInterval(elapsedInterval);
+    stopTimer();
     setProgress(100, 'Complete');
-    markAllStagesDone();
-    document.getElementById('elapsed-time').textContent =
-      ((Date.now() - startTime) / 1000).toFixed(1) + 's';
-
-    await sleep(400);
-    showResults(data, isBatch);
+    allDone();
+    el('elapsed').textContent = ela(t0);
+    await sleep(350);
+    renderResults(data, isBatch);
 
   } catch (err) {
-    clearInterval(elapsedInterval);
+    stopTimer();
     showError('Network error: ' + err.message);
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   STAGE ANIMATION
-═══════════════════════════════════════════════════════════════ */
-function animateStage(index, duration, delay, targetPct, label) {
+/* ── Temporal path ───────────────────────────────────────────────── */
+async function uploadTemporal() {
+  resetResults();
+  beginProcessingUI();
+  const t0 = Date.now();
+
+  timerID = setInterval(() => { el('elapsed').textContent = ela(t0); }, 100);
+  show('poll-badge', 'dp-flex');
+
+  try {
+    /* (1) POST to /api/worker/upload — returns 202 immediately */
+    const fd = new FormData();
+    fd.append('file', selectedFiles[0]);
+    const submitRes  = await fetch('/api/worker/upload', { method: 'POST', body: fd });
+    const submitBody = await submitRes.json();
+
+    if (!submitRes.ok) {
+      stopTimer();
+      showError(submitBody.error || 'Worker submit failed (' + submitRes.status + ')');
+      return;
+    }
+
+    activeWfId = submitBody.workflowId;
+    el('wf-badge').textContent = 'wf:' + activeWfId;
+    show('wf-badge', 'dp-block');
+    setProgress(5, 'Workflow submitted…');
+
+    /* (2) Poll /api/worker/status/{id} every 2 s */
+    pollID = setInterval(async () => {
+      try {
+        const res  = await fetch('/api/worker/status/' + activeWfId);
+        const snap = await res.json();
+        applySnapshot(snap, t0);
+
+        if (snap.state === 'COMPLETED') {
+          stopPoll(); stopTimer();
+          allDone();
+          setProgress(100, 'Complete');
+          el('elapsed').textContent = ela(t0);
+          hide('poll-badge');
+
+          /* (3) Fetch final extracted result */
+          const resultRes = await fetch('/api/worker/result/' + activeWfId);
+          const result    = await resultRes.json();
+          await sleep(350);
+          renderResults(result, false);
+
+        } else if (snap.state === 'FAILED' || snap.state === 'CANCELLED') {
+          stopPoll(); stopTimer();
+          hide('poll-badge');
+          showError(snap.statusMessage || 'Workflow ' + snap.state);
+        }
+      } catch { /* transient poll error — keep retrying */ }
+    }, 2000);
+
+  } catch (err) {
+    stopTimer(); stopPoll();
+    showError('Network error: ' + err.message);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CF STAGE ANIMATION (timer-driven, matches backend sleep timings)
+═══════════════════════════════════════════════════════════════════ */
+function animCFStage(idx, dur, delay, pct, label) {
   setTimeout(() => {
-    const dot = document.getElementById(`stage-${index}`);
-    dot.classList.add('active');
-    setProgress(targetPct - 33 + (index === 0 ? 0 : 0), label);
-
-    const timeEl = document.getElementById(`stage-${index}-time`);
-    timeEl.textContent = 'running…';
-
+    stageDot(idx, 'run-cf');
+    el('s' + idx + 't').textContent = 'running…';
+    setProgress(pct - 10, label);
     setTimeout(() => {
-      dot.classList.remove('active');
-      dot.classList.add('done');
-      timeEl.textContent = (duration / 1000).toFixed(1) + 's';
-      setProgress(targetPct, label);
-    }, duration);
+      stageDot(idx, 'done');
+      el('s' + idx + 't').textContent = (dur / 1000).toFixed(1) + 's';
+      setProgress(pct, label);
+    }, dur);
   }, delay);
 }
 
-function markAllStagesDone() {
+/* ═══════════════════════════════════════════════════════════════════
+   TEMPORAL SNAPSHOT APPLY (poll-driven)
+   Maps WorkflowStatusSnapshot.PipelineStage → stage dot states
+═══════════════════════════════════════════════════════════════════ */
+function applySnapshot(snap, t0) {
+  const stageMap = {
+    NOT_STARTED:     { idx: -1, pct:  5, lbl: 'Queued in Temporal…' },
+    SECURITY_SCAN:   { idx:  0, pct: 30, lbl: 'Security Scan…' },
+    TEXT_EXTRACTION: { idx:  1, pct: 62, lbl: 'OCR & Extraction…' },
+    NLP_ANALYSIS:    { idx:  2, pct: 88, lbl: 'NLP Analysis…' },
+    DONE:            { idx: -1, pct: 98, lbl: 'Finalising…' },
+  };
+  const s = stageMap[snap.currentStage] || stageMap['NOT_STARTED'];
+  setProgress(snap.progressPercent ?? s.pct, snap.statusMessage || s.lbl);
+
   [0, 1, 2].forEach(i => {
-    const d = document.getElementById(`stage-${i}`);
-    d.classList.remove('active');
-    d.classList.add('done');
+    el('s' + i + 't').textContent = '';
+    if (i === s.idx) {
+      stageDot(i, 'run-tw');
+      el('s' + i + 't').textContent = 'running…';
+    } else if (i < s.idx || snap.state === 'COMPLETED') {
+      stageDot(i, 'done');
+      el('s' + i + 't').textContent = '✓';
+    } else {
+      stageDot(i, null); // reset to idle
+    }
   });
+
+  el('elapsed').textContent = ela(t0);
 }
 
-function setProgress(pct, label) {
-  document.getElementById('progress-bar').style.width = pct + '%';
-  document.getElementById('progress-pct').textContent = pct + '%';
-  if (label) document.getElementById('progress-label').textContent = label;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   UI STATE HELPERS
-═══════════════════════════════════════════════════════════════ */
-function resetResults() {
-  hide('result-section');
-  hide('error-section');
-  hide('batch-results');
+/* ═══════════════════════════════════════════════════════════════════
+   RENDER RESULTS
+═══════════════════════════════════════════════════════════════════ */
+function renderResults(data, isBatch) {
   hide('stages-panel');
-  show('empty-state');
-  document.getElementById('copy-btn').classList.add('hidden');
-  document.getElementById('result-meta').innerHTML = '';
-  document.getElementById('result-text').textContent = '';
-  document.getElementById('batch-results').innerHTML = '';
-  setProgress(0, 'Initialising…');
-  [0,1,2].forEach(i => {
-    const d = document.getElementById(`stage-${i}`);
-    d.className = 'stage-dot';
-    document.getElementById(`stage-${i}-time`).textContent = '';
-  });
-  document.getElementById('elapsed-time').textContent = '0.0s';
-}
+  if (isBatch) { renderBatch(data); return; }
 
-function showProcessingUI() {
-  hide('empty-state');
-  show('stages-panel');
-  document.getElementById('upload-btn').disabled = true;
-}
-
-function showResults(data, isBatch) {
-  hide('stages-panel');
-
-  if (isBatch) {
-    showBatchResults(data);
+  if (data.status === 'ERROR' || data.status === 'FAILED' || data.status === 'CANCELLED') {
+    showError(data.extractedText || data.failureReason || 'Unknown error');
     return;
   }
 
-  if (data.status === 'ERROR') {
-    showError(data.extractedText || 'Unknown error');
-    return;
-  }
-
-  // Single file result
   renderMeta(data);
-  document.getElementById('result-text').textContent = data.extractedText;
-  show('result-section');
-  document.getElementById('copy-btn').classList.remove('hidden');
+  el('result-text').textContent = data.extractedText;
+  show('result-section', 'dp-flex');
+  show('copy-btn', 'dp-block');
+  el('upload-btn').disabled = false;
 }
 
-function showBatchResults(results) {
-  const container = document.getElementById('batch-results');
-  container.innerHTML = `<p class="font-mono text-xs text-muted uppercase tracking-widest">Batch Results — ${results.length} file(s)</p>`;
+function renderBatch(results) {
+  const c = el('batch-results');
+  c.innerHTML = `<p class="font-mono text-xs text-muted uppercase tracking-widest mb-1">
+    Batch Results — ${results.length} file(s)</p>`;
 
   results.forEach((r, i) => {
     const card = document.createElement('div');
     card.className = 'bg-slate rounded-xl p-4 cursor-pointer hover:ring-1 hover:ring-acid transition-all';
     card.innerHTML = `
       <div class="flex items-center gap-3 mb-2">
-        <span class="font-mono text-xs text-muted">#${i+1}</span>
+        <span class="font-mono text-xs text-muted">#${i + 1}</span>
         <span class="font-display font-600 text-sm truncate flex-1">${r.originalFileName}</span>
-        <span class="font-mono text-xs px-2 py-0.5 rounded ${r.status === 'SUCCESS' ? 'badge-success' : 'badge-error'}">${r.status}</span>
+        <span class="font-mono text-xs px-2 py-0.5 rounded ${r.status === 'SUCCESS' ? 'bsuccess' : 'berror'}">${r.status}</span>
       </div>
       <div class="flex gap-4 font-mono text-xs text-muted">
         <span>Job: ${r.jobId}</span>
-        <span>${formatBytes(r.fileSizeBytes)}</span>
-        <span>${(r.processingTimeMs/1000).toFixed(2)}s</span>
+        <span>${fmtBytes(r.fileSizeBytes)}</span>
+        <span>${((r.processingTimeMs || 0) / 1000).toFixed(2)}s</span>
       </div>
       <div class="mt-3 max-h-24 overflow-hidden relative">
-        <pre class="text-paper/50 text-[0.65rem] leading-relaxed whitespace-pre-wrap">${r.extractedText?.substring(0, 300)}…</pre>
-        <div class="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-slate to-transparent"></div>
-      </div>
-    `;
+        <pre class="text-paper/50 text-[0.65rem] leading-relaxed whitespace-pre-wrap">${
+          (r.extractedText || '').substring(0, 300)}…</pre>
+        <div class="absolute bottom-0 left-0 right-0 h-8"
+             style="background:linear-gradient(to top,#1e1e2e,transparent)"></div>
+      </div>`;
     card.onclick = () => {
       hide('batch-results');
       renderMeta(r);
-      document.getElementById('result-text').textContent = r.extractedText;
-      show('result-section');
-      document.getElementById('copy-btn').classList.remove('hidden');
+      el('result-text').textContent = r.extractedText;
+      show('result-section', 'dp-flex');
+      show('copy-btn', 'dp-block');
     };
-    container.appendChild(card);
+    c.appendChild(card);
   });
 
-  container.classList.remove('hidden');
-  container.classList.add('flex');
+  show('batch-results', 'dp-flex');
+  el('upload-btn').disabled = false;
 }
 
 function renderMeta(data) {
-  const meta = document.getElementById('result-meta');
+  const ms = data.processingTimeMs || data.totalProcessingMs || 0;
   const items = [
-    { label: 'JOB',  value: data.jobId },
-    { label: 'FILE', value: data.originalFileName },
-    { label: 'SIZE', value: formatBytes(data.fileSizeBytes) },
-    { label: 'TIME', value: (data.processingTimeMs / 1000).toFixed(2) + 's' },
-    { label: 'STATUS', value: data.status, success: data.status === 'SUCCESS' },
+    { k: 'JOB',    v: data.jobId },
+    { k: 'FILE',   v: data.originalFileName },
+    { k: 'SIZE',   v: fmtBytes(data.fileSizeBytes) },
+    { k: 'TIME',   v: (ms / 1000).toFixed(2) + 's' },
+    { k: 'STATUS', v: data.status, ok: data.status === 'SUCCESS' },
   ];
-  meta.innerHTML = items.map(it => `
-    <span class="font-mono text-xs px-2 py-0.5 rounded border border-white/10 bg-white/5 ${it.success === false ? 'text-rust' : it.success ? 'text-acid' : 'text-muted'}">
-      <span class="text-white/30">${it.label}: </span>${it.value}
-    </span>
-  `).join('');
+  if (data.workflowId) items.splice(1, 0, { k: 'WF', v: data.workflowId.substring(0, 8) + '…' });
+
+  el('result-meta').innerHTML = items.map(it => `
+    <span class="font-mono text-xs px-2 py-0.5 rounded border border-white/10 bg-white/5"
+          style="color:${it.ok === false ? '#e84b2a' : it.ok ? '#c8f135' : '#6b6b7b'}">
+      <span style="color:rgba(255,255,255,.25)">${it.k}: </span>${it.v}
+    </span>`).join('');
 }
 
 function showError(msg) {
   hide('stages-panel');
-  document.getElementById('error-message').textContent = msg;
-  show('error-section');
-  document.getElementById('upload-btn').disabled = false;
+  el('error-msg').textContent = msg;
+  show('error-section', 'dp-block');
+  el('upload-btn').disabled = false;
 }
 
-function show(id) {
-  const el = document.getElementById(id);
-  el.classList.remove('hidden');
-}
-function hide(id) {
-  document.getElementById(id).classList.add('hidden');
+/* ═══════════════════════════════════════════════════════════════════
+   PROGRESS & DOT HELPERS
+═══════════════════════════════════════════════════════════════════ */
+function setProgress(pct, lbl) {
+  el('pbar').style.width        = pct + '%';
+  el('prog-pct').textContent    = pct + '%';
+  if (lbl) el('prog-lbl').textContent = lbl;
 }
 
-/* ═══════════════════════════════════════════════════════════════
+function stageDot(idx, cls) {
+  const d = el('s' + idx);
+  d.classList.remove('run-cf', 'run-tw', 'done');
+  if (cls) d.classList.add(cls);
+}
+
+function allDone() { [0, 1, 2].forEach(i => stageDot(i, 'done')); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   UI STATE
+═══════════════════════════════════════════════════════════════════ */
+function resetResults() {
+  stopTimer(); stopPoll();
+  hide('result-section'); hide('error-section');
+  hide('batch-results');  hide('stages-panel');
+  hide('copy-btn');       hide('wf-badge');
+  hide('poll-badge');
+  show('empty-state', 'dp-flex');
+  el('result-meta').innerHTML  = '';
+  el('result-text').textContent = '';
+  el('batch-results').innerHTML = '';
+  setProgress(0, 'Initialising…');
+  [0, 1, 2].forEach(i => { stageDot(i, null); el('s' + i + 't').textContent = ''; });
+  el('elapsed').textContent = '0.0s';
+  activeWfId = null;
+}
+
+function beginProcessingUI() {
+  hide('empty-state');
+  show('stages-panel', 'dp-flex');
+  el('upload-btn').disabled = true;
+}
+
+function stopTimer() { clearInterval(timerID); timerID = null; }
+function stopPoll()  { clearInterval(pollID);  pollID  = null; }
+
+/* ═══════════════════════════════════════════════════════════════════
    COPY
-═══════════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════════════ */
 async function copyResult() {
-  const text = document.getElementById('result-text').textContent;
-  await navigator.clipboard.writeText(text);
-  const btn = document.getElementById('copy-btn');
-  btn.textContent = 'Copied ✓';
-  btn.className = btn.className.replace('text-muted', 'text-acid');
-  setTimeout(() => {
-    btn.textContent = 'Copy ↗';
-    btn.className = btn.className.replace('text-acid', 'text-muted');
-  }, 2000);
+  await navigator.clipboard.writeText(el('result-text').textContent);
+  const b = el('copy-btn');
+  const prev = b.style.color;
+  b.textContent = 'Copied ✓';
+  b.style.color = '#c8f135';
+  setTimeout(() => { b.textContent = 'Copy ↗'; b.style.color = prev; }, 2000);
 }
-
-/* ═══════════════════════════════════════════════════════════════
-   UTILS
-═══════════════════════════════════════════════════════════════ */
-function formatBytes(b) {
-  if (!b) return '0 B';
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-  return (b / 1048576).toFixed(2) + ' MB';
-}
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
 </body>
 </html>

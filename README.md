@@ -769,3 +769,47 @@ docker volume prune -f
 ```
 
 ---
+
+
+Good — `index.html` is gone and all Java files are in place. Writing the new HTML now.All done. Here's a full summary of everything that's now in the project.
+
+---
+
+## What was added / changed
+
+### New Java files (Temporal scaffolding)
+
+**`temporal/workflow/`**
+- `DocumentProcessingWorkflow` — `@WorkflowInterface` with `@WorkflowMethod processDocument()`, `@QueryMethod getStatus()`, and `@SignalMethod requestCancellation()`
+- `DocumentWorkflowRequest` — input payload (jobId, fileName, storageKey, contentType, size)
+- `DocumentWorkflowResult` — final output (extractedText, status, per-stage timing ms)
+- `WorkflowStatusSnapshot` — live status returned by the query method; has `State` enum (`QUEUED / RUNNING / COMPLETED / FAILED / CANCELLED`) and `PipelineStage` enum (`NOT_STARTED → SECURITY_SCAN → TEXT_EXTRACTION → NLP_ANALYSIS → DONE`)
+
+**`temporal/activity/`**
+- `SecurityScanActivity` — `@ActivityInterface` Stage 1, returns `ScanResult` (clean, verdict, mimeType)
+- `TextExtractionActivity` — `@ActivityInterface` Stage 2, returns `ExtractionResult` (rawText, pageCount, wordCount, parserUsed)
+- `NlpAnalysisActivity` — `@ActivityInterface` Stage 3, returns `AnalysisResult` (documentType, summary, namedEntities, keyTopics)
+
+**`temporal/worker/DocumentWorker`** — marker interface defining the `DOCUMENT_PROCESSING_TASK_QUEUE` constant and `start()`/`shutdown()` contract that the future impl class must honour
+
+**`temporal/stub/DocumentWorkflowClientStub`** — Spring `@Service` anti-corruption layer wrapping `WorkflowClient`: `startWorkflow()`, `queryStatus()`, `awaitResult()`, `cancelWorkflow()`
+
+**`controller/UploadWorkerController`** — new REST controller:
+
+| Method | Path | What it does |
+|---|---|---|
+| `POST` | `/api/worker/upload` | Stages file, starts Temporal workflow, returns **202** with `workflowId` immediately |
+| `GET` | `/api/worker/status/{workflowId}` | Calls `@QueryMethod` → live `WorkflowStatusSnapshot` |
+| `GET` | `/api/worker/result/{workflowId}` | Awaits final `DocumentWorkflowResult` via `CompletableFuture` |
+| `DELETE` | `/api/worker/cancel/{workflowId}` | Sends `@SignalMethod` cancellation |
+| `GET` | `/api/worker/health` | Health check |
+
+### Updated `index.html`
+
+- **Mode toggle pill** in the header — switches between **CompletableFuture** (acid green) and **Temporal Worker** (purple) — all colours, badges, and behaviours swap cleanly
+- **CF mode** — unchanged: timer-driven stage animation matching the 1.5 s / 2.5 s / 1.5 s backend sleeps
+- **Temporal mode** — submits to `/api/worker/upload` (202), then polls `/api/worker/status/{id}` every 2 s, maps `PipelineStage` → stage dots in real time, fetches final result from `/api/worker/result/{id}` on completion
+- **Temporal info card** on the left panel shows the 3-activity pipeline graph with wire connectors
+- **Two health dots** in the header — one for each API, both checked every 10 s
+- **Workflow ID badge** appears in the results header when running in Temporal mode
+- **Spinning poll indicator** shown while the status loop is active

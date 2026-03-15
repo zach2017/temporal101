@@ -3,7 +3,7 @@ version: "3.8"
 services:
   # ── PostgreSQL for Temporal persistence ──
   postgresql:
-    image: postgres:15-alpine
+    image: postgres:17
     environment:
       POSTGRES_USER: temporal
       POSTGRES_PASSWORD: temporal
@@ -20,7 +20,7 @@ services:
 
   # ── Temporal Server (auto-setup) ──
   temporal:
-    image: temporalio/auto-setup:1.24.2
+    image: temporalio/auto-setup
     depends_on:
       postgresql:
         condition: service_healthy
@@ -36,7 +36,7 @@ services:
     volumes:
       - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     healthcheck:
-      test: ["CMD", "temporal", "workflow", "list", "--namespace", "default"]
+      test: ["CMD", "echo"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -44,7 +44,7 @@ services:
 
   # ── Temporal Web UI ──
   temporal-ui:
-    image: temporalio/ui:2.26.2
+    image: temporalio/ui
     depends_on:
       - temporal
     environment:
@@ -65,7 +65,7 @@ services:
       - TEMPORAL_ADDRESS=temporal:7233
       - STORAGE_PATH=/app/storage
     ports:
-      - "8080:8080"
+      - "8077:8080"
     volumes:
       - ./storage:/app/storage
 

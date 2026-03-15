@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.11</version>
+        <version>3.5.0</version>
         <relativePath/>
     </parent>
 
@@ -16,11 +16,9 @@
     <version>1.0.0</version>
     <name>docupload</name>
     <description>Document Upload Processor with CompletableFuture</description>
-    <packaging>jar</packaging>
 
     <properties>
         <java.version>21</java.version>
-        <maven.compiler.release>21</maven.compiler.release>
     </properties>
 
     <dependencies>
@@ -39,6 +37,20 @@
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
+        </dependency>
+
+        <!-- Temporal SDK -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-sdk</artifactId>
+            <version>1.25.0</version>
+        </dependency>
+
+        <!-- Temporal Spring Boot starter (auto-wires WorkflowClient, WorkerFactory) -->
+        <dependency>
+            <groupId>io.temporal</groupId>
+            <artifactId>temporal-spring-boot-autoconfigure</artifactId>
+            <version>1.25.0</version>
         </dependency>
 
         <dependency>
