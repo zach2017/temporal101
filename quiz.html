@@ -953,204 +953,279 @@ function showSection(id) {
 ═══════════════════════════════════════════ */
 const QUESTIONS = [
   {
-    cat: 'Python Activities',
-    q: 'In activities.py, what decorator registers a function as a Temporal Activity?',
-    opts: ['@activity.method','@activity.defn','@activity.register','@activity.task'],
+    cat: "Python Activities",
+    q: "In activities.py, what decorator registers a function as a Temporal Activity?",
+    opts: ["@activity.method","@activity.defn","@activity.register","@activity.task"],
     ans: 1,
-    exp: '@activity.defn from the temporalio SDK registers an async or sync function as a Temporal Activity Definition.'
+    exp: "@activity.defn from the temporalio SDK registers an async or sync function as a Temporal Activity Definition.",
+    code: "@activity.defn\nasync def say_hello(name: str) -> str:\n    return f\"Hello, {name}!\"",
+    file: "activities.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#develop-activities",
+    refLabel: "Python SDK \u2192 Activity Definition"
   },
   {
-    cat: 'Python Activities',
-    q: 'What does the say_hello activity in activities.py return when called with "World"?',
-    opts: ['"Hello, World"','"Hello, World!"','"world"','"Greetings, World!"'],
+    cat: "Python Activities",
+    q: "What does the say_hello activity in activities.py return when called with \"World\"?",
+    opts: ["\"Hello, World\"","\"Hello, World!\"","\"world\"","\"Greetings, World!\""],
     ans: 1,
-    exp: 'The activity returns an f-string: f"Hello, {name}!" — so say_hello("World") returns "Hello, World!".'
+    exp: "The activity returns an f-string: f\"Hello, {name}!\" \u2014 so say_hello(\"World\") returns \"Hello, World!\".",
+    code: "return f\"Hello, {name}!\"",
+    file: "activities.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#develop-activities",
+    refLabel: "Python SDK \u2192 Activity Definition"
   },
   {
-    cat: 'Python Activities',
-    q: 'Which import in activities.py provides the @activity.defn decorator?',
-    opts: ['from temporalio.activity import defn','from temporalio import activity','from temporal import activity','from temporalio.worker import activity'],
+    cat: "Python Activities",
+    q: "Which import in activities.py provides the @activity.defn decorator?",
+    opts: ["from temporalio.activity import defn","from temporalio import activity","from temporal import activity","from temporalio.worker import activity"],
     ans: 1,
-    exp: 'The correct import is "from temporalio import activity", then the decorator is used as @activity.defn.'
+    exp: "The correct import is \"from temporalio import activity\", then the decorator is used as @activity.defn.",
+    code: "from temporalio import activity\n\n@activity.defn\nasync def say_hello(name: str) -> str:",
+    file: "activities.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#develop-activities",
+    refLabel: "Python SDK \u2192 Activity Definition"
   },
   {
-    cat: 'Python Workflows',
-    q: 'In workflows.py, what class decorator registers HelloWorldWorkflow as a Temporal Workflow?',
-    opts: ['@workflow.register','@workflow.defn','@workflow.definition','@workflow.type'],
+    cat: "Python Workflows",
+    q: "In workflows.py, what class decorator registers HelloWorldWorkflow as a Temporal Workflow?",
+    opts: ["@workflow.register","@workflow.defn","@workflow.definition","@workflow.type"],
     ans: 1,
-    exp: '@workflow.defn is the class-level decorator that registers a Python class as a Temporal Workflow Definition.'
+    exp: "@workflow.defn is the class-level decorator that registers a Python class as a Temporal Workflow Definition.",
+    code: "@workflow.defn\nclass HelloWorldWorkflow:\n    @workflow.run\n    async def run(self, name: str) -> str:",
+    file: "workflows.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#develop-workflows",
+    refLabel: "Python SDK \u2192 Workflow Definition"
   },
   {
-    cat: 'Python Workflows',
-    q: 'What decorator marks the run() method as the Workflow entry point in HelloWorldWorkflow?',
-    opts: ['@workflow.main','@workflow.entry','@workflow.run','@workflow.execute'],
+    cat: "Python Workflows",
+    q: "What decorator marks the run() method as the Workflow entry point in HelloWorldWorkflow?",
+    opts: ["@workflow.main","@workflow.entry","@workflow.run","@workflow.execute"],
     ans: 2,
-    exp: '@workflow.run marks the single async method that Temporal calls when the workflow is started.'
+    exp: "@workflow.run marks the single async method that Temporal calls when the workflow is started.",
+    code: "@workflow.defn\nclass HelloWorldWorkflow:\n    @workflow.run            # \u2190 entry point\n    async def run(self, name: str) -> str:",
+    file: "workflows.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#develop-workflows",
+    refLabel: "Python SDK \u2192 Workflow Definition"
   },
   {
-    cat: 'Python Workflows',
-    q: 'In workflows.py, what is the start_to_close_timeout set to for the say_hello activity?',
-    opts: ['timedelta(seconds=5)','timedelta(seconds=10)','timedelta(seconds=30)','timedelta(minutes=1)'],
+    cat: "Python Workflows",
+    q: "In workflows.py, what is the start_to_close_timeout set to for the say_hello activity?",
+    opts: ["timedelta(seconds=5)","timedelta(seconds=10)","timedelta(seconds=30)","timedelta(minutes=1)"],
     ans: 1,
-    exp: 'The code sets start_to_close_timeout=timedelta(seconds=10), giving the activity 10 seconds per attempt.'
+    exp: "The code sets start_to_close_timeout=timedelta(seconds=10), giving the activity 10 seconds per attempt.",
+    code: "result = await workflow.execute_activity(\n    say_hello,\n    name,\n    start_to_close_timeout=timedelta(seconds=10),\n    retry_policy=RetryPolicy(maximum_attempts=3),\n)",
+    file: "workflows.py",
+    ref: "https://docs.temporal.io/develop/python/failure-detection#activity-timeouts",
+    refLabel: "Python SDK \u2192 Activity Timeouts"
   },
   {
-    cat: 'Python Workflows',
-    q: 'What is the maximum_attempts value in the RetryPolicy used in workflows.py?',
-    opts: ['1','2','3','5'],
+    cat: "Python Workflows",
+    q: "What is the maximum_attempts value in the RetryPolicy used in workflows.py?",
+    opts: ["1","2","3","5"],
     ans: 2,
-    exp: 'RetryPolicy(maximum_attempts=3) is configured, meaning the activity will be tried up to 3 times total.'
+    exp: "RetryPolicy(maximum_attempts=3) is configured, meaning the activity will be tried up to 3 times total.",
+    code: "retry_policy=RetryPolicy(maximum_attempts=3)",
+    file: "workflows.py",
+    ref: "https://docs.temporal.io/develop/python/failure-detection#activity-retry-policy",
+    refLabel: "Python SDK \u2192 Activity Retry Policy"
   },
   {
-    cat: 'Python Workflows',
-    q: 'Why does workflows.py use "with workflow.unsafe.imports_passed_through():" to import say_hello?',
-    opts: [
-      'To make the import faster',
-      'To bypass the workflow sandbox so non-deterministic modules can be imported safely',
-      'To enable type checking on the activity',
-      'To allow the activity to run in a separate process'
-    ],
+    cat: "Python Workflows",
+    q: "Why does workflows.py use \"with workflow.unsafe.imports_passed_through():\" to import say_hello?",
+    opts: ["To make the import faster","To bypass the workflow sandbox so non-deterministic modules can be imported safely","To enable type checking on the activity","To allow the activity to run in a separate process"],
     ans: 1,
-    exp: 'Temporal sandboxes workflow code for determinism. imports_passed_through() lets you import modules (like activity defs) without the sandbox intercepting them.'
+    exp: "Temporal sandboxes workflow code for determinism. imports_passed_through() lets you import modules (like activity defs) without the sandbox intercepting them.",
+    code: "with workflow.unsafe.imports_passed_through():\n    from activities import say_hello",
+    file: "workflows.py",
+    ref: "https://docs.temporal.io/develop/python/python-sdk-sandbox",
+    refLabel: "Python SDK \u2192 Sandbox & Passthrough Modules"
   },
   {
-    cat: 'Python Workflows',
-    q: 'Which function is called inside the workflow to schedule and await the say_hello activity?',
-    opts: ['workflow.start_activity()','workflow.call_activity()','workflow.execute_activity()','workflow.run_activity()'],
+    cat: "Python Workflows",
+    q: "Which function is called inside the workflow to schedule and await the say_hello activity?",
+    opts: ["workflow.start_activity()","workflow.call_activity()","workflow.execute_activity()","workflow.run_activity()"],
     ans: 2,
-    exp: 'workflow.execute_activity() schedules the activity and awaits its result within the workflow.'
+    exp: "workflow.execute_activity() schedules the activity and awaits its result within the workflow.",
+    code: "result = await workflow.execute_activity(\n    say_hello,\n    name,\n    start_to_close_timeout=timedelta(seconds=10),\n    retry_policy=RetryPolicy(maximum_attempts=3),\n)",
+    file: "workflows.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#activity-execution",
+    refLabel: "Python SDK \u2192 Activity Execution"
   },
   {
-    cat: 'Python Worker',
-    q: 'In worker.py, what async method connects to the Temporal server?',
-    opts: ['Client.open(host)','Client.connect(host)','Client.create(host)','Client.new(host)'],
+    cat: "Python Worker",
+    q: "In worker.py, what async method connects to the Temporal server?",
+    opts: ["Client.open(host)","Client.connect(host)","Client.create(host)","Client.new(host)"],
     ans: 1,
-    exp: 'Client.connect(host) is the async class method that establishes a gRPC connection to the Temporal server.'
+    exp: "Client.connect(host) is the async class method that establishes a gRPC connection to the Temporal server.",
+    code: "from temporalio.client import Client\n\nclient = await Client.connect(host)",
+    file: "worker.py",
+    ref: "https://docs.temporal.io/develop/python/temporal-client#connect-to-a-dev-cluster",
+    refLabel: "Python SDK \u2192 Connect to Temporal"
   },
   {
-    cat: 'Python Worker',
-    q: 'What is the default task queue name used by worker.py?',
-    opts: ['default-queue','temporal-queue','hello-world-queue','task-queue-1'],
+    cat: "Python Worker",
+    q: "What is the default task queue name used by worker.py?",
+    opts: ["default-queue","temporal-queue","hello-world-queue","task-queue-1"],
     ans: 2,
-    exp: 'The argparse default for --task-queue is "hello-world-queue", used by both the worker and the client.'
+    exp: "The argparse default for --task-queue is \"hello-world-queue\", used by both the worker and the client.",
+    code: "parser.add_argument(\n    \"--task-queue\",\n    default=\"hello-world-queue\",\n    help=\"Task queue name\"\n)",
+    file: "worker.py",
+    ref: "https://docs.temporal.io/task-queue/naming",
+    refLabel: "Temporal Docs \u2192 Task Queues & Naming"
   },
   {
-    cat: 'Python Worker',
-    q: 'In the Worker() constructor in worker.py, which parameter registers the workflow class?',
-    opts: ['workflow_types=','handlers=','workflows=','definitions='],
+    cat: "Python Worker",
+    q: "In the Worker() constructor in worker.py, which parameter registers the workflow class?",
+    opts: ["workflow_types=","handlers=","workflows=","definitions="],
     ans: 2,
-    exp: 'The Worker constructor accepts workflows=[HelloWorldWorkflow] to register which workflow classes this worker handles.'
+    exp: "The Worker constructor accepts workflows=[HelloWorldWorkflow] to register which workflow classes this worker handles.",
+    code: "worker = Worker(\n    client,\n    task_queue=task_queue,\n    workflows=[HelloWorldWorkflow],\n    activities=[say_hello],\n)",
+    file: "worker.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#run-a-dev-worker",
+    refLabel: "Python SDK \u2192 Run a Worker"
   },
   {
-    cat: 'Python Worker',
-    q: 'What does calling "await worker.run()" do in worker.py?',
-    opts: [
-      'Executes a single workflow then exits',
-      'Starts the polling loop, blocking indefinitely until cancelled',
-      'Sends a health check to the Temporal server',
-      'Registers the worker with the server and returns'
-    ],
+    cat: "Python Worker",
+    q: "What does calling \"await worker.run()\" do in worker.py?",
+    opts: ["Executes a single workflow then exits","Starts the polling loop, blocking indefinitely until cancelled","Sends a health check to the Temporal server","Registers the worker with the server and returns"],
     ans: 1,
-    exp: 'worker.run() starts an infinite polling loop on the task queue. It blocks until the process is cancelled (e.g., Ctrl+C).'
+    exp: "worker.run() starts an infinite polling loop on the task queue. It blocks until the process is cancelled (e.g., Ctrl+C).",
+    code: "print(\"Waiting for tasks... (Ctrl+C to stop)\")\nawait worker.run()",
+    file: "worker.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#run-a-dev-worker",
+    refLabel: "Python SDK \u2192 Run a Worker"
   },
   {
-    cat: 'Python Client',
-    q: 'In run_workflow.py, which method starts a workflow AND waits for its result?',
-    opts: ['client.start_workflow()','client.execute_workflow()','client.submit_workflow()','client.run_workflow()'],
+    cat: "Python Client",
+    q: "In run_workflow.py, which method starts a workflow AND waits for its result?",
+    opts: ["client.start_workflow()","client.execute_workflow()","client.submit_workflow()","client.run_workflow()"],
     ans: 1,
-    exp: 'client.execute_workflow() combines starting the workflow and blocking until the result is returned in a single call.'
+    exp: "client.execute_workflow() combines starting the workflow and blocking until the result is returned in a single call.",
+    code: "result = await client.execute_workflow(\n    HelloWorldWorkflow.run,\n    name,\n    id=f\"hello-{name}-workflow\",\n    task_queue=task_queue,\n)",
+    file: "run_workflow.py",
+    ref: "https://docs.temporal.io/develop/python/temporal-client#start-workflow-execution",
+    refLabel: "Python SDK \u2192 Start Workflow Execution"
   },
   {
-    cat: 'Python Client',
-    q: 'What workflow ID pattern does run_workflow.py use?',
-    opts: ['f"workflow-{name}"','f"hello-{name}-workflow"','f"run-{name}"','A random UUID'],
+    cat: "Python Client",
+    q: "What workflow ID pattern does run_workflow.py use?",
+    opts: ["f\"workflow-{name}\"","f\"hello-{name}-workflow\"","f\"run-{name}\"","A random UUID"],
     ans: 1,
-    exp: 'The code sets id=f"hello-{name}-workflow", creating IDs like "hello-World-workflow".'
+    exp: "The code sets id=f\"hello-{name}-workflow\", creating IDs like \"hello-World-workflow\".",
+    code: "id=f\"hello-{name}-workflow\"",
+    file: "run_workflow.py",
+    ref: "https://docs.temporal.io/develop/python/temporal-client#start-workflow-execution",
+    refLabel: "Python SDK \u2192 Workflow ID"
   },
   {
-    cat: 'Python Client',
-    q: 'What is the first positional argument passed to client.execute_workflow() in run_workflow.py?',
-    opts: ['HelloWorldWorkflow','HelloWorldWorkflow.run','say_hello','"HelloWorldWorkflow"'],
+    cat: "Python Client",
+    q: "What is the first positional argument passed to client.execute_workflow() in run_workflow.py?",
+    opts: ["HelloWorldWorkflow","HelloWorldWorkflow.run","say_hello","\"HelloWorldWorkflow\""],
     ans: 1,
-    exp: 'HelloWorldWorkflow.run is passed as the first argument — a reference to the workflow\'s @workflow.run method.'
+    exp: "HelloWorldWorkflow.run is passed as the first argument \u2014 a reference to the workflow's @workflow.run method.",
+    code: "result = await client.execute_workflow(\n    HelloWorldWorkflow.run,   # \u2190 first arg\n    name,\n    id=f\"hello-{name}-workflow\",\n    task_queue=task_queue,\n)",
+    file: "run_workflow.py",
+    ref: "https://docs.temporal.io/develop/python/temporal-client#start-workflow-execution",
+    refLabel: "Python SDK \u2192 Start Workflow Execution"
   },
   {
-    cat: 'Java Workflow',
-    q: 'What annotation marks the LongRunningWorkflow interface as a Temporal Workflow in Java?',
-    opts: ['@WorkflowDefinition','@WorkflowInterface','@TemporalWorkflow','@WorkflowType'],
+    cat: "Java Workflow",
+    q: "What annotation marks the LongRunningWorkflow interface as a Temporal Workflow in Java?",
+    opts: ["@WorkflowDefinition","@WorkflowInterface","@TemporalWorkflow","@WorkflowType"],
     ans: 1,
-    exp: '@WorkflowInterface is the Java SDK annotation that declares an interface as a Temporal Workflow type.'
+    exp: "@WorkflowInterface is the Java SDK annotation that declares an interface as a Temporal Workflow type.",
+    code: "@WorkflowInterface\npublic interface LongRunningWorkflow {\n    @WorkflowMethod\n    String run(Map<String, Object> payload);\n}",
+    file: "LongRunningWorkflow.java",
+    ref: "https://docs.temporal.io/develop/java/core-application#develop-workflows",
+    refLabel: "Java SDK \u2192 Workflow Definition"
   },
   {
-    cat: 'Java Workflow',
-    q: 'What annotation marks the run() method in LongRunningWorkflow.java?',
-    opts: ['@WorkflowEntry','@WorkflowMethod','@WorkflowRun','@WorkflowMain'],
+    cat: "Java Workflow",
+    q: "What annotation marks the run() method in LongRunningWorkflow.java?",
+    opts: ["@WorkflowEntry","@WorkflowMethod","@WorkflowRun","@WorkflowMain"],
     ans: 1,
-    exp: '@WorkflowMethod marks the single entry-point method of the workflow interface. Equivalent to Python\'s @workflow.run.'
+    exp: "@WorkflowMethod marks the single entry-point method of the workflow interface. Equivalent to Python's @workflow.run.",
+    code: "@WorkflowInterface\npublic interface LongRunningWorkflow {\n    @WorkflowMethod          // \u2190 entry point\n    String run(Map<String, Object> payload);\n}",
+    file: "LongRunningWorkflow.java",
+    ref: "https://docs.temporal.io/develop/java/core-application#develop-workflows",
+    refLabel: "Java SDK \u2192 Workflow Definition"
   },
   {
-    cat: 'Java Workflow',
-    q: 'What is the return type of the run() method in LongRunningWorkflow.java?',
-    opts: ['void','Map<String, Object>','String','WorkflowResult'],
+    cat: "Java Workflow",
+    q: "What is the return type of the run() method in LongRunningWorkflow.java?",
+    opts: ["void","Map<String, Object>","String","WorkflowResult"],
     ans: 2,
-    exp: 'The run() method returns String — the final notification message from the workflow.'
+    exp: "The run() method returns String \u2014 the final notification message from the workflow.",
+    code: "@WorkflowMethod\nString run(Map<String, Object> payload);\n//     \u2191 return type is String",
+    file: "LongRunningWorkflow.java",
+    ref: "https://docs.temporal.io/develop/java/core-application#develop-workflows",
+    refLabel: "Java SDK \u2192 Workflow Return Values"
   },
   {
-    cat: 'Java CLI Client',
-    q: 'In LongRunningCLI.java, what factory method creates the gRPC connection to Temporal?',
-    opts: [
-      'WorkflowClient.connect()',
-      'WorkflowServiceStubs.newServiceStubs()',
-      'TemporalClient.create()',
-      'WorkflowServiceStubs.newLocalServiceStubs()'
-    ],
+    cat: "Java CLI Client",
+    q: "In LongRunningCLI.java, what factory method creates the gRPC connection to Temporal?",
+    opts: ["WorkflowClient.connect()","WorkflowServiceStubs.newServiceStubs()","TemporalClient.create()","WorkflowServiceStubs.newLocalServiceStubs()"],
     ans: 1,
-    exp: 'WorkflowServiceStubs.newServiceStubs(options) opens a gRPC channel with the configured target address.'
+    exp: "WorkflowServiceStubs.newServiceStubs(options) opens a gRPC channel with the configured target address.",
+    code: "var service = WorkflowServiceStubs.newServiceStubs(\n    WorkflowServiceStubsOptions.newBuilder()\n        .setTarget(config.host())\n        .build()\n);",
+    file: "LongRunningCLI.java",
+    ref: "https://docs.temporal.io/develop/java/temporal-client#connect-to-a-dev-cluster",
+    refLabel: "Java SDK \u2192 Connect to Temporal"
   },
   {
-    cat: 'Java CLI Client',
-    q: 'How does the "start-async" command in LongRunningCLI.java start a workflow without blocking?',
-    opts: [
-      'wf.runAsync(payload)',
-      'client.startWorkflow(wf, payload)',
-      'WorkflowClient.start(wf::run, payload)',
-      'wf.run(payload) with a timeout'
-    ],
+    cat: "Java CLI Client",
+    q: "How does the \"start-async\" command in LongRunningCLI.java start a workflow without blocking?",
+    opts: ["wf.runAsync(payload)","client.startWorkflow(wf, payload)","WorkflowClient.start(wf::run, payload)","wf.run(payload) with a timeout"],
     ans: 2,
-    exp: 'WorkflowClient.start(wf::run, payload) starts the workflow asynchronously — it returns immediately without waiting for the result.'
+    exp: "WorkflowClient.start(wf::run, payload) starts the workflow asynchronously \u2014 it returns immediately without waiting for the result.",
+    code: "case \"start-async\" -> {\n    // ...\n    WorkflowClient.start(wf::run, payload);\n    System.out.printf(\"Workflow started (async)!%n\");\n}",
+    file: "LongRunningCLI.java",
+    ref: "https://docs.temporal.io/develop/java/temporal-client#start-workflow-execution",
+    refLabel: "Java SDK \u2192 Start Workflow Asynchronously"
   },
   {
-    cat: 'Java CLI Client',
-    q: 'What Java class does LongRunningCLI use to format Temporal timestamps for display?',
-    opts: ['java.util.Date','java.time.LocalDateTime','java.time.Instant','java.sql.Timestamp'],
+    cat: "Java CLI Client",
+    q: "What Java class does LongRunningCLI use to format Temporal timestamps for display?",
+    opts: ["java.util.Date","java.time.LocalDateTime","java.time.Instant","java.sql.Timestamp"],
     ans: 2,
-    exp: 'Instant.ofEpochMilli(ms) converts the Unix epoch milliseconds from the protobuf response into a human-readable ISO-8601 timestamp.'
+    exp: "Instant.ofEpochMilli(ms) converts the Unix epoch milliseconds from the protobuf response into a human-readable ISO-8601 timestamp.",
+    code: "var startMs = desc.getWorkflowExecutionInfo()\n    .getStartTime().getSeconds() * 1000;\nSystem.out.printf(\"Started at : %s%n\",\n    Instant.ofEpochMilli(startMs));",
+    file: "LongRunningCLI.java",
+    ref: "https://docs.temporal.io/develop/java/temporal-client#get-workflow-results",
+    refLabel: "Java SDK \u2192 Describe Workflow Execution"
   },
   {
-    cat: 'Java CLI Client',
-    q: 'How does the "result" command in LongRunningCLI.java attach to an existing workflow?',
-    opts: [
-      'client.newWorkflowStub(id)',
-      'client.newUntypedWorkflowStub(id, Optional.empty(), Optional.empty())',
-      'client.getWorkflowHandle(id)',
-      'WorkflowStub.connect(id)'
-    ],
+    cat: "Java CLI Client",
+    q: "How does the \"result\" command in LongRunningCLI.java attach to an existing workflow?",
+    opts: ["client.newWorkflowStub(id)","client.newUntypedWorkflowStub(id, Optional.empty(), Optional.empty())","client.getWorkflowHandle(id)","WorkflowStub.connect(id)"],
     ans: 1,
-    exp: 'An untyped workflow stub is created with newUntypedWorkflowStub(), allowing the client to attach to any existing workflow by ID without needing the interface class.'
+    exp: "An untyped workflow stub is created with newUntypedWorkflowStub(), allowing the client to attach to any existing workflow by ID without needing the interface class.",
+    code: "WorkflowStub stub = client.newUntypedWorkflowStub(\n    cli.workflowId(),\n    Optional.empty(),\n    Optional.empty()\n);\nvar result = stub.getResult(String.class);",
+    file: "LongRunningCLI.java",
+    ref: "https://docs.temporal.io/develop/java/temporal-client#get-workflow-results",
+    refLabel: "Java SDK \u2192 Get Workflow Results"
   },
   {
-    cat: 'General Concepts',
-    q: 'What is the default gRPC port for a local Temporal dev server, used by both the Python and Java code?',
-    opts: ['4317','7233','8080','8233'],
+    cat: "General Concepts",
+    q: "What is the default gRPC port for a local Temporal dev server, used by both the Python and Java code?",
+    opts: ["4317","7233","8080","8233"],
     ans: 1,
-    exp: 'Port 7233 is the standard Temporal gRPC frontend port. Both the Python client (localhost:7233) and the Java CLI (TEMPORAL_PORT=7233) default to it.'
+    exp: "Port 7233 is the standard Temporal gRPC frontend port. Both the Python client (localhost:7233) and the Java CLI (TEMPORAL_PORT=7233) default to it.",
+    code: "# Python (worker.py)\nparser.add_argument(\"--host\", default=\"localhost:7233\")\n\n// Java (LongRunningCLI.java)\nvar envPort = Optional.ofNullable(\n    System.getenv(\"TEMPORAL_PORT\"))\n    .orElse(\"7233\");",
+    file: "worker.py \u00b7 LongRunningCLI.java",
+    ref: "https://docs.temporal.io/develop/python/temporal-client#connect-to-a-dev-cluster",
+    refLabel: "Temporal Docs \u2192 Connect to Temporal"
   },
   {
-    cat: 'General Concepts',
-    q: 'In this project, which language runs the Worker that executes workflows and activities?',
-    opts: ['Java','Python','Both equally','Go'],
+    cat: "General Concepts",
+    q: "In this project, which language runs the Worker that executes workflows and activities?",
+    opts: ["Java","Python","Both equally","Go"],
     ans: 1,
-    exp: 'The Python worker (worker.py) registers HelloWorldWorkflow and say_hello, then polls the task queue. The Java CLI is only a client that starts/queries workflows.'
+    exp: "The Python worker (worker.py) registers HelloWorldWorkflow and say_hello, then polls the task queue. The Java CLI is only a client that starts/queries workflows.",
+    code: "# worker.py \u2014 the actual Temporal Worker\nworker = Worker(\n    client,\n    task_queue=task_queue,\n    workflows=[HelloWorldWorkflow],\n    activities=[say_hello],\n)\nawait worker.run()",
+    file: "worker.py",
+    ref: "https://docs.temporal.io/develop/python/core-application#run-a-dev-worker",
+    refLabel: "Python SDK \u2192 Run a Worker"
   }
 ];
 
@@ -1312,7 +1387,11 @@ function selectAnswer(el, origIdx) {
     fb.innerHTML = `✅ Correct! <strong>+${pts} points</strong> — ${qobj.exp}`;
   } else {
     fb.className = 'rounded-xl p-4 mb-4 text-sm font-500 bg-red-50 border border-red-200 text-coral';
-    fb.innerHTML = `❌ Incorrect. Correct answer: <strong>${qobj.opts[qobj.ans]}</strong><br/><span class="text-slate-600">${qobj.exp}</span>`;
+    const fbCode = qobj.code
+      ? `<pre style="background:#1e1b16;color:#e8d5b0;border-radius:8px;padding:.6rem 1rem;margin-top:.5rem;font-size:.72rem;line-height:1.6;overflow-x:auto;white-space:pre;font-family:'DM Mono',monospace">${qobj.code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>` : '';
+    const fbRef = qobj.ref
+      ? `<a href="${qobj.ref}" target="_blank" class="ref-link" style="margin-top:.4rem;display:inline-block;font-size:.78rem">📖 ${qobj.refLabel || 'Docs'} ↗</a>` : '';
+    fb.innerHTML = `❌ Incorrect. Correct answer: <strong>${qobj.opts[qobj.ans]}</strong><br/><span class="text-slate-600">${qobj.exp}</span>${qobj.file ? '<br/><span class="font-mono text-xs" style="color:#78716c">📄 ' + qobj.file + '</span>' : ''}${fbCode}${fbRef}`;
   }
 
   document.getElementById('live-score').textContent = score;
@@ -1332,7 +1411,11 @@ function autoTimeout() {
   const fb = document.getElementById('q-feedback');
   fb.classList.remove('hidden');
   fb.className = 'rounded-xl p-4 mb-4 text-sm font-500 bg-amber-50 border border-amber-200';
-  fb.innerHTML = `⏰ Time's up! Correct answer: <strong>${qobj.opts[qobj.ans]}</strong><br/><span class="text-slate-600">${qobj.exp}</span>`;
+  const toCode = qobj.code
+    ? `<pre style="background:#1e1b16;color:#e8d5b0;border-radius:8px;padding:.6rem 1rem;margin-top:.5rem;font-size:.72rem;line-height:1.6;overflow-x:auto;white-space:pre;font-family:'DM Mono',monospace">${qobj.code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>` : '';
+  const toRef = qobj.ref
+    ? `<a href="${qobj.ref}" target="_blank" class="ref-link" style="margin-top:.4rem;display:inline-block;font-size:.78rem">📖 ${qobj.refLabel || 'Docs'} ↗</a>` : '';
+  fb.innerHTML = `⏰ Time's up! Correct answer: <strong>${qobj.opts[qobj.ans]}</strong><br/><span class="text-slate-600">${qobj.exp}</span>${qobj.file ? '<br/><span class="font-mono text-xs" style="color:#78716c">📄 ' + qobj.file + '</span>' : ''}${toCode}${toRef}`;
 
   document.getElementById('next-btn').classList.remove('hidden');
 }
@@ -1375,15 +1458,36 @@ function showResults() {
     const ok   = a.chosen === a.correct;
     const card = document.createElement('div');
     card.className = `rounded-xl border p-4 text-sm ${ok ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`;
+
+    // Build code snippet + reference block for wrong answers
+    let refBlock = '';
+    if (!ok) {
+      const codeHtml = qobj.code
+        ? `<div style="margin-top:.5rem">
+             <span class="font-mono text-xs text-slate2">📄 ${qobj.file || 'Source'}</span>
+             <pre style="background:#1e1b16;color:#e8d5b0;border-radius:8px;padding:.7rem 1rem;margin-top:.25rem;font-size:.72rem;line-height:1.6;overflow-x:auto;white-space:pre;font-family:'DM Mono',monospace">${qobj.code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+           </div>`
+        : '';
+      const linkHtml = qobj.ref
+        ? `<a href="${qobj.ref}" target="_blank" style="display:inline-flex;align-items:center;gap:.3rem;color:#0369a1;text-decoration:underline;text-underline-offset:3px;font-size:.78rem;margin-top:.4rem;transition:color .15s"
+              onmouseover="this.style.color='#d97706'" onmouseout="this.style.color='#0369a1'">
+             📖 ${qobj.refLabel || 'Temporal Docs'} ↗
+           </a>`
+        : '';
+      refBlock = codeHtml + linkHtml;
+    }
+
     card.innerHTML = `
       <div class="flex items-start justify-between gap-3">
-        <div>
+        <div style="min-width:0;flex:1">
           <span class="font-mono text-xs text-slate2">Q${i+1} · ${qobj.cat}</span>
           <p class="font-600 mt-1 mb-1">${qobj.q}</p>
           ${ok
             ? `<p class="text-forest text-xs">✅ ${qobj.opts[qobj.ans]} <span class="text-slate2">(+${a.pts} pts, ${a.timeUsed}s)</span></p>`
             : `<p class="text-coral text-xs">❌ You chose: ${a.chosen >= 0 ? qobj.opts[a.chosen] : 'Timed out'}</p>
-               <p class="text-forest text-xs">Correct: ${qobj.opts[a.correct]}</p>`
+               <p class="text-forest text-xs">Correct: ${qobj.opts[a.correct]}</p>
+               <p class="text-slate-600 text-xs mt-1">${qobj.exp}</p>
+               ${refBlock}`
           }
         </div>
         <span class="font-display font-700 text-base flex-shrink-0 ${ok ? 'text-forest' : 'text-coral'}">
