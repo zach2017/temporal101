@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  # ── Temporal Server (dev/local) ─────────────
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports:
+      - "7233:7233"
+    environment:
+      - DB=sqlite
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    volumes:
+      - temporal-data:/etc/temporal/config/dynamicconfig
+
+  # ── Temporal Web UI ─────────────────────────
+  temporal-ui:
+    image: temporalio/ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+    depends_on:
+      - temporal
+
+  # ── Java Workers ────────────────────────────
+  workers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - TEMPORAL_HOST=temporal
+      - TEMPORAL_PORT=7233
+      - TEMPORAL_NAMESPACE=default
+      - WORKER_LOG_LEVEL=INFO
+      - WORKER_MAX_CONCURRENT_ACTIVITIES=10
+      - WORKER_MAX_CONCURRENT_WORKFLOWS=10
+    depends_on:
+      - temporal
+    restart: unless-stopped
+
+volumes:
+  temporal-data:

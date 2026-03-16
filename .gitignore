@@ -144,3 +144,4 @@ temporal-doc-processor/java-worker/bin/
 temporal-doc-processor/java-worker/.gradle/
 temporal-workers-java/.gradle/8.7/
 temporal-workers-java/.gradle/
+java-worker-client/target/

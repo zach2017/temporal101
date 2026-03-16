@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS}  %-5level  %-40logger{36}  %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Worker log level (overridable via WORKER_LOG_LEVEL env var handled in code) -->
+    <root level="${WORKER_LOG_LEVEL:-INFO}">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <!-- Keep Temporal SDK internals quieter -->
+    <logger name="io.temporal" level="WARN"/>
+    <logger name="io.grpc" level="WARN"/>
+
+    <!-- Our workers at configured level -->
+    <logger name="com.temporal.workers" level="${WORKER_LOG_LEVEL:-INFO}"/>
+</configuration>

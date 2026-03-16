@@ -1,0 +1,52 @@
+#!/bin/sh
+# ─────────────────────────────────────────────
+#  Maven Wrapper — auto-downloads Maven 3.9.9
+# ─────────────────────────────────────────────
+#  Maven 3.9.9 includes Jansi 2.4.1 which is
+#  compatible with JDK 21+. Older Maven versions
+#  crash with NoSuchMethodError: AnsiConsole.out()
+# ─────────────────────────────────────────────
+
+set -e
+
+MAVEN_VERSION="3.9.9"
+MAVEN_HOME="${HOME}/.m2/wrapper/apache-maven-${MAVEN_VERSION}"
+MAVEN_BIN="${MAVEN_HOME}/bin/mvn"
+MAVEN_URL="https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/${MAVEN_VERSION}/apache-maven-${MAVEN_VERSION}-bin.tar.gz"
+
+# ── Try system Maven if it's 3.9.6+ ─────────
+if command -v mvn >/dev/null 2>&1; then
+    SYS_VER=$(mvn --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    SYS_MAJOR=$(echo "${SYS_VER}" | cut -d. -f1)
+    SYS_MINOR=$(echo "${SYS_VER}" | cut -d. -f2)
+    SYS_PATCH=$(echo "${SYS_VER}" | cut -d. -f3)
+
+    # Maven 3.9.6+ has the Jansi fix
+    if [ "${SYS_MAJOR:-0}" -ge 4 ] 2>/dev/null || \
+       { [ "${SYS_MAJOR:-0}" -eq 3 ] && [ "${SYS_MINOR:-0}" -ge 10 ]; } 2>/dev/null || \
+       { [ "${SYS_MAJOR:-0}" -eq 3 ] && [ "${SYS_MINOR:-0}" -eq 9 ] && [ "${SYS_PATCH:-0}" -ge 6 ]; } 2>/dev/null; then
+        exec mvn "$@"
+    else
+        echo "⚠  System Maven ${SYS_VER} has a Jansi bug with JDK 21+."
+        echo "   Using Maven ${MAVEN_VERSION} instead."
+    fi
+fi
+
+# ── Download Maven 3.9.9 if not cached ──────
+if [ ! -f "${MAVEN_BIN}" ]; then
+    echo "Downloading Maven ${MAVEN_VERSION} …"
+    mkdir -p "${MAVEN_HOME}"
+
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "${MAVEN_URL}" | tar -xz --strip-components=1 -C "${MAVEN_HOME}"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO- "${MAVEN_URL}" | tar -xz --strip-components=1 -C "${MAVEN_HOME}"
+    else
+        echo "❌ Neither curl nor wget found. Install one, or install Maven 3.9.9+ manually."
+        exit 1
+    fi
+
+    echo "✅ Maven ${MAVEN_VERSION} installed to ${MAVEN_HOME}"
+fi
+
+exec "${MAVEN_BIN}" "$@"
