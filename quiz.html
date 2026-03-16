@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>DocPulse — Temporal Worker Tutorial & Certification</title>
+<title>Temporal Hello World — Python & Java Workers & Clients Quiz</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -188,7 +188,7 @@ tailwind.config = {
           <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
         </svg>
       </div>
-      <span class="font-display font-600 text-lg">DocPulse <span class="text-amber">Temporal</span></span>
+      <span class="font-display font-600 text-lg">Hello World <span class="text-amber">Temporal</span></span>
     </div>
     <nav class="flex items-center gap-1 flex-wrap" id="main-nav">
       <button onclick="showSection('overview')"   class="nav-pill active   px-4 py-1.5 text-sm font-500">Overview</button>
@@ -203,13 +203,13 @@ tailwind.config = {
 
 <!-- ══ HERO ══════════════════════════════════════════════════════════════════ -->
 <div id="hero-bar" class="bg-ink text-canvas px-6 py-10 text-center">
-  <p class="font-mono text-amber text-xs uppercase tracking-widest mb-2">Spring Boot 3.5 + Temporal SDK 1.25</p>
+  <p class="font-mono text-amber text-xs uppercase tracking-widest mb-2">Python temporalio SDK + Java Temporal SDK</p>
   <h1 class="font-display text-4xl md:text-5xl font-700 mb-3 leading-tight">
     Document Processing<br/>with <em class="not-italic text-amber">Temporal Workers</em>
   </h1>
   <p class="text-canvas/70 text-base max-w-xl mx-auto mb-5">
-    A complete guide to building durable, fault-tolerant document pipelines —
-    from local dev server to production-grade workflow orchestration.
+    A quiz covering the Hello World demo — Python workflows, activities, workers, clients,
+    and the Java CLI client for long-running Temporal workflows.
   </p>
   <div class="flex items-center justify-center gap-3 flex-wrap">
     <button onclick="showSection('setup')" class="bg-amber text-white px-5 py-2.5 rounded-full font-600 text-sm hover:bg-yellow-600 transition-colors">
@@ -752,8 +752,8 @@ factory.start();</div>
 
   <!-- Quiz intro screen -->
   <div id="quiz-intro">
-    <h2 class="font-display text-3xl font-700 mb-2">🎓 Temporal Certification Quiz</h2>
-    <p class="text-slate2 mb-6 max-w-2xl">25 questions covering Temporal concepts, worker configuration, activity options, and DocPulse architecture. Score 75% or higher to earn your certificate.</p>
+    <h2 class="font-display text-3xl font-700 mb-2">🎓 Temporal Hello World Quiz</h2>
+    <p class="text-slate2 mb-6 max-w-2xl">25 questions covering the Python and Java Hello World demo — activities, workflows, workers, clients, and the CLI. Score 75% or higher to earn your certificate.</p>
 
     <div class="grid sm:grid-cols-3 gap-4 mb-8">
       <div class="bg-white rounded-xl border border-warm p-5 text-center">
@@ -884,7 +884,7 @@ factory.start();</div>
 
 <!-- ══ FOOTER ════════════════════════════════════════════════════════════════ -->
 <footer class="border-t border-warm mt-16 py-8 text-center text-sm text-slate2">
-  <p>DocPulse Tutorial — Spring Boot 3.5 + Temporal SDK 1.25</p>
+  <p>Temporal Hello World — Python &amp; Java Workers &amp; Clients Tutorial</p>
   <div class="flex justify-center gap-4 mt-2 flex-wrap">
     <a href="https://docs.temporal.io" target="_blank" class="ref-link">docs.temporal.io ↗</a>
     <a href="https://github.com/temporalio/sdk-java" target="_blank" class="ref-link">temporal-sdk-java ↗</a>
@@ -899,12 +899,12 @@ factory.start();</div>
     <div class="p-10 text-center">
       <div class="text-5xl mb-3">🏆</div>
       <p class="font-mono text-xs text-amber uppercase tracking-widest mb-2">Certificate of Achievement</p>
-      <h2 class="font-display text-3xl font-700 mb-1">Temporal Worker</h2>
+      <h2 class="font-display text-3xl font-700 mb-1">Temporal Hello World</h2>
       <h2 class="font-display text-3xl font-700 text-amber mb-4">Certification</h2>
       <p class="text-slate2 text-sm mb-6">This certifies that</p>
       <p id="cert-name" class="font-display text-2xl font-700 border-b-2 border-ink pb-1 mb-6 inline-block px-8"></p>
       <p class="text-slate2 text-sm mb-2">has successfully completed the</p>
-      <p class="font-600 mb-4">DocPulse Temporal Worker Tutorial &amp; Quiz</p>
+      <p class="font-600 mb-4">Temporal Hello World — Python &amp; Java Workers &amp; Clients Quiz</p>
       <div class="flex justify-center gap-8 mb-6 text-sm">
         <div class="text-center">
           <div id="cert-score" class="font-display text-2xl font-700 text-amber"></div>
@@ -921,7 +921,7 @@ factory.start();</div>
       </div>
       <div class="flex items-center justify-center gap-2 mb-6">
         <div class="h-px flex-1 bg-warm"></div>
-        <span class="font-mono text-xs text-slate2">Spring Boot 3.5 · Temporal SDK 1.25 · DOCUMENT_PROCESSING_TASK_QUEUE</span>
+        <span class="font-mono text-xs text-slate2">Python temporalio SDK · Java Temporal SDK · hello-world-queue · long-running-queue</span>
         <div class="h-px flex-1 bg-warm"></div>
       </div>
       <div class="flex gap-3 justify-center">
@@ -953,246 +953,211 @@ function showSection(id) {
 ═══════════════════════════════════════════ */
 const QUESTIONS = [
   {
-    cat: 'Core Concepts',
-    q: 'What annotation marks a Java class as a Temporal Workflow interface?',
+    cat: 'Python Activities',
+    q: 'In activities.py, what decorator registers a function as a Temporal Activity?',
+    opts: ['@activity.method','@activity.defn','@activity.register','@activity.task'],
+    ans: 1,
+    exp: '@activity.defn from the temporalio SDK registers an async or sync function as a Temporal Activity Definition.'
+  },
+  {
+    cat: 'Python Activities',
+    q: 'What does the say_hello activity in activities.py return when called with "World"?',
+    opts: ['"Hello, World"','"Hello, World!"','"world"','"Greetings, World!"'],
+    ans: 1,
+    exp: 'The activity returns an f-string: f"Hello, {name}!" — so say_hello("World") returns "Hello, World!".'
+  },
+  {
+    cat: 'Python Activities',
+    q: 'Which import in activities.py provides the @activity.defn decorator?',
+    opts: ['from temporalio.activity import defn','from temporalio import activity','from temporal import activity','from temporalio.worker import activity'],
+    ans: 1,
+    exp: 'The correct import is "from temporalio import activity", then the decorator is used as @activity.defn.'
+  },
+  {
+    cat: 'Python Workflows',
+    q: 'In workflows.py, what class decorator registers HelloWorldWorkflow as a Temporal Workflow?',
+    opts: ['@workflow.register','@workflow.defn','@workflow.definition','@workflow.type'],
+    ans: 1,
+    exp: '@workflow.defn is the class-level decorator that registers a Python class as a Temporal Workflow Definition.'
+  },
+  {
+    cat: 'Python Workflows',
+    q: 'What decorator marks the run() method as the Workflow entry point in HelloWorldWorkflow?',
+    opts: ['@workflow.main','@workflow.entry','@workflow.run','@workflow.execute'],
+    ans: 2,
+    exp: '@workflow.run marks the single async method that Temporal calls when the workflow is started.'
+  },
+  {
+    cat: 'Python Workflows',
+    q: 'In workflows.py, what is the start_to_close_timeout set to for the say_hello activity?',
+    opts: ['timedelta(seconds=5)','timedelta(seconds=10)','timedelta(seconds=30)','timedelta(minutes=1)'],
+    ans: 1,
+    exp: 'The code sets start_to_close_timeout=timedelta(seconds=10), giving the activity 10 seconds per attempt.'
+  },
+  {
+    cat: 'Python Workflows',
+    q: 'What is the maximum_attempts value in the RetryPolicy used in workflows.py?',
+    opts: ['1','2','3','5'],
+    ans: 2,
+    exp: 'RetryPolicy(maximum_attempts=3) is configured, meaning the activity will be tried up to 3 times total.'
+  },
+  {
+    cat: 'Python Workflows',
+    q: 'Why does workflows.py use "with workflow.unsafe.imports_passed_through():" to import say_hello?',
+    opts: [
+      'To make the import faster',
+      'To bypass the workflow sandbox so non-deterministic modules can be imported safely',
+      'To enable type checking on the activity',
+      'To allow the activity to run in a separate process'
+    ],
+    ans: 1,
+    exp: 'Temporal sandboxes workflow code for determinism. imports_passed_through() lets you import modules (like activity defs) without the sandbox intercepting them.'
+  },
+  {
+    cat: 'Python Workflows',
+    q: 'Which function is called inside the workflow to schedule and await the say_hello activity?',
+    opts: ['workflow.start_activity()','workflow.call_activity()','workflow.execute_activity()','workflow.run_activity()'],
+    ans: 2,
+    exp: 'workflow.execute_activity() schedules the activity and awaits its result within the workflow.'
+  },
+  {
+    cat: 'Python Worker',
+    q: 'In worker.py, what async method connects to the Temporal server?',
+    opts: ['Client.open(host)','Client.connect(host)','Client.create(host)','Client.new(host)'],
+    ans: 1,
+    exp: 'Client.connect(host) is the async class method that establishes a gRPC connection to the Temporal server.'
+  },
+  {
+    cat: 'Python Worker',
+    q: 'What is the default task queue name used by worker.py?',
+    opts: ['default-queue','temporal-queue','hello-world-queue','task-queue-1'],
+    ans: 2,
+    exp: 'The argparse default for --task-queue is "hello-world-queue", used by both the worker and the client.'
+  },
+  {
+    cat: 'Python Worker',
+    q: 'In the Worker() constructor in worker.py, which parameter registers the workflow class?',
+    opts: ['workflow_types=','handlers=','workflows=','definitions='],
+    ans: 2,
+    exp: 'The Worker constructor accepts workflows=[HelloWorldWorkflow] to register which workflow classes this worker handles.'
+  },
+  {
+    cat: 'Python Worker',
+    q: 'What does calling "await worker.run()" do in worker.py?',
+    opts: [
+      'Executes a single workflow then exits',
+      'Starts the polling loop, blocking indefinitely until cancelled',
+      'Sends a health check to the Temporal server',
+      'Registers the worker with the server and returns'
+    ],
+    ans: 1,
+    exp: 'worker.run() starts an infinite polling loop on the task queue. It blocks until the process is cancelled (e.g., Ctrl+C).'
+  },
+  {
+    cat: 'Python Client',
+    q: 'In run_workflow.py, which method starts a workflow AND waits for its result?',
+    opts: ['client.start_workflow()','client.execute_workflow()','client.submit_workflow()','client.run_workflow()'],
+    ans: 1,
+    exp: 'client.execute_workflow() combines starting the workflow and blocking until the result is returned in a single call.'
+  },
+  {
+    cat: 'Python Client',
+    q: 'What workflow ID pattern does run_workflow.py use?',
+    opts: ['f"workflow-{name}"','f"hello-{name}-workflow"','f"run-{name}"','A random UUID'],
+    ans: 1,
+    exp: 'The code sets id=f"hello-{name}-workflow", creating IDs like "hello-World-workflow".'
+  },
+  {
+    cat: 'Python Client',
+    q: 'What is the first positional argument passed to client.execute_workflow() in run_workflow.py?',
+    opts: ['HelloWorldWorkflow','HelloWorldWorkflow.run','say_hello','"HelloWorldWorkflow"'],
+    ans: 1,
+    exp: 'HelloWorldWorkflow.run is passed as the first argument — a reference to the workflow\'s @workflow.run method.'
+  },
+  {
+    cat: 'Java Workflow',
+    q: 'What annotation marks the LongRunningWorkflow interface as a Temporal Workflow in Java?',
     opts: ['@WorkflowDefinition','@WorkflowInterface','@TemporalWorkflow','@WorkflowType'],
     ans: 1,
-    exp: '@WorkflowInterface is the correct Temporal SDK annotation for declaring a workflow interface.'
+    exp: '@WorkflowInterface is the Java SDK annotation that declares an interface as a Temporal Workflow type.'
   },
   {
-    cat: 'Core Concepts',
-    q: 'What annotation marks a Java class as a Temporal Activity interface?',
-    opts: ['@ActivityDefinition','@ActivityInterface','@TemporalActivity','@ActivityType'],
+    cat: 'Java Workflow',
+    q: 'What annotation marks the run() method in LongRunningWorkflow.java?',
+    opts: ['@WorkflowEntry','@WorkflowMethod','@WorkflowRun','@WorkflowMain'],
     ans: 1,
-    exp: '@ActivityInterface declares an activity interface in the Temporal Java SDK.'
+    exp: '@WorkflowMethod marks the single entry-point method of the workflow interface. Equivalent to Python\'s @workflow.run.'
   },
   {
-    cat: 'Determinism',
-    q: 'Which method MUST you use instead of System.currentTimeMillis() inside a Workflow?',
-    opts: ['Clock.systemUTC().millis()','Instant.now().toEpochMilli()','Workflow.currentTimeMillis()','WorkflowClock.millis()'],
+    cat: 'Java Workflow',
+    q: 'What is the return type of the run() method in LongRunningWorkflow.java?',
+    opts: ['void','Map<String, Object>','String','WorkflowResult'],
     ans: 2,
-    exp: 'Workflow.currentTimeMillis() is the deterministic replacement. System.currentTimeMillis() would break event-history replay.'
+    exp: 'The run() method returns String — the final notification message from the workflow.'
   },
   {
-    cat: 'Determinism',
-    q: 'Why must Workflow code be deterministic?',
+    cat: 'Java CLI Client',
+    q: 'In LongRunningCLI.java, what factory method creates the gRPC connection to Temporal?',
     opts: [
-      'To improve performance',
-      'So that replaying the event history always reconstructs the same execution path',
-      'Because the Temporal server enforces it at runtime',
-      'To avoid thread-safety issues'
+      'WorkflowClient.connect()',
+      'WorkflowServiceStubs.newServiceStubs()',
+      'TemporalClient.create()',
+      'WorkflowServiceStubs.newLocalServiceStubs()'
     ],
     ans: 1,
-    exp: 'Temporal replays event history to reconstruct workflow state after crashes. Non-determinism causes divergence.'
+    exp: 'WorkflowServiceStubs.newServiceStubs(options) opens a gRPC channel with the configured target address.'
   },
   {
-    cat: 'Determinism',
-    q: 'Which of the following is SAFE to call directly inside a Workflow implementation?',
-    opts: ['Thread.sleep(1000)','new Random().nextInt()','Workflow.sleep(Duration.ofSeconds(1))','System.getenv("DB_URL")'],
-    ans: 2,
-    exp: 'Workflow.sleep() is the deterministic sleep. Thread.sleep() and non-deterministic APIs must only appear in Activities.'
-  },
-  {
-    cat: 'Worker Setup',
-    q: 'What Spring Boot property enables auto-discovery of @WorkflowImpl and @ActivityImpl beans?',
+    cat: 'Java CLI Client',
+    q: 'How does the "start-async" command in LongRunningCLI.java start a workflow without blocking?',
     opts: [
-      'spring.temporal.worker.scan=true',
-      'spring.temporal.workers-auto-discovery.packages=com.example',
-      'spring.temporal.auto-register=true',
-      'temporal.worker.packages=com.example'
-    ],
-    ans: 1,
-    exp: 'spring.temporal.workers-auto-discovery.packages tells the autoconfigure starter which packages to scan for @WorkflowImpl / @ActivityImpl beans.'
-  },
-  {
-    cat: 'Worker Setup',
-    q: 'What is the default gRPC port for a local Temporal dev server?',
-    opts: ['4317','7233','8080','9090'],
-    ans: 1,
-    exp: 'The Temporal server listens for gRPC connections on port 7233 by default.'
-  },
-  {
-    cat: 'Worker Setup',
-    q: 'What CLI command starts a local Temporal development server?',
-    opts: [
-      'temporal start --dev',
-      'temporal server start-dev',
-      'temporal run local',
-      'temporal dev-server'
-    ],
-    ans: 1,
-    exp: '"temporal server start-dev" starts an in-memory Temporal server suitable for local development.'
-  },
-  {
-    cat: 'Worker Setup',
-    q: 'What Spring Boot property sets the Temporal server address?',
-    opts: [
-      'spring.temporal.host=127.0.0.1:7233',
-      'spring.temporal.url=grpc://127.0.0.1:7233',
-      'spring.temporal.connection.target=127.0.0.1:7233',
-      'spring.temporal.grpc.address=127.0.0.1:7233'
+      'wf.runAsync(payload)',
+      'client.startWorkflow(wf, payload)',
+      'WorkflowClient.start(wf::run, payload)',
+      'wf.run(payload) with a timeout'
     ],
     ans: 2,
-    exp: 'spring.temporal.connection.target is the correct property in temporal-spring-boot-autoconfigure.'
+    exp: 'WorkflowClient.start(wf::run, payload) starts the workflow asynchronously — it returns immediately without waiting for the result.'
   },
   {
-    cat: 'Worker Setup',
-    q: 'Which class in DocPulse creates the WorkerFactory and registers implementations?',
-    opts: ['AppConfig','DocumentWorkerRegistrar','DocumentWorkflowClientStub','UploadWorkerController'],
-    ans: 1,
-    exp: 'DocumentWorkerRegistrar implements DocumentWorker and uses @EventListener(ApplicationReadyEvent) to start the factory after Spring context is ready.'
-  },
-  {
-    cat: 'Activities',
-    q: 'What method must a long-running Activity call periodically so Temporal knows it is alive?',
-    opts: ['activity.ping()','ctx.heartbeat()','Activity.keepAlive()','activity.progress()'],
-    ans: 1,
-    exp: 'ctx.heartbeat() (via ActivityExecutionContext) sends a heartbeat to the Temporal server. Without it, the activity is considered timed out if heartbeatTimeout is exceeded.'
-  },
-  {
-    cat: 'Activities',
-    q: 'What ActivityOptions setting limits the total time including ALL retry attempts?',
-    opts: ['setStartToCloseTimeout','setHeartbeatTimeout','setScheduleToCloseTimeout','setExecutionTimeout'],
+    cat: 'Java CLI Client',
+    q: 'What Java class does LongRunningCLI use to format Temporal timestamps for display?',
+    opts: ['java.util.Date','java.time.LocalDateTime','java.time.Instant','java.sql.Timestamp'],
     ans: 2,
-    exp: 'setScheduleToCloseTimeout is the total budget from when the activity is scheduled until it must complete — including all retries.'
+    exp: 'Instant.ofEpochMilli(ms) converts the Unix epoch milliseconds from the protobuf response into a human-readable ISO-8601 timestamp.'
   },
   {
-    cat: 'Activities',
-    q: 'What ActivityOptions setting limits the time for a SINGLE activity attempt?',
-    opts: ['setScheduleToCloseTimeout','setHeartbeatTimeout','setAttemptTimeout','setStartToCloseTimeout'],
-    ans: 3,
-    exp: 'setStartToCloseTimeout caps a single execution attempt. The activity is retried if it exceeds this limit.'
-  },
-  {
-    cat: 'Activities',
-    q: 'In DocPulse, which activity handles OCR and document parsing?',
-    opts: ['SecurityScanActivity','NlpAnalysisActivity','TextExtractionActivity','DocumentParserActivity'],
-    ans: 2,
-    exp: 'TextExtractionActivity (Stage 2) handles OCR, routing to PDFBox, Apache POI, Tesseract, or DirectReader based on MIME type.'
-  },
-  {
-    cat: 'Workflow Methods',
-    q: 'Which Temporal annotation marks a method as an asynchronous message to a running Workflow?',
-    opts: ['@QueryMethod','@SignalMethod','@WorkflowMethod','@MessageMethod'],
-    ans: 1,
-    exp: '@SignalMethod marks a method that can be called externally to send an async message to a running Workflow (e.g. cancellation).'
-  },
-  {
-    cat: 'Workflow Methods',
-    q: 'Which Temporal annotation marks a read-only, strongly-consistent view into Workflow state?',
-    opts: ['@SignalMethod','@WorkflowMethod','@QueryMethod','@ReadMethod'],
-    ans: 2,
-    exp: '@QueryMethod provides a synchronous, strongly-consistent read of the Workflow\'s in-memory state without adding an event to the history.'
-  },
-  {
-    cat: 'Workflow Methods',
-    q: 'In DocPulse, what endpoint triggers the @QueryMethod to return live pipeline status?',
+    cat: 'Java CLI Client',
+    q: 'How does the "result" command in LongRunningCLI.java attach to an existing workflow?',
     opts: [
-      'GET /api/documents/status/{id}',
-      'GET /api/worker/status/{workflowId}',
-      'POST /api/worker/query/{workflowId}',
-      'GET /api/temporal/state/{workflowId}'
+      'client.newWorkflowStub(id)',
+      'client.newUntypedWorkflowStub(id, Optional.empty(), Optional.empty())',
+      'client.getWorkflowHandle(id)',
+      'WorkflowStub.connect(id)'
     ],
     ans: 1,
-    exp: 'GET /api/worker/status/{workflowId} in UploadWorkerController calls DocumentWorkflowClientStub.queryStatus() which triggers the @QueryMethod.'
+    exp: 'An untyped workflow stub is created with newUntypedWorkflowStub(), allowing the client to attach to any existing workflow by ID without needing the interface class.'
   },
   {
-    cat: 'Task Queues',
-    q: 'What is the name of the task queue used in DocPulse?',
-    opts: [
-      'DOC_PROCESSING_QUEUE',
-      'TEMPORAL_TASK_QUEUE',
-      'DOCUMENT_PROCESSING_TASK_QUEUE',
-      'docupload-queue'
-    ],
-    ans: 2,
-    exp: 'DOCUMENT_PROCESSING_TASK_QUEUE is the constant defined in DocumentWorker.TASK_QUEUE.'
-  },
-  {
-    cat: 'Task Queues',
-    q: 'How does Temporal distribute work across multiple Worker instances on the same task queue?',
-    opts: [
-      'Round-robin via leader election',
-      'Based on Worker CPU load',
-      'Temporal distributes tasks automatically — no coordination code needed',
-      'Workers register themselves in ZooKeeper'
-    ],
-    ans: 2,
-    exp: 'Temporal automatically distributes tasks to available Workers polling the same queue. Simply run more Worker instances to scale.'
-  },
-  {
-    cat: 'Configuration',
-    q: 'What Temporal namespace should be used with a local dev server?',
-    opts: ['local','dev','temporal','default'],
-    ans: 3,
-    exp: 'The "default" namespace is created automatically when you run "temporal server start-dev".'
-  },
-  {
-    cat: 'Configuration',
-    q: 'To connect to Temporal Cloud instead of a local server, what additional configuration is needed?',
-    opts: [
-      'Only change the connection.target URL',
-      'Change connection.target, namespace, and add mTLS cert/key paths',
-      'Add a spring.temporal.cloud=true property',
-      'No change needed — it auto-detects Temporal Cloud'
-    ],
+    cat: 'General Concepts',
+    q: 'What is the default gRPC port for a local Temporal dev server, used by both the Python and Java code?',
+    opts: ['4317','7233','8080','8233'],
     ans: 1,
-    exp: 'Temporal Cloud requires the Cloud endpoint URL, your namespace, and mTLS certificates (cert-chain-file and key-file).'
+    exp: 'Port 7233 is the standard Temporal gRPC frontend port. Both the Python client (localhost:7233) and the Java CLI (TEMPORAL_PORT=7233) default to it.'
   },
   {
-    cat: 'DocPulse Architecture',
-    q: 'What HTTP status code does POST /api/worker/upload return, and why?',
-    opts: [
-      '200 OK — the workflow completes synchronously',
-      '202 Accepted — the workflow is submitted but processing is async',
-      '201 Created — a new workflow resource is created',
-      '204 No Content — no response body is needed'
-    ],
+    cat: 'General Concepts',
+    q: 'In this project, which language runs the Worker that executes workflows and activities?',
+    opts: ['Java','Python','Both equally','Go'],
     ans: 1,
-    exp: '202 Accepted is returned immediately with the workflowId. The actual processing happens asynchronously in Temporal.'
-  },
-  {
-    cat: 'DocPulse Architecture',
-    q: 'Which class in DocPulse acts as the anti-corruption layer between the REST controller and Temporal SDK types?',
-    opts: [
-      'DocumentProcessingService',
-      'UploadWorkerController',
-      'DocumentWorkflowClientStub',
-      'DocumentWorkerRegistrar'
-    ],
-    ans: 2,
-    exp: 'DocumentWorkflowClientStub wraps WorkflowClient and translates between REST domain model and Temporal SDK types.'
-  },
-  {
-    cat: 'Retry & Failures',
-    q: 'In DocPulse, if SecurityScanActivity returns isClean()=false, what does the Workflow do?',
-    opts: [
-      'Retries the scan automatically',
-      'Returns a FAILED result immediately without running TextExtractionActivity',
-      'Skips to NlpAnalysisActivity',
-      'Sends a signal to the client'
-    ],
-    ans: 1,
-    exp: 'The workflow checks scanResult.isClean() and short-circuits with a FAILED result if the scan verdict is not CLEAN.'
-  },
-  {
-    cat: 'Retry & Failures',
-    q: 'What happens to a Temporal Workflow if the Spring Boot application crashes mid-processing?',
-    opts: [
-      'The workflow is lost and must be re-submitted',
-      'Temporal replays the event history and the workflow resumes from the last completed Activity',
-      'The workflow is paused and must be manually resumed',
-      'Temporal retries the entire workflow from the beginning'
-    ],
-    ans: 1,
-    exp: 'Temporal persists the full event history. When the Worker restarts, it replays the history and resumes execution from exactly where it left off.'
+    exp: 'The Python worker (worker.py) registers HelloWorldWorkflow and say_hello, then polls the task queue. The Java CLI is only a client that starts/queries workflows.'
   }
 ];
 
 /* ═══════════════════════════════════════════
    QUIZ STATE
 ═══════════════════════════════════════════ */
-const LS_KEY = 'docpulse_quiz_scores';
+const LS_KEY = 'temporal_helloworld_quiz_scores';
 const TOTAL_MAX = 250;
 const PASS_THRESHOLD = 0.75;
 const Q_TIME = 30;        // seconds per question
