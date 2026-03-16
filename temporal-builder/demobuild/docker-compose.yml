@@ -1,0 +1,14 @@
+# Auto-generated docker-compose for MyTemporalProject
+version: "3.9"
+
+services:
+  myworker:
+    build: .
+    command: python worker_myworker.py
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '500m'
+          memory: 512Mi
+    restart: unless-stopped

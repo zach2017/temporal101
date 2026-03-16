@@ -1,0 +1,93 @@
+activities:
+- input:
+    type: person
+  mode: sync
+  name: upload
+  output:
+    type: person
+  retry_policy: auto-upload
+  start_to_close_timeout: 30s
+- input:
+    type: person
+  mode: sync
+  name: checktype
+  output:
+    type: string
+  retry_policy: auto-checktype
+  start_to_close_timeout: 30s
+clients:
+- allowed_workflows:
+  - demoworflow
+  default_mode: async
+  name: client
+  target: localhost:7233
+metadata:
+  default_task_queue: main-queue
+  language:
+  - go
+  name: MyTemporalProject
+  namespace: default
+pipelines:
+- name: piepline1
+  stages:
+  - execution: sequential
+    id: '1'
+    workflows:
+    - max_concurrency: 10
+      workflow: demoworflow
+  timeout: 12h
+  trigger:
+    kind: manual
+retry_policies:
+- backoff_coefficient: 2
+  initial_interval: 1s
+  max_attempts: 3
+  max_interval: 30s
+  name: auto-upload
+- backoff_coefficient: 2
+  initial_interval: 1s
+  max_attempts: 3
+  max_interval: 30s
+  name: auto-checktype
+schema_version: 1.0.0
+types:
+- fields:
+  - name: name
+    required: true
+    type: string
+  - name: id
+    required: true
+    type: int
+  kind: struct
+  name: person
+workers:
+- activities:
+  - upload
+  - checktype
+  max_concurrent_activities: 200
+  max_concurrent_workflow_tasks: 200
+  name: myworker
+  runtime:
+    cpu: 500m
+    memory: 512Mi
+    replicas: 1
+  task_queue: main-queue
+  workflows:
+  - demoworflow
+workflows:
+- execution_timeout: 1h
+  input:
+    type: string
+  mode: async
+  name: demoworflow
+  output:
+    type: string
+  steps:
+  - activity: upload
+    id: '1'
+    kind: activity
+    output_var: file
+  - activity: checktype
+    id: '2'
+    kind: activity
+    output_var: answer
