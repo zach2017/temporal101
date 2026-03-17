@@ -1,10 +1,40 @@
 # How Temporal Works
 
-## Workers, Clients & Fault Tolerance
+## From Hello World to Document Processing Pipelines
 
-*A walkthrough using the Python & Java Hello World demo*
+*Workers, Clients, Fault Tolerance & Real-World Patterns*
 
-`temporalio SDK · Python · Java · docs.temporal.io`
+`temporalio SDK · Python · Java · Spring Boot · docs.temporal.io`
+
+---
+
+## Table of Contents
+
+- [What is Temporal?](#what-is-temporal)
+- [Architecture Overview](#architecture-overview)
+- [The Hello World Demo](#the-hello-world-demo)
+- [Step 1 — Define an Activity](#step-1--define-an-activity)
+- [Step 2 — Define a Workflow](#step-2--define-a-workflow)
+- [Step 3 — Register a Worker](#step-3--register-a-worker)
+- [Step 4 — Start a Workflow from a Client](#step-4--start-a-workflow-from-a-client)
+- [Fault Tolerance](#fault-tolerance)
+- [Workflow Lifecycle](#workflow-lifecycle)
+- [Real-World Case — Document Processing Pipeline](#real-world-case--document-processing-pipeline)
+- [The Pipeline — 6 Stages](#the-pipeline--6-stages)
+- [The Problem — CompletableFuture Approach](#the-problem--completablefuture-approach)
+- [The Solution — Temporal Workflow](#the-solution--temporal-workflow)
+- [Activity Definitions — Each Stage Isolated](#activity-definitions--each-stage-isolated)
+- [Heartbeats in Activities](#heartbeats-in-activities)
+- [Caching Data Between Activities](#caching-data-between-activities)
+- [Caching Patterns in Practice](#caching-patterns-in-practice)
+- [Side-by-Side — CompletableFuture vs. Temporal](#side-by-side--completablefuture-vs-temporal)
+- [The Spring Boot Controller — Before and After](#the-spring-boot-controller--before-and-after)
+- [What Happens When Things Fail](#what-happens-when-things-fail)
+- [Document Pipeline — Architecture Diagram](#document-pipeline--architecture-diagram)
+- [Worker Registration — Spring Boot Integration](#worker-registration--spring-boot-integration)
+- [Configuration](#configuration)
+- [Key Takeaways](#key-takeaways)
+- [References](#references)
 
 ---
 
@@ -281,7 +311,7 @@ A typical enterprise document processing pipeline involves multiple long-running
 
 ---
 
-## The Pipeline — What It Does
+## The Pipeline — 6 Stages
 
 ```
   📄 Upload        →  📝 Convert to Text  →  🖼️ Extract Images  →  🔍 OCR
@@ -373,6 +403,22 @@ public interface DocumentProcessingWorkflow {
 }
 ```
 
+| Annotation | Purpose |
+|-----------|---------|
+| **`@WorkflowMethod`** | Entry point. Accepts `DocumentRequest`, returns `ProcessingResult`. |
+| **`@QueryMethod`** | Read-only live status query. No DB needed — returns in-memory state. |
+| **`@SignalMethod`** | Async message for graceful mid-pipeline cancellation from UI. |
+
+### Activity Stubs — Each Stage Gets Independent Timeouts & Retries
+
+| Activity | Timeout | Retries | Heartbeat |
+|----------|---------|---------|-----------|
+| `UploadActivity` | 2 min | 3× | — |
+| `TextExtractionActivity` | 5 min | 3× | 30s |
+| `OcrActivity` | 10 min | 3× | 30s |
+| `StorageActivity` | 3 min | 5× | — |
+| `AiAnalyticsActivity` | 5 min | 3× | 30s |
+
 📄 **`DocumentProcessingWorkflowImpl.java`**
 
 ```java
@@ -382,19 +428,10 @@ public class DocumentProcessingWorkflowImpl implements DocumentProcessingWorkflo
     private PipelineStatus status = PipelineStatus.STARTED;
     private boolean cancelRequested = false;
 
-    // Each activity has its own stub with independent timeouts and retries
     private final UploadActivity uploadActivity = Workflow.newActivityStub(
         UploadActivity.class,
         ActivityOptions.newBuilder()
             .setStartToCloseTimeout(Duration.ofMinutes(2))
-            .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
-            .build());
-
-    private final TextExtractionActivity extractActivity = Workflow.newActivityStub(
-        TextExtractionActivity.class,
-        ActivityOptions.newBuilder()
-            .setStartToCloseTimeout(Duration.ofMinutes(5))
-            .setHeartbeatTimeout(Duration.ofSeconds(30))
             .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
             .build());
 
@@ -404,13 +441,6 @@ public class DocumentProcessingWorkflowImpl implements DocumentProcessingWorkflo
             .setStartToCloseTimeout(Duration.ofMinutes(10))
             .setHeartbeatTimeout(Duration.ofSeconds(30))
             .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
-            .build());
-
-    private final StorageActivity storageActivity = Workflow.newActivityStub(
-        StorageActivity.class,
-        ActivityOptions.newBuilder()
-            .setStartToCloseTimeout(Duration.ofMinutes(3))
-            .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(5).build())
             .build());
 
     private final AiAnalyticsActivity aiActivity = Workflow.newActivityStub(
@@ -423,6 +453,8 @@ public class DocumentProcessingWorkflowImpl implements DocumentProcessingWorkflo
                 .build())
             .build());
 
+    // ... (TextExtractionActivity, StorageActivity stubs similar)
+
     @Override
     public ProcessingResult processDocument(DocumentRequest request) {
 
@@ -430,7 +462,7 @@ public class DocumentProcessingWorkflowImpl implements DocumentProcessingWorkflo
         status = PipelineStatus.UPLOADING;
         StagedFile staged = uploadActivity.uploadAndStage(request);
 
-        if (cancelRequested) return ProcessingResult.cancelled("Cancelled after upload");
+        if (cancelRequested) return ProcessingResult.cancelled("After upload");
 
         // Stage 2 — Convert to Text
         status = PipelineStatus.EXTRACTING_TEXT;
@@ -440,7 +472,7 @@ public class DocumentProcessingWorkflowImpl implements DocumentProcessingWorkflo
         status = PipelineStatus.EXTRACTING_IMAGES;
         ImageExtractionResult images = extractActivity.extractImagesFromPdf(staged);
 
-        if (cancelRequested) return ProcessingResult.cancelled("Cancelled after extraction");
+        if (cancelRequested) return ProcessingResult.cancelled("After extraction");
 
         // Stage 4 — OCR on extracted images
         status = PipelineStatus.RUNNING_OCR;
@@ -452,7 +484,7 @@ public class DocumentProcessingWorkflowImpl implements DocumentProcessingWorkflo
         StorageResult stored = storageActivity.storeInDbAndElastic(
             request.getDocumentId(), fullText, extracted.getMetadata());
 
-        if (cancelRequested) return ProcessingResult.cancelled("Cancelled after storage");
+        if (cancelRequested) return ProcessingResult.cancelled("After storage");
 
         // Stage 6 — AI Analytics
         status = PipelineStatus.AI_ANALYTICS;
@@ -476,27 +508,6 @@ public class DocumentProcessingWorkflowImpl implements DocumentProcessingWorkflo
 
 Each pipeline stage becomes its own Activity with independent timeouts, retries, and heartbeats.
 
-### Upload Activity
-
-```java
-@ActivityInterface
-public interface UploadActivity {
-    StagedFile uploadAndStage(DocumentRequest request);
-}
-
-@Component
-@ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
-public class UploadActivityImpl implements UploadActivity {
-    @Override
-    public StagedFile uploadAndStage(DocumentRequest request) {
-        // Validate MIME type, write to staging area
-        // Non-deterministic I/O — belongs in an Activity, not a Workflow
-        Path staged = stagingService.stage(request.getFile());
-        return new StagedFile(staged, request.getMetadata());
-    }
-}
-```
-
 ### Text Extraction Activity (with Heartbeats)
 
 ```java
@@ -513,7 +524,7 @@ public class TextExtractionActivityImpl implements TextExtractionActivity {
     @Override
     public ExtractionResult convertToText(StagedFile staged) {
         ActivityExecutionContext ctx = Activity.getExecutionContext();
-        ctx.heartbeat("Starting text extraction");      // ← tells Temporal we're alive
+        ctx.heartbeat("Starting text extraction");
 
         String text;
         switch (staged.getMimeType()) {
@@ -534,7 +545,7 @@ public class TextExtractionActivityImpl implements TextExtractionActivity {
 
         try (PDDocument doc = PDDocument.load(staged.getPath().toFile())) {
             for (int i = 0; i < doc.getNumberOfPages(); i++) {
-                ctx.heartbeat("Extracting images from page " + (i + 1));  // ← per-page heartbeat
+                ctx.heartbeat("Extracting images from page " + (i + 1));
                 images.addAll(imageExtractor.extractFromPage(doc.getPage(i)));
             }
         }
@@ -546,11 +557,6 @@ public class TextExtractionActivityImpl implements TextExtractionActivity {
 ### OCR Activity (Long-Running with Heartbeats)
 
 ```java
-@ActivityInterface
-public interface OcrActivity {
-    OcrResult runOcr(ImageExtractionResult images);
-}
-
 @Component
 @ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
 public class OcrActivityImpl implements OcrActivity {
@@ -570,43 +576,9 @@ public class OcrActivityImpl implements OcrActivity {
 }
 ```
 
-### Storage Activity (DB + Elasticsearch)
-
-```java
-@ActivityInterface
-public interface StorageActivity {
-    StorageResult storeInDbAndElastic(String documentId, String fullText, DocumentMetadata meta);
-}
-
-@Component
-@ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
-public class StorageActivityImpl implements StorageActivity {
-
-    @Override
-    public StorageResult storeInDbAndElastic(String documentId, String fullText, DocumentMetadata meta) {
-        // Persist to relational database
-        DocumentEntity entity = documentRepository.save(
-            new DocumentEntity(documentId, fullText, meta));
-
-        // Index in Elasticsearch
-        elasticsearchClient.index(i -> i
-            .index("documents")
-            .id(documentId)
-            .document(new DocumentIndex(fullText, meta)));
-
-        return new StorageResult(entity.getId(), true);
-    }
-}
-```
-
 ### AI Analytics Activity
 
 ```java
-@ActivityInterface
-public interface AiAnalyticsActivity {
-    AiResult runAnalytics(String fullText, AnalyticsConfig config);
-}
-
 @Component
 @ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
 public class AiAnalyticsActivityImpl implements AiAnalyticsActivity {
@@ -634,6 +606,132 @@ public class AiAnalyticsActivityImpl implements AiAnalyticsActivity {
 
 > Every Activity calls `ctx.heartbeat()` so Temporal knows the process is alive. If Tesseract hangs or the AI model times out, Temporal detects the missing heartbeat and retries the Activity — not the entire pipeline.
 
+📖 [Java SDK → Activity Heartbeats](https://docs.temporal.io/develop/java/failure-detection#activity-heartbeats)
+
+---
+
+## Heartbeats in Activities
+
+Long-running stages call `ctx.heartbeat()` so Temporal detects hangs and retries automatically.
+
+```java
+// OcrActivityImpl.java
+public OcrResult runOcr(ImageExtractionResult images) {
+    ActivityExecutionContext ctx = Activity.getExecutionContext();
+
+    for (int i = 0; i < images.getImages().size(); i++) {
+        ctx.heartbeat("OCR image " + (i + 1));    // ← tells Temporal we're alive
+        text += tesseract.doOCR(images.getImages().get(i));
+    }
+    return new OcrResult(text);
+}
+```
+
+| Scenario | What Happens |
+|----------|-------------|
+| **Tesseract hangs on a scanned page** | Heartbeat missed → Temporal retries just this Activity |
+| **`heartbeatTimeout: 30s`** | If no heartbeat in 30s, the attempt is considered failed |
+| **Completed stages** | Upload and text extraction are NOT re-run — results are cached in event history |
+| **AI model timeout / rate limit** | Heartbeat detects it → retry with exponential backoff |
+
+📖 [Temporal Docs → Activity Heartbeats](https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat)
+
+---
+
+## Caching Data Between Activities
+
+*Activity return values are automatically persisted in the Event History — they become a durable cache for free*
+
+### How It Works
+
+```
+┌──────────────────┐    ┌─────────────────────────┐    ┌─────────────┐    ┌──────────────────┐
+│  UploadActivity   │    │ TextExtractionActivity   │    │ OcrActivity  │    │ StorageActivity   │
+│                   │    │                          │    │              │    │                   │
+│  → StagedFile     │───►│  → ExtractionResult      │───►│  → OcrResult │───►│  → StorageResult  │
+│    filePath       │    │    rawText, metadata     │    │    ocrText   │    │    docId, indexed │
+│    mimeType       │    │    pageCount             │    │              │    │                   │
+└──────────────────┘    └─────────────────────────┘    └─────────────┘    └──────────────────┘
+         │                         │                         │                       │
+         ▼                         ▼                         ▼                       ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│  📦 Temporal Event History                                                                   │
+│  ActivityCompleted → StagedFile  |  ActivityCompleted → ExtractionResult  |  ActivityCompleted│
+│  → OcrResult  |  ActivityCompleted → StorageResult  |  ...                                   │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### The Three Rules of Inter-Activity Caching
+
+**💾 Implicit cache** — Every Activity return value is serialized and stored in the Event History. The next Activity receives it as a normal function argument. No Redis, no temp database tables, no shared filesystem required.
+
+**🔄 Replay-safe** — On crash recovery, Temporal replays the history. Completed Activities return their cached result instantly — the upload isn't re-uploaded, text isn't re-extracted, OCR isn't re-run. Only the Activity that was in-flight at the time of the crash is re-executed.
+
+**⚠️ Size matters** — Event History stores the full serialized payload. For large binary data (images, PDFs), pass a *file reference* (path or S3 URL) rather than the raw bytes. Keep Activity payloads under 2 MB. The total Event History has a soft limit around 50 MB.
+
+---
+
+## Caching Patterns in Practice
+
+*How the Workflow passes upload data and extracted text between Activities*
+
+📄 **`DocumentProcessingWorkflowImpl.java`**
+
+```java
+// Stage 1 → returns StagedFile (cached in Event History)
+StagedFile staged = uploadActivity.uploadAndStage(request);
+
+// Stage 2 → uses staged (from cache), returns text (cached)
+ExtractionResult extracted = extractActivity.convertToText(staged);
+
+// Stage 3 → uses staged again for images (same cached value)
+ImageExtractionResult images = extractActivity.extractImagesFromPdf(staged);
+
+// Stage 4 → uses images (from cache), returns OCR text (cached)
+OcrResult ocr = ocrActivity.runOcr(images);
+
+// Merge — all data available in Workflow scope from cached returns
+String fullText = extracted.getText() + "\n" + ocr.getText();
+
+// Stage 5 → passes merged fullText to storage
+storageActivity.storeInDbAndElastic(docId, fullText, extracted.getMetadata());
+
+// Stage 6 → passes merged fullText to AI analytics
+AiResult ai = aiActivity.runAnalytics(fullText, config);
+```
+
+### Pattern Breakdown
+
+**Pass by value** — Each Activity returns a serializable object (POJO). The Workflow stores it in a local variable and passes it to the next Activity as a normal method argument. The Workflow itself is the "glue" that chains stages together.
+
+**File references, not bytes** — `StagedFile` contains a file path or S3 URL — not the 50 MB PDF itself. Both `convertToText()` and `extractImagesFromPdf()` use that path to read the original file from shared storage.
+
+```java
+// Good — lightweight reference in Event History (~200 bytes)
+public record StagedFile(Path filePath, String mimeType, DocumentMetadata metadata) {}
+
+// Bad — raw file bytes in Event History (~50 MB)
+public record StagedFile(byte[] fileContent, String mimeType) {}  // DON'T DO THIS
+```
+
+**Text accumulation** — `extracted.getText()` (from PDFBox/POI) and `ocr.getText()` (from Tesseract) are merged in the Workflow into `fullText`. This combined string is then passed to both `StorageActivity` and `AiAnalyticsActivity` — each receives the same merged text without either needing to know about the other.
+
+**Replay = instant cache** — If the Worker crashes after Stage 3:
+
+```
+Replay starts →
+  Stage 1: UploadActivity    → returns cached StagedFile (instant, no upload)
+  Stage 2: TextExtraction    → returns cached ExtractionResult (instant, no parsing)
+  Stage 3: ImageExtraction   → returns cached ImageExtractionResult (instant, no PDFBox)
+  Stage 4: OcrActivity       → EXECUTES (this is where we left off)
+  Stage 5: StorageActivity   → EXECUTES
+  Stage 6: AiAnalytics       → EXECUTES
+```
+
+Stages 1–3 return their results from the Event History cache in milliseconds. The Worker resumes actual execution from Stage 4 — the first Activity that hadn't completed before the crash.
+
+> **Activity return values are the cache.** No Redis, no temp DB tables, no shared state — just workflow variables backed by Temporal's durable Event History.
+
 ---
 
 ## Side-by-Side — CompletableFuture vs. Temporal
@@ -644,6 +742,7 @@ public class AiAnalyticsActivityImpl implements AiAnalyticsActivity {
 | **Per-stage retry** | ✗ `exceptionally()` catches all — no granular retry | ✓ Each Activity has its own `RetryOptions` with backoff |
 | **Per-stage timeout** | ✗ `orTimeout()` kills the whole chain | ✓ `startToCloseTimeout` per Activity — OCR gets 10 min, upload gets 2 min |
 | **Heartbeats (hang detection)** | ✗ Stuck thread goes unnoticed | ✓ `heartbeatTimeout` detects hung Tesseract or AI calls within seconds |
+| **Inter-activity caching** | ✗ All in-memory — lost on crash | ✓ Activity return values persisted in Event History automatically |
 | **Live status query** | ✗ Requires custom DB-backed status tracking | ✓ `@QueryMethod getStatus()` — zero additional infrastructure |
 | **Graceful cancellation** | ✗ `cancel()` on a CompletableFuture is best-effort | ✓ `@SignalMethod requestCancellation()` checked between stages |
 | **Observability** | ✗ Logs only — no structured event history | ✓ Full event history in Temporal Web UI (`localhost:8233`) |
@@ -681,7 +780,6 @@ public ResponseEntity<Map<String, String>> upload(@RequestParam MultipartFile fi
     DocumentProcessingWorkflow wf = workflowClient.newWorkflowStub(
         DocumentProcessingWorkflow.class, opts);
 
-    // Start async — returns immediately, processing is durable
     WorkflowClient.start(wf::processDocument, new DocumentRequest(file, workflowId));
 
     return ResponseEntity.accepted()
@@ -690,7 +788,6 @@ public ResponseEntity<Map<String, String>> upload(@RequestParam MultipartFile fi
 
 @GetMapping("/api/worker/status/{workflowId}")
 public ResponseEntity<PipelineStatus> getStatus(@PathVariable String workflowId) {
-    // No database needed — query Workflow state directly
     DocumentProcessingWorkflow wf = workflowClient.newWorkflowStub(
         DocumentProcessingWorkflow.class, workflowId);
     return ResponseEntity.ok(wf.getStatus());
@@ -704,6 +801,12 @@ public ResponseEntity<Void> cancel(@PathVariable String workflowId, @RequestBody
     return ResponseEntity.accepted().build();
 }
 ```
+
+| Endpoint | Method | What It Does |
+|----------|--------|-------------|
+| `/api/worker/upload` | POST | Start workflow → 202 Accepted + workflowId |
+| `/api/worker/status/{id}` | GET | `@QueryMethod` → live pipeline stage, no DB |
+| `/api/worker/cancel/{id}` | POST | `@SignalMethod` → graceful mid-pipeline cancel |
 
 > The controller returns `202 Accepted` with a `workflowId`. The frontend polls `/status/{workflowId}` every 2 seconds. The `@QueryMethod` returns the live pipeline stage — no database, no Redis, no custom status table.
 
@@ -812,15 +915,13 @@ public class DocumentWorkerRegistrar {
         Worker worker = factory.newWorker(
             "DOCUMENT_PROCESSING_TASK_QUEUE",
             WorkerOptions.newBuilder()
-                .setMaxConcurrentActivityExecutionSize(20)   // parallel activities
+                .setMaxConcurrentActivityExecutionSize(20)
                 .setMaxConcurrentWorkflowTaskExecutionSize(10)
                 .build());
 
-        // Register workflow type
         worker.registerWorkflowImplementationTypes(
             DocumentProcessingWorkflowImpl.class);
 
-        // Register all activity implementations (Spring beans — injectable)
         worker.registerActivitiesImplementations(
             uploadActivity, extractActivity, ocrActivity,
             storageActivity, aiActivity);
@@ -837,7 +938,9 @@ public class DocumentWorkerRegistrar {
 
 ---
 
-## `application.properties` — Configuration
+## Configuration
+
+📄 **`application.properties`**
 
 ```properties
 # ── Temporal Connection ─────────────────────────────────────
@@ -876,7 +979,7 @@ spring.elasticsearch.uris=http://localhost:9200
 
 🛡️ **Fault tolerance** — Temporal replays event history after crashes, skipping completed steps. Your code runs to completion.
 
-🌐 **Cross-language** — Java CLI can start workflows that Python Workers execute — via gRPC + protobuf.
+💾 **Inter-activity caching** — Activity return values are persisted in the Event History. On replay, completed Activities return cached results instantly — no re-execution, no Redis, no temp tables.
 
 📄 **Document pipelines** — Upload, convert, OCR, store, and analyze documents with per-stage retries, heartbeats, and live status queries. CompletableFuture chains can't offer any of this.
 
@@ -884,7 +987,9 @@ spring.elasticsearch.uris=http://localhost:9200
 
 🤖 **AI-ready** — Long-running NLP and model calls get their own Activity with `heartbeatTimeout` and `doNotRetry` for non-transient errors like token limits.
 
-💾 **Spring Boot native** — Activity impls are Spring `@Component` beans. Autowire repositories, ES clients, and AI services normally.
+💻 **Spring Boot native** — Activity impls are Spring `@Component` beans. Autowire repositories, ES clients, and AI services normally.
+
+🌐 **Cross-language** — Java CLI can start workflows that Python Workers execute — via gRPC + protobuf.
 
 ---
 
