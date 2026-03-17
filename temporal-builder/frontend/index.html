@@ -9,171 +9,161 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
 :root {
-  --bg-deep: #0c0e13;
-  --bg-surface: #14171e;
-  --bg-card: #1a1e27;
-  --bg-raised: #222733;
-  --border: #2d3344;
-  --border-active: #4f6ef7;
-  --accent: #4f6ef7;
-  --accent-glow: rgba(79,110,247,.25);
-  --accent-green: #34d399;
-  --accent-amber: #fbbf24;
-  --accent-red: #f87171;
-  --accent-purple: #a78bfa;
-  --text: #e2e8f0;
-  --text-dim: #8892a8;
-  --text-muted: #5a6478;
+  --bg-deep: #0c0e13; --bg-surface: #14171e; --bg-card: #1a1e27; --bg-raised: #222733;
+  --border: #2d3344; --border-active: #4f6ef7; --accent: #4f6ef7; --accent-glow: rgba(79,110,247,.25);
+  --accent-green: #34d399; --accent-amber: #fbbf24; --accent-red: #f87171; --accent-purple: #a78bfa;
+  --text: #e2e8f0; --text-dim: #8892a8; --text-muted: #5a6478;
 }
 * { box-sizing: border-box; }
 body { font-family: 'DM Sans', sans-serif; background: var(--bg-deep); color: var(--text); }
 code, .mono { font-family: 'JetBrains Mono', monospace; }
-
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-/* Drag items */
-.drag-item {
-  cursor: grab; user-select: none;
-  transition: transform .15s, box-shadow .15s;
-}
+.drag-item { cursor: grab; user-select: none; transition: transform .15s, box-shadow .15s; }
 .drag-item:active { cursor: grabbing; transform: scale(1.04); box-shadow: 0 0 20px var(--accent-glow); }
-.drag-over { outline: 2px dashed var(--accent); outline-offset: 2px; background: rgba(79,110,247,.06) !important; }
-
-/* Drop zones */
 .drop-zone { min-height: 56px; transition: background .15s; border: 1px dashed var(--border); border-radius: 8px; }
 .drop-zone.drag-over { border-color: var(--accent); background: rgba(79,110,247,.06); }
-.drop-zone:empty::after {
-  content: 'Drop items here';
-  display: flex; align-items: center; justify-content: center;
-  height: 56px; color: var(--text-muted); font-size: .8rem;
-}
-
-/* Tab system */
+.drop-zone:empty::after { content:'Drag primitive or composite types here to add fields'; display:flex; align-items:center; justify-content:center; height:56px; color:var(--text-muted); font-size:.75rem; font-style:italic; }
 .tab-btn { transition: all .15s; position: relative; }
 .tab-btn.active { color: var(--accent); }
-.tab-btn.active::after {
-  content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
-  height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
-}
-
-/* Cards */
-.builder-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; transition: border-color .15s;
-}
+.tab-btn.active::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:2px; background:var(--accent); border-radius:2px 2px 0 0; }
+.builder-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; transition: border-color .15s; }
 .builder-card:hover { border-color: var(--border-active); }
-
-/* Pulse dot */
-@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+.builder-card.has-error { border-color: var(--accent-red) !important; box-shadow: 0 0 12px rgba(248,113,113,.1); }
+@keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:.4; } }
 .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
-
-/* Toast */
-@keyframes slide-in { from { transform: translateX(120%); } to { transform: translateX(0); } }
+@keyframes slide-in { from { transform:translateX(120%); } to { transform:translateX(0); } }
 .toast { animation: slide-in .3s ease-out; }
-
-/* YAML preview */
+@keyframes fade-in { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+.fade-in { animation: fade-in .2s ease-out; }
+@keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);} }
+.shake { animation: shake .3s ease-in-out; }
 .yaml-preview { max-height: 400px; overflow: auto; }
-
-/* Entry rows */
 .entry-row { transition: background .1s; }
 .entry-row:hover { background: rgba(79,110,247,.04); }
+.input-error { border-color: var(--accent-red) !important; background: rgba(248,113,113,.04) !important; }
+.error-msg { color: var(--accent-red); font-size: 11px; margin-top: 2px; }
+.validation-panel { max-height: 240px; overflow-y: auto; }
+.hint { position:relative; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:var(--bg-raised); border:1px solid var(--border); color:var(--text-muted); font-size:9px; font-weight:700; cursor:help; margin-left:4px; flex-shrink:0; }
+.hint:hover .hint-text { display: block; }
+.hint-text { display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--bg-surface); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font-size:11px; font-weight:400; color:var(--text-dim); max-width:280px; white-space:normal; z-index:50; box-shadow:0 4px 12px rgba(0,0,0,.4); line-height:1.4; }
+.hint-text::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:var(--border); }
+.tab-error-dot { width:6px; height:6px; border-radius:50%; background:var(--accent-red); display:none; }
+.tab-error-dot.visible { display:inline-block; }
 </style>
 <script>
-tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        deep: '#0c0e13', surface: '#14171e', card: '#1a1e27',
-        raised: '#222733', bdr: '#2d3344',
-        accent: '#4f6ef7', agreen: '#34d399', aamber: '#fbbf24',
-        ared: '#f87171', apurple: '#a78bfa',
-        dim: '#8892a8', muted: '#5a6478',
-      },
-      fontFamily: { mono: ['JetBrains Mono', 'monospace'], sans: ['DM Sans', 'sans-serif'] },
-    }
-  }
-}
+tailwind.config={theme:{extend:{colors:{deep:'#0c0e13',surface:'#14171e',card:'#1a1e27',raised:'#222733',bdr:'#2d3344',accent:'#4f6ef7',agreen:'#34d399',aamber:'#fbbf24',ared:'#f87171',apurple:'#a78bfa',dim:'#8892a8',muted:'#5a6478'},fontFamily:{mono:['JetBrains Mono','monospace'],sans:['DM Sans','sans-serif']}}}}
 </script>
 </head>
 <body class="min-h-screen">
 
-<!-- ═══════════════ HEADER ═══════════════ -->
 <header class="sticky top-0 z-50 border-b border-bdr bg-surface/80 backdrop-blur-lg">
   <div class="max-w-[1600px] mx-auto flex items-center justify-between px-6 py-3">
     <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-        </svg>
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
       </div>
       <span class="font-bold text-lg tracking-tight">Temporal Builder</span>
-      <span class="text-xs text-muted mono ml-1">v1.0</span>
+      <span class="text-xs text-muted mono ml-1">v1.1</span>
     </div>
-    <div class="flex items-center gap-3">
-      <button onclick="previewYaml()" class="px-4 py-2 rounded-lg text-sm font-medium bg-raised border border-bdr hover:border-accent text-dim hover:text-accent transition-all">
-        Preview YAML
+    <div class="flex items-center gap-2">
+      <button onclick="loadSampleProject()" class="px-3 py-2 rounded-lg text-xs font-medium bg-apurple/10 text-apurple border border-apurple/20 hover:bg-apurple/20 transition-all flex items-center gap-1.5" title="Load a fully-configured sample project">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Load Sample
       </button>
-      <button onclick="generateProject()" id="generateBtn" class="px-5 py-2 rounded-lg text-sm font-semibold bg-accent text-white hover:bg-accent/90 transition-all flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3l14 9-14 9V3z"/></svg>
-        Generate
+      <button onclick="clearAll()" class="px-3 py-2 rounded-lg text-xs font-medium bg-raised border border-bdr hover:border-ared text-dim hover:text-ared transition-all">Clear All</button>
+      <div class="w-px h-6 bg-bdr mx-1"></div>
+      <button onclick="previewYaml()" class="px-4 py-2 rounded-lg text-sm font-medium bg-raised border border-bdr hover:border-accent text-dim hover:text-accent transition-all">Preview YAML</button>
+      <button onclick="validateAndGenerate()" id="generateBtn" class="px-5 py-2 rounded-lg text-sm font-semibold bg-accent text-white hover:bg-accent/90 transition-all flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3l14 9-14 9V3z"/></svg>Generate
       </button>
     </div>
   </div>
 </header>
 
-<!-- ═══════════════ MAIN LAYOUT ═══════════════ -->
-<div class="max-w-[1600px] mx-auto flex gap-0 min-h-[calc(100vh-57px)]">
+<!-- Validation Panel -->
+<div id="validationPanel" class="hidden border-b border-ared/30 bg-ared/5">
+  <div class="max-w-[1600px] mx-auto px-6 py-3">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-start gap-3 flex-1 min-w-0">
+        <svg class="w-5 h-5 text-ared shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+        <div class="flex-1 min-w-0">
+          <h3 class="text-sm font-semibold text-ared mb-1" id="validationTitle">Validation Errors</h3>
+          <div id="validationErrors" class="validation-panel space-y-1"></div>
+        </div>
+      </div>
+      <button onclick="hideValidation()" class="text-muted hover:text-text transition-colors shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
 
-  <!-- ─── LEFT PALETTE ─── -->
-  <aside id="palette" class="w-[260px] shrink-0 border-r border-bdr bg-surface overflow-y-auto p-4 space-y-5">
+<!-- Sample Banner -->
+<div id="sampleBanner" class="hidden border-b border-accent/20 bg-accent/5">
+  <div class="max-w-[1600px] mx-auto px-6 py-2.5 flex items-center justify-between">
+    <div class="flex items-center gap-2 text-sm">
+      <span class="text-accent">✦</span>
+      <span class="text-dim">Sample loaded — <strong class="text-text">Order Processing System</strong> with types, activities, workflows, workers &amp; clients. Explore each tab, then hit <strong class="text-accent">Generate</strong>.</span>
+    </div>
+    <button onclick="document.getElementById('sampleBanner').classList.add('hidden')" class="text-muted hover:text-text text-xs">Dismiss</button>
+  </div>
+</div>
+
+<!-- Main Layout -->
+<div class="max-w-[1600px] mx-auto flex gap-0 min-h-[calc(100vh-57px)]">
+  <!-- Left Palette -->
+  <aside class="w-[260px] shrink-0 border-r border-bdr bg-surface overflow-y-auto p-4 space-y-5">
     <div>
-      <h3 class="text-[11px] font-semibold tracking-widest text-muted uppercase mb-3">Primitive Types</h3>
-      <div class="grid grid-cols-2 gap-2" id="primitiveTypes">
-        <!-- filled by JS -->
-      </div>
+      <h3 class="text-[11px] font-semibold tracking-widest text-muted uppercase mb-2 flex items-center">Primitive Types <span class="hint">?<span class="hint-text">Drag onto struct drop zones to add typed fields. Maps to native types (string→str in Python).</span></span></h3>
+      <div class="grid grid-cols-2 gap-2" id="primitiveTypes"></div>
     </div>
     <div>
-      <h3 class="text-[11px] font-semibold tracking-widest text-muted uppercase mb-3">Composite Types</h3>
-      <div class="grid grid-cols-1 gap-2" id="compositeTypes">
-      </div>
+      <h3 class="text-[11px] font-semibold tracking-widest text-muted uppercase mb-2 flex items-center">Composite Types <span class="hint">?<span class="hint-text">Generic containers. Drag to drop zones — change inner type after dropping.</span></span></h3>
+      <div class="grid grid-cols-1 gap-2" id="compositeTypes"></div>
     </div>
     <div>
-      <h3 class="text-[11px] font-semibold tracking-widest text-muted uppercase mb-3">Components</h3>
-      <div class="grid grid-cols-1 gap-2" id="componentPalette">
+      <h3 class="text-[11px] font-semibold tracking-widest text-muted uppercase mb-2 flex items-center">Components <span class="hint">?<span class="hint-text">Click or drag to add activities, workflows, workers, clients, or pipelines.</span></span></h3>
+      <div class="grid grid-cols-1 gap-2" id="componentPalette"></div>
+    </div>
+    <div class="border-t border-bdr pt-4">
+      <h3 class="text-[11px] font-semibold tracking-widest text-muted uppercase mb-2">Quick Reference</h3>
+      <div class="space-y-2 text-[11px] text-dim leading-relaxed">
+        <p><strong class="text-agreen">sync</strong> — Blocking. Worker executes and returns directly.</p>
+        <p><strong class="text-aamber">async</strong> — Long-running. Heartbeats; may complete out-of-band.</p>
+        <p><strong class="text-apurple">cron</strong> — Scheduled workflow on a cron expression.</p>
+        <p class="text-muted mt-2">Durations: <code class="mono text-dim">500ms</code> <code class="mono text-dim">30s</code> <code class="mono text-dim">5m</code> <code class="mono text-dim">2h</code> <code class="mono text-dim">1d</code></p>
+        <p class="text-muted">Names: Types=<code class="mono text-dim">PascalCase</code> Activities=<code class="mono text-dim">snake_case</code> Workers=<code class="mono text-dim">kebab-case</code></p>
       </div>
     </div>
   </aside>
 
-  <!-- ─── CENTER BUILDER ─── -->
+  <!-- Center Builder -->
   <main class="flex-1 overflow-y-auto p-6">
     <!-- Metadata -->
-    <section class="builder-card p-5 mb-5">
-      <h2 class="text-sm font-semibold text-accent uppercase tracking-wide mb-4 flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-accent pulse-dot"></span>Project Metadata
-      </h2>
+    <section class="builder-card p-5 mb-5" id="metadataCard">
+      <h2 class="text-sm font-semibold text-accent uppercase tracking-wide mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-accent pulse-dot"></span>Project Metadata</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <label class="block text-xs text-dim mb-1">Project Name</label>
-          <input id="meta_name" type="text" value="MyTemporalProject" class="w-full bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono focus:outline-none focus:border-accent" />
+          <label class="text-xs text-dim mb-1 flex items-center">Project Name <span class="hint">?<span class="hint-text">PascalCase project name used as the top-level identifier.</span></span></label>
+          <input id="meta_name" type="text" value="" placeholder="e.g. OrderProcessingSystem" class="w-full bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono focus:outline-none focus:border-accent" />
+          <div id="err_meta_name" class="error-msg hidden"></div>
         </div>
         <div>
-          <label class="block text-xs text-dim mb-1">Namespace</label>
-          <input id="meta_namespace" type="text" value="default" class="w-full bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono focus:outline-none focus:border-accent" />
+          <label class="text-xs text-dim mb-1 flex items-center">Namespace <span class="hint">?<span class="hint-text">Temporal namespace isolating your workflows. Use "default" for local dev.</span></span></label>
+          <input id="meta_namespace" type="text" value="" placeholder="e.g. orders-prod" class="w-full bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono focus:outline-none focus:border-accent" />
+          <div id="err_meta_namespace" class="error-msg hidden"></div>
         </div>
         <div>
-          <label class="block text-xs text-dim mb-1">Default Task Queue</label>
-          <input id="meta_taskqueue" type="text" value="main-queue" class="w-full bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono focus:outline-none focus:border-accent" />
+          <label class="text-xs text-dim mb-1 flex items-center">Task Queue <span class="hint">?<span class="hint-text">Workers poll this queue. Activities and workflows inherit it unless overridden.</span></span></label>
+          <input id="meta_taskqueue" type="text" value="" placeholder="e.g. main-queue" class="w-full bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono focus:outline-none focus:border-accent" />
+          <div id="err_meta_taskqueue" class="error-msg hidden"></div>
         </div>
         <div>
-          <label class="block text-xs text-dim mb-1">Language</label>
+          <label class="text-xs text-dim mb-1 flex items-center">Language <span class="hint">?<span class="hint-text">Target language for code generation. Python produces full code; others produce stubs.</span></span></label>
           <select id="meta_language" class="w-full bg-raised border border-bdr rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent">
-            <option value="python">Python</option>
-            <option value="typescript">TypeScript</option>
-            <option value="go">Go</option>
-            <option value="java">Java</option>
+            <option value="python">Python</option><option value="typescript">TypeScript</option><option value="go">Go</option><option value="java">Java</option>
           </select>
         </div>
       </div>
@@ -181,94 +171,25 @@ tailwind.config = {
 
     <!-- Tabs -->
     <div class="border-b border-bdr mb-5 flex gap-1">
-      <button class="tab-btn active px-4 py-2.5 text-sm font-medium text-dim" data-tab="types" onclick="switchTab('types')">Types</button>
-      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim" data-tab="activities" onclick="switchTab('activities')">Activities</button>
-      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim" data-tab="workflows" onclick="switchTab('workflows')">Workflows</button>
-      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim" data-tab="pipelines" onclick="switchTab('pipelines')">Pipelines</button>
-      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim" data-tab="workers" onclick="switchTab('workers')">Workers</button>
-      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim" data-tab="clients" onclick="switchTab('clients')">Clients</button>
-      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim" data-tab="results" onclick="switchTab('results')">
-        Results <span id="resultsBadge" class="hidden ml-1 px-1.5 py-0.5 text-[10px] bg-agreen/20 text-agreen rounded-full">0</span>
-      </button>
+      <button class="tab-btn active px-4 py-2.5 text-sm font-medium text-dim flex items-center gap-1.5" data-tab="types" onclick="switchTab('types')">Types <span class="tab-error-dot" data-tab-dot="types"></span></button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim flex items-center gap-1.5" data-tab="activities" onclick="switchTab('activities')">Activities <span class="tab-error-dot" data-tab-dot="activities"></span></button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim flex items-center gap-1.5" data-tab="workflows" onclick="switchTab('workflows')">Workflows <span class="tab-error-dot" data-tab-dot="workflows"></span></button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim flex items-center gap-1.5" data-tab="pipelines" onclick="switchTab('pipelines')">Pipelines <span class="tab-error-dot" data-tab-dot="pipelines"></span></button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim flex items-center gap-1.5" data-tab="workers" onclick="switchTab('workers')">Workers <span class="tab-error-dot" data-tab-dot="workers"></span></button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim flex items-center gap-1.5" data-tab="clients" onclick="switchTab('clients')">Clients <span class="tab-error-dot" data-tab-dot="clients"></span></button>
+      <button class="tab-btn px-4 py-2.5 text-sm font-medium text-dim" data-tab="results" onclick="switchTab('results')">Results <span id="resultsBadge" class="hidden ml-1 px-1.5 py-0.5 text-[10px] bg-agreen/20 text-agreen rounded-full">0</span></button>
     </div>
 
-    <!-- Tab Panels -->
-    <div id="tabContent">
-
-      <!-- ══════ TYPES TAB ══════ -->
-      <div id="tab-types" class="tab-panel">
-        <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-dim">Define reusable types by dragging primitives into struct fields, or add enums and aliases.</p>
-          <button onclick="addType()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all">+ Add Type</button>
-        </div>
-        <div id="typesList" class="space-y-3"></div>
-      </div>
-
-      <!-- ══════ ACTIVITIES TAB ══════ -->
-      <div id="tab-activities" class="tab-panel hidden">
-        <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-dim">Define activities — choose sync or async mode. Async activities heartbeat and can complete out-of-band.</p>
-          <button onclick="addActivity()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all">+ Add Activity</button>
-        </div>
-        <div id="activitiesList" class="space-y-3"></div>
-      </div>
-
-      <!-- ══════ WORKFLOWS TAB ══════ -->
-      <div id="tab-workflows" class="tab-panel hidden">
-        <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-dim">Define workflows — sync (blocking), async (fire-and-forget), or cron (scheduled).</p>
-          <button onclick="addWorkflow()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all">+ Add Workflow</button>
-        </div>
-        <div id="workflowsList" class="space-y-3"></div>
-      </div>
-
-      <!-- ══════ PIPELINES TAB ══════ -->
-      <div id="tab-pipelines" class="tab-panel hidden">
-        <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-dim">Orchestrate multi-workflow pipelines with stages, fan-out, and compensation.</p>
-          <button onclick="addPipeline()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all">+ Add Pipeline</button>
-        </div>
-        <div id="pipelinesList" class="space-y-3"></div>
-      </div>
-
-      <!-- ══════ WORKERS TAB ══════ -->
-      <div id="tab-workers" class="tab-panel hidden">
-        <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-dim">Configure worker processes — assign activities and workflows, tune concurrency.</p>
-          <button onclick="addWorker()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all">+ Add Worker</button>
-        </div>
-        <div id="workersList" class="space-y-3"></div>
-      </div>
-
-      <!-- ══════ CLIENTS TAB ══════ -->
-      <div id="tab-clients" class="tab-panel hidden">
-        <div class="flex items-center justify-between mb-4">
-          <p class="text-sm text-dim">Configure typed clients — set connection, TLS, and allowed workflows/signals/queries.</p>
-          <button onclick="addClient()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all">+ Add Client</button>
-        </div>
-        <div id="clientsList" class="space-y-3"></div>
-      </div>
-
-      <!-- ══════ RESULTS TAB ══════ -->
-      <div id="tab-results" class="tab-panel hidden">
-        <div id="resultsEmpty" class="text-center py-16 text-dim">
-          <svg class="w-12 h-12 mx-auto mb-3 text-muted" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 00-1.883 2.542l.857 6a2.25 2.25 0 002.227 1.932H19.05a2.25 2.25 0 002.227-1.932l.857-6a2.25 2.25 0 00-1.883-2.542m-16.5 0V6A2.25 2.25 0 016 3.75h3.879a1.5 1.5 0 011.06.44l2.122 2.12a1.5 1.5 0 001.06.44H18A2.25 2.25 0 0120.25 9v.776"/></svg>
-          No generated projects yet. Configure your interface and click <strong class="text-accent">Generate</strong>.
-        </div>
-        <div id="projectsList" class="space-y-4"></div>
-      </div>
-    </div>
+    <div id="tabContent"></div>
   </main>
 </div>
 
-<!-- ═══════════════ YAML PREVIEW MODAL ═══════════════ -->
+<!-- YAML Modal -->
 <div id="yamlModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm">
   <div class="bg-surface border border-bdr rounded-xl w-[700px] max-h-[80vh] flex flex-col shadow-2xl">
     <div class="flex items-center justify-between px-5 py-3 border-b border-bdr">
       <span class="font-semibold text-sm">Generated YAML Preview</span>
-      <button onclick="closeYamlModal()" class="text-muted hover:text-text transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
+      <button onclick="closeYamlModal()" class="text-muted hover:text-text"><svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
     </div>
     <pre id="yamlPreviewContent" class="yaml-preview overflow-auto p-5 text-xs mono text-dim leading-relaxed"></pre>
     <div class="flex justify-end gap-2 px-5 py-3 border-t border-bdr">
@@ -278,903 +199,8 @@ tailwind.config = {
   </div>
 </div>
 
-<!-- ═══════════════ TOAST CONTAINER ═══════════════ -->
 <div id="toasts" class="fixed bottom-5 right-5 z-[200] space-y-2"></div>
 
-
-<script>
-// ══════════════════════════════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════════════════════════════
-const state = {
-  types: [],
-  activities: [],
-  workflows: [],
-  pipelines: [],
-  workers: [],
-  clients: [],
-  projects: [],
-};
-let idCounter = 0;
-const uid = () => `item_${++idCounter}`;
-
-// ── Primitive & Composite palette definitions ─────────────
-const PRIMITIVES = [
-  { label: 'string', color: 'accent' },
-  { label: 'int', color: 'agreen' },
-  { label: 'float', color: 'aamber' },
-  { label: 'bool', color: 'apurple' },
-  { label: 'datetime', color: 'ared' },
-  { label: 'duration', color: 'dim' },
-];
-
-const COMPOSITES = [
-  { label: 'list<T>', template: 'list<string>', color: 'accent', icon: '[ ]' },
-  { label: 'map<K,V>', template: 'map<string,string>', color: 'agreen', icon: '{ }' },
-  { label: 'optional<T>', template: 'optional<string>', color: 'aamber', icon: '?' },
-];
-
-const COMPONENTS = [
-  { label: 'Activity', kind: 'activity', icon: '⚡' },
-  { label: 'Workflow', kind: 'workflow', icon: '🔄' },
-  { label: 'Worker', kind: 'worker', icon: '⚙' },
-  { label: 'Client', kind: 'client', icon: '🔌' },
-  { label: 'Pipeline', kind: 'pipeline', icon: '🔗' },
-];
-
-// ══════════════════════════════════════════════════════════════
-//  PALETTE RENDERING
-// ══════════════════════════════════════════════════════════════
-function initPalette() {
-  const primEl = document.getElementById('primitiveTypes');
-  PRIMITIVES.forEach(p => {
-    primEl.innerHTML += `
-      <div class="drag-item px-3 py-2 rounded-lg bg-raised border border-bdr text-xs mono font-medium text-${p.color} hover:border-${p.color}/40 flex items-center gap-1.5"
-           draggable="true" data-type="${p.label}">
-        <span class="w-2 h-2 rounded-full bg-${p.color}"></span>${p.label}
-      </div>`;
-  });
-
-  const compEl = document.getElementById('compositeTypes');
-  COMPOSITES.forEach(c => {
-    compEl.innerHTML += `
-      <div class="drag-item px-3 py-2 rounded-lg bg-raised border border-bdr text-xs mono font-medium text-${c.color} hover:border-${c.color}/40 flex items-center gap-2"
-           draggable="true" data-type="${c.template}">
-        <span class="text-base opacity-60">${c.icon}</span>${c.label}
-      </div>`;
-  });
-
-  const cmpEl = document.getElementById('componentPalette');
-  COMPONENTS.forEach(c => {
-    cmpEl.innerHTML += `
-      <div class="drag-item px-3 py-2 rounded-lg bg-raised border border-bdr text-xs font-medium text-dim hover:border-accent/40 flex items-center gap-2 cursor-pointer"
-           draggable="true" data-component="${c.kind}" onclick="addComponent('${c.kind}')">
-        <span class="text-base">${c.icon}</span>${c.label}
-      </div>`;
-  });
-
-  // Add drag events to all drag-items
-  document.querySelectorAll('.drag-item[data-type]').forEach(el => {
-    el.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('text/plain', el.dataset.type);
-      e.dataTransfer.effectAllowed = 'copy';
-    });
-  });
-
-  document.querySelectorAll('.drag-item[data-component]').forEach(el => {
-    el.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('application/component', el.dataset.component);
-      e.dataTransfer.effectAllowed = 'copy';
-    });
-  });
-}
-
-function addComponent(kind) {
-  switch(kind) {
-    case 'activity': addActivity(); switchTab('activities'); break;
-    case 'workflow': addWorkflow(); switchTab('workflows'); break;
-    case 'worker': addWorker(); switchTab('workers'); break;
-    case 'client': addClient(); switchTab('clients'); break;
-    case 'pipeline': addPipeline(); switchTab('pipelines'); break;
-  }
-}
-
-// ══════════════════════════════════════════════════════════════
-//  TAB SWITCHING
-// ══════════════════════════════════════════════════════════════
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-  document.getElementById(`tab-${tab}`).classList.remove('hidden');
-}
-
-// ══════════════════════════════════════════════════════════════
-//  TYPE BUILDER
-// ══════════════════════════════════════════════════════════════
-function addType() {
-  const id = uid();
-  state.types.push({ id, name: '', kind: 'struct', fields: [], values: [], alias_of: '' });
-  renderTypes();
-}
-
-function removeType(id) {
-  state.types = state.types.filter(t => t.id !== id);
-  renderTypes();
-}
-
-function addField(typeId) {
-  const t = state.types.find(x => x.id === typeId);
-  if (t) { t.fields.push({ id: uid(), name: '', type: 'string', required: true }); renderTypes(); }
-}
-
-function removeField(typeId, fieldId) {
-  const t = state.types.find(x => x.id === typeId);
-  if (t) { t.fields = t.fields.filter(f => f.id !== fieldId); renderTypes(); }
-}
-
-function addEnumValue(typeId) {
-  const t = state.types.find(x => x.id === typeId);
-  if (t) { t.values.push({ id: uid(), name: '', value: '' }); renderTypes(); }
-}
-
-function removeEnumValue(typeId, valId) {
-  const t = state.types.find(x => x.id === typeId);
-  if (t) { t.values = t.values.filter(v => v.id !== valId); renderTypes(); }
-}
-
-function getTypeOptions() {
-  const prims = PRIMITIVES.map(p => p.label);
-  const customs = state.types.filter(t => t.name).map(t => t.name);
-  return [...prims, 'any', 'null', ...customs];
-}
-
-function renderTypes() {
-  const el = document.getElementById('typesList');
-  el.innerHTML = state.types.map(t => {
-    const kindSelect = `<select onchange="updateType('${t.id}','kind',this.value)" class="bg-raised border border-bdr rounded-lg px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-      <option value="struct" ${t.kind==='struct'?'selected':''}>struct</option>
-      <option value="enum" ${t.kind==='enum'?'selected':''}>enum</option>
-      <option value="alias" ${t.kind==='alias'?'selected':''}>alias</option>
-    </select>`;
-
-    let body = '';
-    if (t.kind === 'struct') {
-      body = `
-        <div class="space-y-2 mt-3">
-          ${t.fields.map(f => `
-            <div class="entry-row flex items-center gap-2 p-2 rounded-lg">
-              <input value="${esc(f.name)}" onchange="updateField('${t.id}','${f.id}','name',this.value)" placeholder="field_name" class="flex-1 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-              <select onchange="updateField('${t.id}','${f.id}','type',this.value)" class="bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-                ${getTypeOptions().map(o => `<option value="${o}" ${f.type===o?'selected':''}>${o}</option>`).join('')}
-                <option value="list<string>" ${f.type.startsWith('list')?'selected':''}>list&lt;T&gt;</option>
-                <option value="map<string,string>" ${f.type.startsWith('map')?'selected':''}>map&lt;K,V&gt;</option>
-              </select>
-              <label class="flex items-center gap-1 text-[10px] text-dim">
-                <input type="checkbox" ${f.required?'checked':''} onchange="updateField('${t.id}','${f.id}','required',this.checked)" class="accent-accent w-3 h-3" /> req
-              </label>
-              <button onclick="removeField('${t.id}','${f.id}')" class="text-muted hover:text-ared text-xs">✕</button>
-            </div>
-          `).join('')}
-          <div class="drop-zone rounded-lg p-2" data-target-type="${t.id}"></div>
-          <button onclick="addField('${t.id}')" class="text-xs text-accent hover:text-accent/80">+ Add Field</button>
-        </div>`;
-    } else if (t.kind === 'enum') {
-      body = `
-        <div class="space-y-2 mt-3">
-          ${t.values.map(v => `
-            <div class="entry-row flex items-center gap-2 p-2 rounded-lg">
-              <input value="${esc(v.name)}" onchange="updateEnumVal('${t.id}','${v.id}','name',this.value)" placeholder="VARIANT_NAME" class="flex-1 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-              <input value="${esc(v.value)}" onchange="updateEnumVal('${t.id}','${v.id}','value',this.value)" placeholder="wire_value" class="flex-1 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-              <button onclick="removeEnumValue('${t.id}','${v.id}')" class="text-muted hover:text-ared text-xs">✕</button>
-            </div>
-          `).join('')}
-          <button onclick="addEnumValue('${t.id}')" class="text-xs text-accent hover:text-accent/80">+ Add Value</button>
-        </div>`;
-    } else {
-      body = `
-        <div class="mt-3">
-          <input value="${esc(t.alias_of)}" onchange="updateType('${t.id}','alias_of',this.value)" placeholder="e.g. list<string>" class="w-full bg-raised border border-bdr rounded-lg px-3 py-2 text-xs mono focus:outline-none focus:border-accent" />
-        </div>`;
-    }
-
-    return `
-      <div class="builder-card p-4">
-        <div class="flex items-center gap-3">
-          <input value="${esc(t.name)}" onchange="updateType('${t.id}','name',this.value)" placeholder="TypeName" class="flex-1 bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono font-semibold focus:outline-none focus:border-accent" />
-          ${kindSelect}
-          <button onclick="removeType('${t.id}')" class="text-muted hover:text-ared transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          </button>
-        </div>
-        ${body}
-      </div>`;
-  }).join('');
-  initDropZones();
-}
-
-function updateType(id, key, val) { const t = state.types.find(x => x.id === id); if (t) t[key] = val; renderTypes(); }
-function updateField(tid, fid, key, val) { const t = state.types.find(x => x.id === tid); if (!t) return; const f = t.fields.find(x => x.id === fid); if (f) f[key] = val; }
-function updateEnumVal(tid, vid, key, val) { const t = state.types.find(x => x.id === tid); if (!t) return; const v = t.values.find(x => x.id === vid); if (v) v[key] = val; }
-
-// ══════════════════════════════════════════════════════════════
-//  ACTIVITIES
-// ══════════════════════════════════════════════════════════════
-function addActivity() {
-  state.activities.push({
-    id: uid(), name: '', description: '', mode: 'sync',
-    input_type: 'string', output_type: 'string',
-    start_to_close_timeout: '30s', heartbeat_timeout: '10s',
-    retry_max_attempts: 3, task_queue: '',
-  });
-  renderActivities();
-}
-
-function removeActivity(id) { state.activities = state.activities.filter(a => a.id !== id); renderActivities(); }
-
-function renderActivities() {
-  const el = document.getElementById('activitiesList');
-  const typeOpts = getTypeOptions();
-  el.innerHTML = state.activities.map(a => `
-    <div class="builder-card p-4 space-y-3">
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full ${a.mode === 'async' ? 'bg-aamber' : 'bg-agreen'}"></span>
-          <select onchange="updateActivity('${a.id}','mode',this.value); renderActivities()" class="bg-raised border border-bdr rounded-lg px-2 py-1 text-xs mono font-semibold focus:outline-none focus:border-accent ${a.mode==='async'?'text-aamber':'text-agreen'}">
-            <option value="sync" ${a.mode==='sync'?'selected':''}>sync</option>
-            <option value="async" ${a.mode==='async'?'selected':''}>async</option>
-          </select>
-        </div>
-        <input value="${esc(a.name)}" onchange="updateActivity('${a.id}','name',this.value)" placeholder="activity_name" class="flex-1 bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono font-semibold focus:outline-none focus:border-accent" />
-        <button onclick="removeActivity('${a.id}')" class="text-muted hover:text-ared">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      </div>
-      <input value="${esc(a.description)}" onchange="updateActivity('${a.id}','description',this.value)" placeholder="Description..." class="w-full bg-raised border border-bdr rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-accent" />
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div>
-          <label class="block text-[10px] text-muted mb-1">Input Type</label>
-          <select onchange="updateActivity('${a.id}','input_type',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-            ${typeOpts.map(o => `<option value="${o}" ${a.input_type===o?'selected':''}>${o}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="block text-[10px] text-muted mb-1">Output Type</label>
-          <select onchange="updateActivity('${a.id}','output_type',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-            ${typeOpts.map(o => `<option value="${o}" ${a.output_type===o?'selected':''}>${o}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="block text-[10px] text-muted mb-1">Timeout</label>
-          <input value="${esc(a.start_to_close_timeout)}" onchange="updateActivity('${a.id}','start_to_close_timeout',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-        </div>
-        <div>
-          <label class="block text-[10px] text-muted mb-1">Max Retries</label>
-          <input type="number" value="${a.retry_max_attempts}" onchange="updateActivity('${a.id}','retry_max_attempts',+this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-        </div>
-      </div>
-      ${a.mode === 'async' ? `
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-[10px] text-muted mb-1">Heartbeat Timeout</label>
-          <input value="${esc(a.heartbeat_timeout)}" onchange="updateActivity('${a.id}','heartbeat_timeout',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-        </div>
-        <div>
-          <label class="block text-[10px] text-muted mb-1">Task Queue Override</label>
-          <input value="${esc(a.task_queue)}" onchange="updateActivity('${a.id}','task_queue',this.value)" placeholder="(uses default)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-        </div>
-      </div>` : ''}
-    </div>
-  `).join('');
-}
-
-function updateActivity(id, key, val) { const a = state.activities.find(x => x.id === id); if (a) a[key] = val; }
-
-// ══════════════════════════════════════════════════════════════
-//  WORKFLOWS
-// ══════════════════════════════════════════════════════════════
-function addWorkflow() {
-  state.workflows.push({
-    id: uid(), name: '', description: '', mode: 'async',
-    input_type: 'string', output_type: 'string',
-    execution_timeout: '1h', cron_schedule: '',
-    steps: [],
-  });
-  renderWorkflows();
-}
-
-function removeWorkflow(id) { state.workflows = state.workflows.filter(w => w.id !== id); renderWorkflows(); }
-
-function addStep(wfId) {
-  const wf = state.workflows.find(x => x.id === wfId);
-  if (wf) {
-    wf.steps.push({ id: uid(), step_id: '', kind: 'activity', activity: '', output_var: '' });
-    renderWorkflows();
-  }
-}
-
-function removeStep(wfId, stepId) {
-  const wf = state.workflows.find(x => x.id === wfId);
-  if (wf) { wf.steps = wf.steps.filter(s => s.id !== stepId); renderWorkflows(); }
-}
-
-function renderWorkflows() {
-  const el = document.getElementById('workflowsList');
-  const typeOpts = getTypeOptions();
-  const actNames = state.activities.filter(a => a.name).map(a => a.name);
-  const wfNames = state.workflows.filter(w => w.name).map(w => w.name);
-
-  el.innerHTML = state.workflows.map(w => `
-    <div class="builder-card p-4 space-y-3">
-      <div class="flex items-center gap-3">
-        <select onchange="updateWorkflow('${w.id}','mode',this.value); renderWorkflows()" class="bg-raised border border-bdr rounded-lg px-2 py-1 text-xs mono font-semibold focus:outline-none focus:border-accent ${w.mode==='cron'?'text-aamber':w.mode==='sync'?'text-agreen':'text-accent'}">
-          <option value="sync" ${w.mode==='sync'?'selected':''}>sync</option>
-          <option value="async" ${w.mode==='async'?'selected':''}>async</option>
-          <option value="cron" ${w.mode==='cron'?'selected':''}>cron</option>
-        </select>
-        <input value="${esc(w.name)}" onchange="updateWorkflow('${w.id}','name',this.value)" placeholder="WorkflowName" class="flex-1 bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono font-semibold focus:outline-none focus:border-accent" />
-        <button onclick="removeWorkflow('${w.id}')" class="text-muted hover:text-ared">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      </div>
-      <input value="${esc(w.description)}" onchange="updateWorkflow('${w.id}','description',this.value)" placeholder="Description..." class="w-full bg-raised border border-bdr rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-accent" />
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div><label class="block text-[10px] text-muted mb-1">Input Type</label>
-          <select onchange="updateWorkflow('${w.id}','input_type',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">${typeOpts.map(o=>`<option value="${o}" ${w.input_type===o?'selected':''}>${o}</option>`).join('')}</select></div>
-        <div><label class="block text-[10px] text-muted mb-1">Output Type</label>
-          <select onchange="updateWorkflow('${w.id}','output_type',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">${typeOpts.map(o=>`<option value="${o}" ${w.output_type===o?'selected':''}>${o}</option>`).join('')}</select></div>
-        <div><label class="block text-[10px] text-muted mb-1">Exec Timeout</label>
-          <input value="${esc(w.execution_timeout)}" onchange="updateWorkflow('${w.id}','execution_timeout',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" /></div>
-        ${w.mode === 'cron' ? `<div><label class="block text-[10px] text-muted mb-1">Cron Schedule</label>
-          <input value="${esc(w.cron_schedule)}" onchange="updateWorkflow('${w.id}','cron_schedule',this.value)" placeholder="0 3 * * *" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" /></div>` : '<div></div>'}
-      </div>
-      <div>
-        <h4 class="text-[11px] font-semibold text-dim uppercase tracking-wide mb-2">Steps</h4>
-        <div class="space-y-2">
-          ${w.steps.map((s,i) => `
-            <div class="entry-row flex items-center gap-2 p-2 rounded-lg">
-              <span class="text-[10px] text-muted w-5 text-center">${i+1}</span>
-              <input value="${esc(s.step_id)}" onchange="updateStep('${w.id}','${s.id}','step_id',this.value)" placeholder="step_id" class="w-24 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-              <select onchange="updateStep('${w.id}','${s.id}','kind',this.value); renderWorkflows()" class="bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-                ${['activity','child_workflow','timer','local_activity','parallel','condition'].map(k=>`<option value="${k}" ${s.kind===k?'selected':''}>${k}</option>`).join('')}
-              </select>
-              ${s.kind === 'activity' ? `
-                <select onchange="updateStep('${w.id}','${s.id}','activity',this.value)" class="flex-1 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-                  <option value="">-- select activity --</option>
-                  ${actNames.map(n=>`<option value="${n}" ${s.activity===n?'selected':''}>${n}</option>`).join('')}
-                </select>` :
-              s.kind === 'child_workflow' ? `
-                <select onchange="updateStep('${w.id}','${s.id}','activity',this.value)" class="flex-1 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-                  <option value="">-- select workflow --</option>
-                  ${wfNames.map(n=>`<option value="${n}" ${s.activity===n?'selected':''}>${n}</option>`).join('')}
-                </select>` :
-              s.kind === 'timer' ? `
-                <input value="${esc(s.activity||'1m')}" onchange="updateStep('${w.id}','${s.id}','activity',this.value)" placeholder="duration" class="flex-1 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />` :
-              `<span class="flex-1 text-xs text-muted">configure in YAML</span>`}
-              <input value="${esc(s.output_var)}" onchange="updateStep('${w.id}','${s.id}','output_var',this.value)" placeholder="output_var" class="w-24 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-              <button onclick="removeStep('${w.id}','${s.id}')" class="text-muted hover:text-ared text-xs">✕</button>
-            </div>
-          `).join('')}
-        </div>
-        <button onclick="addStep('${w.id}')" class="text-xs text-accent hover:text-accent/80 mt-2">+ Add Step</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function updateWorkflow(id, key, val) { const w = state.workflows.find(x => x.id === id); if (w) w[key] = val; }
-function updateStep(wid, sid, key, val) { const w = state.workflows.find(x => x.id === wid); if (!w) return; const s = w.steps.find(x => x.id === sid); if (s) s[key] = val; }
-
-// ══════════════════════════════════════════════════════════════
-//  PIPELINES
-// ══════════════════════════════════════════════════════════════
-function addPipeline() {
-  state.pipelines.push({
-    id: uid(), name: '', description: '', trigger: 'manual',
-    input_type: 'string', output_type: 'string', timeout: '12h',
-    stages: [],
-  });
-  renderPipelines();
-}
-
-function removePipeline(id) { state.pipelines = state.pipelines.filter(p => p.id !== id); renderPipelines(); }
-
-function addStage(pId) {
-  const p = state.pipelines.find(x => x.id === pId);
-  if (p) { p.stages.push({ id: uid(), stage_id: '', execution: 'sequential', workflow: '', max_concurrency: 10 }); renderPipelines(); }
-}
-
-function removeStage(pId, sId) {
-  const p = state.pipelines.find(x => x.id === pId);
-  if (p) { p.stages = p.stages.filter(s => s.id !== sId); renderPipelines(); }
-}
-
-function renderPipelines() {
-  const el = document.getElementById('pipelinesList');
-  const wfNames = state.workflows.filter(w => w.name).map(w => w.name);
-  el.innerHTML = state.pipelines.map(p => `
-    <div class="builder-card p-4 space-y-3">
-      <div class="flex items-center gap-3">
-        <input value="${esc(p.name)}" onchange="updatePipeline('${p.id}','name',this.value)" placeholder="PipelineName" class="flex-1 bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono font-semibold focus:outline-none focus:border-accent" />
-        <select onchange="updatePipeline('${p.id}','trigger',this.value)" class="bg-raised border border-bdr rounded-lg px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-          ${['manual','cron','signal','webhook','event'].map(t=>`<option value="${t}" ${p.trigger===t?'selected':''}>${t}</option>`).join('')}
-        </select>
-        <input value="${esc(p.timeout)}" onchange="updatePipeline('${p.id}','timeout',this.value)" placeholder="timeout" class="w-20 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-        <button onclick="removePipeline('${p.id}')" class="text-muted hover:text-ared">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      </div>
-      <div>
-        <h4 class="text-[11px] font-semibold text-dim uppercase tracking-wide mb-2">Stages</h4>
-        <div class="space-y-2">
-          ${p.stages.map((s,i) => `
-            <div class="entry-row flex items-center gap-2 p-2 rounded-lg">
-              <span class="text-[10px] text-muted w-5">${i+1}</span>
-              <input value="${esc(s.stage_id)}" onchange="updateStage('${p.id}','${s.id}','stage_id',this.value)" placeholder="stage_id" class="w-24 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-              <select onchange="updateStage('${p.id}','${s.id}','execution',this.value)" class="bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-                ${['sequential','parallel','fan_out_fan_in'].map(e=>`<option value="${e}" ${s.execution===e?'selected':''}>${e}</option>`).join('')}
-              </select>
-              <select onchange="updateStage('${p.id}','${s.id}','workflow',this.value)" class="flex-1 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-                <option value="">-- workflow --</option>
-                ${wfNames.map(n=>`<option value="${n}" ${s.workflow===n?'selected':''}>${n}</option>`).join('')}
-              </select>
-              <input type="number" value="${s.max_concurrency}" onchange="updateStage('${p.id}','${s.id}','max_concurrency',+this.value)" placeholder="conc." class="w-16 bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" />
-              <button onclick="removeStage('${p.id}','${s.id}')" class="text-muted hover:text-ared text-xs">✕</button>
-            </div>
-          `).join('')}
-        </div>
-        <button onclick="addStage('${p.id}')" class="text-xs text-accent hover:text-accent/80 mt-2">+ Add Stage</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function updatePipeline(id, key, val) { const p = state.pipelines.find(x => x.id === id); if (p) p[key] = val; }
-function updateStage(pid, sid, key, val) { const p = state.pipelines.find(x => x.id === pid); if (!p) return; const s = p.stages.find(x => x.id === sid); if (s) s[key] = val; }
-
-// ══════════════════════════════════════════════════════════════
-//  WORKERS
-// ══════════════════════════════════════════════════════════════
-function addWorker() {
-  state.workers.push({
-    id: uid(), name: '', task_queue: '', description: '',
-    activities: [], workflows: [],
-    max_concurrent_activities: 200, max_concurrent_workflow_tasks: 200,
-    replicas: 1, cpu: '500m', memory: '512Mi',
-  });
-  renderWorkers();
-}
-
-function removeWorker(id) { state.workers = state.workers.filter(w => w.id !== id); renderWorkers(); }
-
-function renderWorkers() {
-  const el = document.getElementById('workersList');
-  const actNames = state.activities.filter(a => a.name).map(a => a.name);
-  const wfNames = state.workflows.filter(w => w.name).map(w => w.name);
-
-  el.innerHTML = state.workers.map(w => `
-    <div class="builder-card p-4 space-y-3">
-      <div class="flex items-center gap-3">
-        <span class="text-base">⚙</span>
-        <input value="${esc(w.name)}" onchange="updateWorker('${w.id}','name',this.value)" placeholder="worker-name" class="flex-1 bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono font-semibold focus:outline-none focus:border-accent" />
-        <input value="${esc(w.task_queue)}" onchange="updateWorker('${w.id}','task_queue',this.value)" placeholder="task-queue" class="w-36 bg-raised border border-bdr rounded-lg px-3 py-2 text-xs mono focus:outline-none focus:border-accent" />
-        <button onclick="removeWorker('${w.id}')" class="text-muted hover:text-ared">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-[10px] text-muted mb-1">Activities</label>
-          <div class="space-y-1">${actNames.map(n => `
-            <label class="flex items-center gap-1.5 text-xs mono"><input type="checkbox" ${w.activities.includes(n)?'checked':''} onchange="toggleWorkerList('${w.id}','activities','${n}',this.checked); renderWorkers()" class="accent-accent w-3 h-3" />${n}</label>
-          `).join('')}
-          ${actNames.length === 0 ? '<span class="text-[10px] text-muted">No activities defined yet</span>' : ''}
-          </div>
-        </div>
-        <div>
-          <label class="block text-[10px] text-muted mb-1">Workflows</label>
-          <div class="space-y-1">${wfNames.map(n => `
-            <label class="flex items-center gap-1.5 text-xs mono"><input type="checkbox" ${w.workflows.includes(n)?'checked':''} onchange="toggleWorkerList('${w.id}','workflows','${n}',this.checked); renderWorkers()" class="accent-accent w-3 h-3" />${n}</label>
-          `).join('')}
-          ${wfNames.length === 0 ? '<span class="text-[10px] text-muted">No workflows defined yet</span>' : ''}
-          </div>
-        </div>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div><label class="block text-[10px] text-muted mb-1">Max Activities</label>
-          <input type="number" value="${w.max_concurrent_activities}" onchange="updateWorker('${w.id}','max_concurrent_activities',+this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" /></div>
-        <div><label class="block text-[10px] text-muted mb-1">Max WF Tasks</label>
-          <input type="number" value="${w.max_concurrent_workflow_tasks}" onchange="updateWorker('${w.id}','max_concurrent_workflow_tasks',+this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" /></div>
-        <div><label class="block text-[10px] text-muted mb-1">Replicas</label>
-          <input type="number" value="${w.replicas}" onchange="updateWorker('${w.id}','replicas',+this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" /></div>
-        <div><label class="block text-[10px] text-muted mb-1">CPU</label>
-          <input value="${esc(w.cpu)}" onchange="updateWorker('${w.id}','cpu',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" /></div>
-        <div><label class="block text-[10px] text-muted mb-1">Memory</label>
-          <input value="${esc(w.memory)}" onchange="updateWorker('${w.id}','memory',this.value)" class="w-full bg-raised border border-bdr rounded px-2 py-1 text-xs mono focus:outline-none focus:border-accent" /></div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function updateWorker(id, key, val) { const w = state.workers.find(x => x.id === id); if (w) w[key] = val; }
-function toggleWorkerList(wid, listKey, name, checked) {
-  const w = state.workers.find(x => x.id === wid);
-  if (!w) return;
-  if (checked && !w[listKey].includes(name)) w[listKey].push(name);
-  if (!checked) w[listKey] = w[listKey].filter(n => n !== name);
-}
-
-// ══════════════════════════════════════════════════════════════
-//  CLIENTS
-// ══════════════════════════════════════════════════════════════
-function addClient() {
-  state.clients.push({
-    id: uid(), name: '', description: '', target: 'localhost:7233',
-    tls_enabled: false, default_mode: 'async',
-    allowed_workflows: [], allowed_signals: [], allowed_queries: [],
-  });
-  renderClients();
-}
-
-function removeClient(id) { state.clients = state.clients.filter(c => c.id !== id); renderClients(); }
-
-function renderClients() {
-  const el = document.getElementById('clientsList');
-  const wfNames = state.workflows.filter(w => w.name).map(w => w.name);
-
-  el.innerHTML = state.clients.map(c => `
-    <div class="builder-card p-4 space-y-3">
-      <div class="flex items-center gap-3">
-        <span class="text-base">🔌</span>
-        <input value="${esc(c.name)}" onchange="updateClient('${c.id}','name',this.value)" placeholder="client-name" class="flex-1 bg-raised border border-bdr rounded-lg px-3 py-2 text-sm mono font-semibold focus:outline-none focus:border-accent" />
-        <input value="${esc(c.target)}" onchange="updateClient('${c.id}','target',this.value)" placeholder="host:port" class="w-40 bg-raised border border-bdr rounded-lg px-3 py-2 text-xs mono focus:outline-none focus:border-accent" />
-        <select onchange="updateClient('${c.id}','default_mode',this.value)" class="bg-raised border border-bdr rounded-lg px-2 py-1 text-xs mono focus:outline-none focus:border-accent">
-          <option value="async" ${c.default_mode==='async'?'selected':''}>async</option>
-          <option value="sync" ${c.default_mode==='sync'?'selected':''}>sync</option>
-        </select>
-        <label class="flex items-center gap-1 text-[10px] text-dim"><input type="checkbox" ${c.tls_enabled?'checked':''} onchange="updateClient('${c.id}','tls_enabled',this.checked)" class="accent-accent w-3 h-3" /> TLS</label>
-        <button onclick="removeClient('${c.id}')" class="text-muted hover:text-ared">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
-      </div>
-      <div>
-        <label class="block text-[10px] text-muted mb-1">Allowed Workflows</label>
-        <div class="flex flex-wrap gap-2">${wfNames.map(n => `
-          <label class="flex items-center gap-1.5 text-xs mono"><input type="checkbox" ${c.allowed_workflows.includes(n)?'checked':''} onchange="toggleClientList('${c.id}','allowed_workflows','${n}',this.checked)" class="accent-accent w-3 h-3" />${n}</label>
-        `).join('')}
-        ${wfNames.length === 0 ? '<span class="text-[10px] text-muted">No workflows defined yet</span>' : ''}
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function updateClient(id, key, val) { const c = state.clients.find(x => x.id === id); if (c) c[key] = val; }
-function toggleClientList(cid, listKey, name, checked) {
-  const c = state.clients.find(x => x.id === cid);
-  if (!c) return;
-  if (checked && !c[listKey].includes(name)) c[listKey].push(name);
-  if (!checked) c[listKey] = c[listKey].filter(n => n !== name);
-}
-
-// ══════════════════════════════════════════════════════════════
-//  DROP ZONES
-// ══════════════════════════════════════════════════════════════
-function initDropZones() {
-  document.querySelectorAll('.drop-zone[data-target-type]').forEach(zone => {
-    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-    zone.addEventListener('drop', e => {
-      e.preventDefault();
-      zone.classList.remove('drag-over');
-      const typeVal = e.dataTransfer.getData('text/plain');
-      if (!typeVal) return;
-      const typeId = zone.dataset.targetType;
-      const t = state.types.find(x => x.id === typeId);
-      if (t && t.kind === 'struct') {
-        t.fields.push({ id: uid(), name: '', type: typeVal, required: true });
-        renderTypes();
-      }
-    });
-  });
-}
-
-// ══════════════════════════════════════════════════════════════
-//  YAML GENERATION
-// ══════════════════════════════════════════════════════════════
-function buildYaml() {
-  const config = {
-    schema_version: '1.0.0',
-    metadata: {
-      name: document.getElementById('meta_name').value,
-      namespace: document.getElementById('meta_namespace').value,
-      default_task_queue: document.getElementById('meta_taskqueue').value,
-      language: [document.getElementById('meta_language').value],
-    },
-  };
-
-  // Types
-  if (state.types.length > 0) {
-    config.types = state.types.filter(t => t.name).map(t => {
-      const entry = { name: t.name, kind: t.kind };
-      if (t.kind === 'struct') {
-        entry.fields = t.fields.filter(f => f.name).map(f => ({
-          name: f.name, type: f.type, required: f.required,
-        }));
-      } else if (t.kind === 'enum') {
-        entry.values = t.values.filter(v => v.name).map(v => ({ name: v.name, value: v.value || v.name }));
-      } else {
-        entry.alias_of = t.alias_of;
-      }
-      return entry;
-    });
-  }
-
-  // Retry policies
-  const retryNames = new Set();
-  state.activities.forEach(a => { if (a.retry_max_attempts) retryNames.add(`auto-${a.name}`); });
-  if (retryNames.size > 0) {
-    config.retry_policies = state.activities.filter(a => a.name && a.retry_max_attempts).map(a => ({
-      name: `auto-${a.name}`,
-      initial_interval: '1s',
-      backoff_coefficient: 2.0,
-      max_interval: '30s',
-      max_attempts: a.retry_max_attempts,
-    }));
-  }
-
-  // Activities
-  if (state.activities.length > 0) {
-    config.activities = state.activities.filter(a => a.name).map(a => {
-      const entry = {
-        name: a.name, description: a.description, mode: a.mode,
-        input: { type: a.input_type }, output: { type: a.output_type },
-        start_to_close_timeout: a.start_to_close_timeout,
-        retry_policy: `auto-${a.name}`,
-      };
-      if (a.mode === 'async') {
-        entry.heartbeat_timeout = a.heartbeat_timeout;
-        if (a.task_queue) entry.task_queue = a.task_queue;
-      }
-      return entry;
-    });
-  }
-
-  // Workflows
-  if (state.workflows.length > 0) {
-    config.workflows = state.workflows.filter(w => w.name).map(w => {
-      const entry = {
-        name: w.name, description: w.description, mode: w.mode,
-        input: { type: w.input_type }, output: { type: w.output_type },
-        execution_timeout: w.execution_timeout,
-      };
-      if (w.mode === 'cron') entry.cron_schedule = w.cron_schedule;
-      if (w.steps.length > 0) {
-        entry.steps = w.steps.filter(s => s.step_id).map(s => {
-          const step = { id: s.step_id, kind: s.kind };
-          if (s.kind === 'activity') step.activity = s.activity;
-          else if (s.kind === 'child_workflow') step.workflow = s.activity;
-          else if (s.kind === 'timer') step.duration = s.activity || '1m';
-          if (s.output_var) step.output_var = s.output_var;
-          return step;
-        });
-      }
-      return entry;
-    });
-  }
-
-  // Pipelines
-  if (state.pipelines.length > 0) {
-    config.pipelines = state.pipelines.filter(p => p.name).map(p => {
-      const entry = {
-        name: p.name, description: p.description,
-        trigger: { kind: p.trigger },
-        timeout: p.timeout,
-      };
-      if (p.stages.length > 0) {
-        entry.stages = p.stages.filter(s => s.stage_id).map(s => ({
-          id: s.stage_id, execution: s.execution,
-          workflows: [{ workflow: s.workflow, max_concurrency: s.max_concurrency }],
-        }));
-      }
-      return entry;
-    });
-  }
-
-  // Workers
-  if (state.workers.length > 0) {
-    config.workers = state.workers.filter(w => w.name).map(w => ({
-      name: w.name, task_queue: w.task_queue || config.metadata.default_task_queue,
-      activities: w.activities, workflows: w.workflows,
-      max_concurrent_activities: w.max_concurrent_activities,
-      max_concurrent_workflow_tasks: w.max_concurrent_workflow_tasks,
-      runtime: { replicas: w.replicas, cpu: w.cpu, memory: w.memory },
-    }));
-  }
-
-  // Clients
-  if (state.clients.length > 0) {
-    config.clients = state.clients.filter(c => c.name).map(c => {
-      const entry = {
-        name: c.name, target: c.target, default_mode: c.default_mode,
-        allowed_workflows: c.allowed_workflows,
-      };
-      if (c.tls_enabled) entry.tls = { enabled: true };
-      return entry;
-    });
-  }
-
-  return config;
-}
-
-function toYamlString(obj, indent = 0) {
-  const pad = '  '.repeat(indent);
-  let out = '';
-  if (Array.isArray(obj)) {
-    if (obj.length === 0) return '[]';
-    for (const item of obj) {
-      if (typeof item === 'object' && item !== null) {
-        out += `${pad}-\n`;
-        const inner = toYamlString(item, indent + 1);
-        out += inner;
-      } else {
-        out += `${pad}- ${JSON.stringify(item)}\n`;
-      }
-    }
-  } else if (typeof obj === 'object' && obj !== null) {
-    for (const [k, v] of Object.entries(obj)) {
-      if (v === undefined || v === null || v === '') continue;
-      if (typeof v === 'object') {
-        out += `${pad}${k}:\n`;
-        out += toYamlString(v, indent + 1);
-      } else if (typeof v === 'string') {
-        out += `${pad}${k}: "${v}"\n`;
-      } else {
-        out += `${pad}${k}: ${v}\n`;
-      }
-    }
-  }
-  return out;
-}
-
-// ══════════════════════════════════════════════════════════════
-//  PREVIEW / GENERATE / RESULTS
-// ══════════════════════════════════════════════════════════════
-let lastYaml = '';
-
-function previewYaml() {
-  const config = buildYaml();
-  lastYaml = toYamlString(config);
-  document.getElementById('yamlPreviewContent').textContent = lastYaml;
-  document.getElementById('yamlModal').classList.remove('hidden');
-  document.getElementById('yamlModal').classList.add('flex');
-}
-
-function closeYamlModal() {
-  document.getElementById('yamlModal').classList.add('hidden');
-  document.getElementById('yamlModal').classList.remove('flex');
-}
-
-function copyYaml() {
-  navigator.clipboard.writeText(lastYaml);
-  showToast('YAML copied to clipboard', 'agreen');
-}
-
-async function generateProject() {
-  const btn = document.getElementById('generateBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Generating...';
-
-  const config = buildYaml();
-  const yamlStr = toYamlString(config);
-
-  try {
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/yaml' },
-      body: yamlStr,
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || 'Generation failed');
-    }
-    const data = await res.json();
-    state.projects.unshift(data);
-    renderResults();
-    switchTab('results');
-    showToast(`Project "${data.project_name}" generated!`, 'agreen');
-  } catch (e) {
-    showToast(`Error: ${e.message}`, 'ared');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3l14 9-14 9V3z"/></svg> Generate';
-  }
-}
-
-async function loadProjects() {
-  try {
-    const res = await fetch('/api/projects');
-    const data = await res.json();
-    if (data.projects) {
-      state.projects = data.projects.map(p => ({
-        project_id: p.project_id,
-        project_name: p.project_name,
-        files: p.files.map(f => ({ name: f, download_url: `/api/projects/${p.project_id}/files/${f}` })),
-        download_all_url: p.download_url,
-      }));
-      renderResults();
-    }
-  } catch(e) { /* ignore on initial load */ }
-}
-
-function renderResults() {
-  const badge = document.getElementById('resultsBadge');
-  const empty = document.getElementById('resultsEmpty');
-  const list = document.getElementById('projectsList');
-
-  if (state.projects.length > 0) {
-    badge.textContent = state.projects.length;
-    badge.classList.remove('hidden');
-    empty.classList.add('hidden');
-  } else {
-    badge.classList.add('hidden');
-    empty.classList.remove('hidden');
-    list.innerHTML = '';
-    return;
-  }
-
-  const kindIcon = { worker: '⚙', client: '🔌', activities: '⚡', workflows: '🔄', types: '📦', config: '📄' };
-
-  list.innerHTML = state.projects.map(p => `
-    <div class="builder-card p-5">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h3 class="font-semibold text-sm">${esc(p.project_name || p.project_id)}</h3>
-          <p class="text-[11px] text-muted mono mt-0.5">${p.project_id}</p>
-        </div>
-        <a href="${p.download_all_url}" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          Download ZIP
-        </a>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-        ${(p.files || []).map(f => {
-          const kind = f.kind || (f.name.includes('worker') ? 'worker' : f.name.includes('client') ? 'client' : f.name.includes('activities') ? 'activities' : f.name.includes('workflows') ? 'workflows' : f.name.includes('types') ? 'types' : 'config');
-          return `
-          <a href="${f.download_url}" class="flex items-center gap-2 p-2.5 rounded-lg bg-raised border border-bdr hover:border-accent/40 transition-all group">
-            <span class="text-sm">${kindIcon[kind] || '📄'}</span>
-            <span class="text-xs mono text-dim group-hover:text-accent transition-colors truncate">${esc(f.name)}</span>
-          </a>`;
-        }).join('')}
-      </div>
-    </div>
-  `).join('');
-}
-
-// ══════════════════════════════════════════════════════════════
-//  TOAST NOTIFICATIONS
-// ══════════════════════════════════════════════════════════════
-function showToast(msg, color = 'accent') {
-  const container = document.getElementById('toasts');
-  const el = document.createElement('div');
-  el.className = `toast px-4 py-3 rounded-lg bg-surface border border-bdr shadow-xl flex items-center gap-2 text-sm`;
-  el.innerHTML = `<span class="w-2 h-2 rounded-full bg-${color}"></span><span>${msg}</span>`;
-  container.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 4000);
-}
-
-// ══════════════════════════════════════════════════════════════
-//  UTILITY
-// ══════════════════════════════════════════════════════════════
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-// ══════════════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  initPalette();
-  loadProjects();
-});
-</script>
+<script src="app.js"></script>
 </body>
 </html>

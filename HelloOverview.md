@@ -273,9 +273,600 @@ These states come from `WorkflowExecutionStatus` in the Temporal protobuf API. `
 
 ---
 
+## Real-World Case — Document Processing Pipeline
+
+*How Temporal transforms a fragile Spring Boot + CompletableFuture pipeline into a durable, observable, production-grade system*
+
+A typical enterprise document processing pipeline involves multiple long-running, failure-prone stages: uploading files, converting formats, extracting images, running OCR, persisting to databases and search indexes, and performing AI analytics. In a standard Spring Boot application these are chained together with `CompletableFuture` — which works until something goes wrong.
+
+---
+
+## The Pipeline — What It Does
+
+```
+  📄 Upload        →  📝 Convert to Text  →  🖼️ Extract Images  →  🔍 OCR
+  (PDF, DOCX,         (Apache Tika,          (PDFBox image       (Tesseract
+   XLSX, images)        Apache POI)            extraction)         OCR engine)
+        │                                                              │
+        ▼                                                              ▼
+  💾 Store in DB    ←──────────────────────────────────────   Merge all text
+  📊 Index in                                                  (original +
+     Elasticsearch                                              OCR results)
+        │
+        ▼
+  🤖 AI Analytics
+  (NLP summarization, entity extraction,
+   classification, sentiment analysis)
+```
+
+| Stage | What It Does | Failure Modes |
+|-------|-------------|---------------|
+| **Document Upload** | Accept file via REST, validate MIME type, stage to storage | Network timeout, disk full, invalid format |
+| **Convert to Text** | Parse PDF (PDFBox), DOCX (Apache POI), XLSX — extract raw text | Corrupt files, OOM on large documents, encoding issues |
+| **Extract Images from PDF** | Pull embedded images from PDF pages for OCR processing | Malformed PDF structure, unsupported image codecs |
+| **OCR** | Run Tesseract on extracted images and scanned pages to produce text | Tesseract crash, low-quality scans, timeout on large images |
+| **Store in DB + Elasticsearch** | Persist extracted text, metadata, and OCR results | DB connection pool exhaustion, ES cluster unavailable, mapping conflicts |
+| **AI Analytics** | NLP summarization, entity extraction, classification, sentiment | Model API timeout, rate limiting, token limit exceeded |
+
+> Every stage can fail independently. The question is: what happens when stage 4 fails after stages 1–3 already completed?
+
+---
+
+## The Problem — CompletableFuture Approach
+
+📄 **`DocumentProcessingService.java` — The Spring Boot Way**
+
+```java
+@Service
+public class DocumentProcessingService {
+
+    @Async
+    public CompletableFuture<ProcessingResult> processDocument(MultipartFile file) {
+        return CompletableFuture
+            .supplyAsync(() -> uploadAndStage(file))
+            .thenApplyAsync(staged -> convertToText(staged))
+            .thenApplyAsync(text -> extractImagesFromPdf(text))
+            .thenApplyAsync(images -> runOcr(images))
+            .thenApplyAsync(ocrResult -> mergeText(ocrResult))
+            .thenApplyAsync(fullText -> storeInDbAndElastic(fullText))
+            .thenApplyAsync(stored -> runAiAnalytics(stored))
+            .exceptionally(ex -> {
+                log.error("Pipeline failed: {}", ex.getMessage());
+                return ProcessingResult.failed(ex);  // entire pipeline lost
+            });
+    }
+}
+```
+
+### What Goes Wrong
+
+| Problem | Impact |
+|---------|--------|
+| **Server restarts** | The entire `CompletableFuture` chain is in-memory — all progress is lost. A 20-minute OCR job restarts from scratch. |
+| **No selective retry** | `exceptionally()` catches everything. If OCR fails, you can't retry just OCR — the whole chain re-runs or fails. |
+| **No visibility** | No way to query "what stage is document X in?" without building custom status tracking with a database. |
+| **No cancellation** | Once the chain starts, there's no clean way to cancel mid-pipeline from an external trigger. |
+| **No timeout per stage** | `CompletableFuture` has `orTimeout()` but it cancels the whole chain — you can't set per-stage timeouts with independent retries. |
+| **Scale ceiling** | Runs on Spring's `@Async` thread pool. Long-running OCR/AI tasks consume threads and starve other requests. |
+| **No heartbeats** | If Tesseract hangs for 10 minutes processing a scanned page, nothing detects it — the thread is just stuck. |
+
+> **Bottom line:** CompletableFuture is fire-and-forget. It works for simple async tasks but falls apart for multi-stage, long-running pipelines where reliability matters.
+
+---
+
+## The Solution — Temporal Workflow
+
+📄 **`DocumentProcessingWorkflow.java`**
+
+```java
+@WorkflowInterface
+public interface DocumentProcessingWorkflow {
+
+    @WorkflowMethod
+    ProcessingResult processDocument(DocumentRequest request);
+
+    @QueryMethod
+    PipelineStatus getStatus();
+
+    @SignalMethod
+    void requestCancellation(String reason);
+}
+```
+
+📄 **`DocumentProcessingWorkflowImpl.java`**
+
+```java
+@WorkflowImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
+public class DocumentProcessingWorkflowImpl implements DocumentProcessingWorkflow {
+
+    private PipelineStatus status = PipelineStatus.STARTED;
+    private boolean cancelRequested = false;
+
+    // Each activity has its own stub with independent timeouts and retries
+    private final UploadActivity uploadActivity = Workflow.newActivityStub(
+        UploadActivity.class,
+        ActivityOptions.newBuilder()
+            .setStartToCloseTimeout(Duration.ofMinutes(2))
+            .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
+            .build());
+
+    private final TextExtractionActivity extractActivity = Workflow.newActivityStub(
+        TextExtractionActivity.class,
+        ActivityOptions.newBuilder()
+            .setStartToCloseTimeout(Duration.ofMinutes(5))
+            .setHeartbeatTimeout(Duration.ofSeconds(30))
+            .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
+            .build());
+
+    private final OcrActivity ocrActivity = Workflow.newActivityStub(
+        OcrActivity.class,
+        ActivityOptions.newBuilder()
+            .setStartToCloseTimeout(Duration.ofMinutes(10))
+            .setHeartbeatTimeout(Duration.ofSeconds(30))
+            .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(3).build())
+            .build());
+
+    private final StorageActivity storageActivity = Workflow.newActivityStub(
+        StorageActivity.class,
+        ActivityOptions.newBuilder()
+            .setStartToCloseTimeout(Duration.ofMinutes(3))
+            .setRetryOptions(RetryOptions.newBuilder().setMaximumAttempts(5).build())
+            .build());
+
+    private final AiAnalyticsActivity aiActivity = Workflow.newActivityStub(
+        AiAnalyticsActivity.class,
+        ActivityOptions.newBuilder()
+            .setStartToCloseTimeout(Duration.ofMinutes(5))
+            .setRetryOptions(RetryOptions.newBuilder()
+                .setMaximumAttempts(3)
+                .setDoNotRetry(TokenLimitExceededException.class.getName())
+                .build())
+            .build());
+
+    @Override
+    public ProcessingResult processDocument(DocumentRequest request) {
+
+        // Stage 1 — Upload & Stage
+        status = PipelineStatus.UPLOADING;
+        StagedFile staged = uploadActivity.uploadAndStage(request);
+
+        if (cancelRequested) return ProcessingResult.cancelled("Cancelled after upload");
+
+        // Stage 2 — Convert to Text
+        status = PipelineStatus.EXTRACTING_TEXT;
+        ExtractionResult extracted = extractActivity.convertToText(staged);
+
+        // Stage 3 — Extract Images from PDF
+        status = PipelineStatus.EXTRACTING_IMAGES;
+        ImageExtractionResult images = extractActivity.extractImagesFromPdf(staged);
+
+        if (cancelRequested) return ProcessingResult.cancelled("Cancelled after extraction");
+
+        // Stage 4 — OCR on extracted images
+        status = PipelineStatus.RUNNING_OCR;
+        OcrResult ocrResult = ocrActivity.runOcr(images);
+
+        // Stage 5 — Merge text and persist
+        status = PipelineStatus.STORING;
+        String fullText = extracted.getText() + "\n" + ocrResult.getText();
+        StorageResult stored = storageActivity.storeInDbAndElastic(
+            request.getDocumentId(), fullText, extracted.getMetadata());
+
+        if (cancelRequested) return ProcessingResult.cancelled("Cancelled after storage");
+
+        // Stage 6 — AI Analytics
+        status = PipelineStatus.AI_ANALYTICS;
+        AiResult aiResult = aiActivity.runAnalytics(fullText, request.getAnalyticsConfig());
+
+        status = PipelineStatus.COMPLETED;
+        return ProcessingResult.success(stored, aiResult);
+    }
+
+    @Override
+    public PipelineStatus getStatus() { return status; }
+
+    @Override
+    public void requestCancellation(String reason) { cancelRequested = true; }
+}
+```
+
+---
+
+## Activity Definitions — Each Stage Isolated
+
+Each pipeline stage becomes its own Activity with independent timeouts, retries, and heartbeats.
+
+### Upload Activity
+
+```java
+@ActivityInterface
+public interface UploadActivity {
+    StagedFile uploadAndStage(DocumentRequest request);
+}
+
+@Component
+@ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
+public class UploadActivityImpl implements UploadActivity {
+    @Override
+    public StagedFile uploadAndStage(DocumentRequest request) {
+        // Validate MIME type, write to staging area
+        // Non-deterministic I/O — belongs in an Activity, not a Workflow
+        Path staged = stagingService.stage(request.getFile());
+        return new StagedFile(staged, request.getMetadata());
+    }
+}
+```
+
+### Text Extraction Activity (with Heartbeats)
+
+```java
+@ActivityInterface
+public interface TextExtractionActivity {
+    ExtractionResult convertToText(StagedFile staged);
+    ImageExtractionResult extractImagesFromPdf(StagedFile staged);
+}
+
+@Component
+@ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
+public class TextExtractionActivityImpl implements TextExtractionActivity {
+
+    @Override
+    public ExtractionResult convertToText(StagedFile staged) {
+        ActivityExecutionContext ctx = Activity.getExecutionContext();
+        ctx.heartbeat("Starting text extraction");      // ← tells Temporal we're alive
+
+        String text;
+        switch (staged.getMimeType()) {
+            case "application/pdf"  -> text = pdfBoxExtractor.extract(staged.getPath());
+            case "application/docx" -> text = poiExtractor.extractDocx(staged.getPath());
+            case "application/xlsx" -> text = poiExtractor.extractXlsx(staged.getPath());
+            default                 -> text = tikaExtractor.extract(staged.getPath());
+        }
+
+        ctx.heartbeat("Text extraction complete");
+        return new ExtractionResult(text, staged.getMetadata());
+    }
+
+    @Override
+    public ImageExtractionResult extractImagesFromPdf(StagedFile staged) {
+        ActivityExecutionContext ctx = Activity.getExecutionContext();
+        List<byte[]> images = new ArrayList<>();
+
+        try (PDDocument doc = PDDocument.load(staged.getPath().toFile())) {
+            for (int i = 0; i < doc.getNumberOfPages(); i++) {
+                ctx.heartbeat("Extracting images from page " + (i + 1));  // ← per-page heartbeat
+                images.addAll(imageExtractor.extractFromPage(doc.getPage(i)));
+            }
+        }
+        return new ImageExtractionResult(images);
+    }
+}
+```
+
+### OCR Activity (Long-Running with Heartbeats)
+
+```java
+@ActivityInterface
+public interface OcrActivity {
+    OcrResult runOcr(ImageExtractionResult images);
+}
+
+@Component
+@ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
+public class OcrActivityImpl implements OcrActivity {
+
+    @Override
+    public OcrResult runOcr(ImageExtractionResult images) {
+        ActivityExecutionContext ctx = Activity.getExecutionContext();
+        StringBuilder allText = new StringBuilder();
+
+        for (int i = 0; i < images.getImages().size(); i++) {
+            ctx.heartbeat("OCR processing image " + (i + 1) + "/" + images.getImages().size());
+            String text = tesseract.doOCR(images.getImages().get(i));
+            allText.append(text).append("\n");
+        }
+        return new OcrResult(allText.toString());
+    }
+}
+```
+
+### Storage Activity (DB + Elasticsearch)
+
+```java
+@ActivityInterface
+public interface StorageActivity {
+    StorageResult storeInDbAndElastic(String documentId, String fullText, DocumentMetadata meta);
+}
+
+@Component
+@ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
+public class StorageActivityImpl implements StorageActivity {
+
+    @Override
+    public StorageResult storeInDbAndElastic(String documentId, String fullText, DocumentMetadata meta) {
+        // Persist to relational database
+        DocumentEntity entity = documentRepository.save(
+            new DocumentEntity(documentId, fullText, meta));
+
+        // Index in Elasticsearch
+        elasticsearchClient.index(i -> i
+            .index("documents")
+            .id(documentId)
+            .document(new DocumentIndex(fullText, meta)));
+
+        return new StorageResult(entity.getId(), true);
+    }
+}
+```
+
+### AI Analytics Activity
+
+```java
+@ActivityInterface
+public interface AiAnalyticsActivity {
+    AiResult runAnalytics(String fullText, AnalyticsConfig config);
+}
+
+@Component
+@ActivityImpl(taskQueues = "DOCUMENT_PROCESSING_TASK_QUEUE")
+public class AiAnalyticsActivityImpl implements AiAnalyticsActivity {
+
+    @Override
+    public AiResult runAnalytics(String fullText, AnalyticsConfig config) {
+        ActivityExecutionContext ctx = Activity.getExecutionContext();
+
+        ctx.heartbeat("Running NLP summarization");
+        String summary = nlpService.summarize(fullText);
+
+        ctx.heartbeat("Extracting entities");
+        List<Entity> entities = nlpService.extractEntities(fullText);
+
+        ctx.heartbeat("Classifying document");
+        String classification = nlpService.classify(fullText, config.getCategories());
+
+        ctx.heartbeat("Running sentiment analysis");
+        SentimentScore sentiment = nlpService.analyzeSentiment(fullText);
+
+        return new AiResult(summary, entities, classification, sentiment);
+    }
+}
+```
+
+> Every Activity calls `ctx.heartbeat()` so Temporal knows the process is alive. If Tesseract hangs or the AI model times out, Temporal detects the missing heartbeat and retries the Activity — not the entire pipeline.
+
+---
+
+## Side-by-Side — CompletableFuture vs. Temporal
+
+| Capability | CompletableFuture | Temporal |
+|-----------|-------------------|----------|
+| **Durability on restart** | ✗ All progress lost — entire chain re-runs | ✓ Replays event history, resumes from last completed Activity |
+| **Per-stage retry** | ✗ `exceptionally()` catches all — no granular retry | ✓ Each Activity has its own `RetryOptions` with backoff |
+| **Per-stage timeout** | ✗ `orTimeout()` kills the whole chain | ✓ `startToCloseTimeout` per Activity — OCR gets 10 min, upload gets 2 min |
+| **Heartbeats (hang detection)** | ✗ Stuck thread goes unnoticed | ✓ `heartbeatTimeout` detects hung Tesseract or AI calls within seconds |
+| **Live status query** | ✗ Requires custom DB-backed status tracking | ✓ `@QueryMethod getStatus()` — zero additional infrastructure |
+| **Graceful cancellation** | ✗ `cancel()` on a CompletableFuture is best-effort | ✓ `@SignalMethod requestCancellation()` checked between stages |
+| **Observability** | ✗ Logs only — no structured event history | ✓ Full event history in Temporal Web UI (`localhost:8233`) |
+| **Horizontal scaling** | ✗ Bound to Spring `@Async` thread pool on one JVM | ✓ Run more Worker instances — Temporal distributes tasks automatically |
+| **Non-retryable errors** | ✗ Manual `instanceof` checks in `exceptionally()` | ✓ `setDoNotRetry(TokenLimitExceededException.class)` in `RetryOptions` |
+| **Cross-language** | ✗ Java only | ✓ Python or Java Workers can execute the same Workflow |
+
+---
+
+## The Spring Boot Controller — Before and After
+
+### Before (CompletableFuture)
+
+```java
+@PostMapping("/api/documents/upload")
+public ResponseEntity<String> upload(@RequestParam MultipartFile file) {
+    CompletableFuture<ProcessingResult> future = processingService.processDocument(file);
+    // No workflow ID, no status tracking, no way to reconnect after restart
+    return ResponseEntity.ok("Processing started");
+}
+```
+
+### After (Temporal)
+
+```java
+@PostMapping("/api/worker/upload")
+public ResponseEntity<Map<String, String>> upload(@RequestParam MultipartFile file) {
+    String workflowId = "doc-" + UUID.randomUUID();
+
+    WorkflowOptions opts = WorkflowOptions.newBuilder()
+        .setWorkflowId(workflowId)
+        .setTaskQueue("DOCUMENT_PROCESSING_TASK_QUEUE")
+        .build();
+
+    DocumentProcessingWorkflow wf = workflowClient.newWorkflowStub(
+        DocumentProcessingWorkflow.class, opts);
+
+    // Start async — returns immediately, processing is durable
+    WorkflowClient.start(wf::processDocument, new DocumentRequest(file, workflowId));
+
+    return ResponseEntity.accepted()
+        .body(Map.of("workflowId", workflowId, "status", "ACCEPTED"));
+}
+
+@GetMapping("/api/worker/status/{workflowId}")
+public ResponseEntity<PipelineStatus> getStatus(@PathVariable String workflowId) {
+    // No database needed — query Workflow state directly
+    DocumentProcessingWorkflow wf = workflowClient.newWorkflowStub(
+        DocumentProcessingWorkflow.class, workflowId);
+    return ResponseEntity.ok(wf.getStatus());
+}
+
+@PostMapping("/api/worker/cancel/{workflowId}")
+public ResponseEntity<Void> cancel(@PathVariable String workflowId, @RequestBody String reason) {
+    DocumentProcessingWorkflow wf = workflowClient.newWorkflowStub(
+        DocumentProcessingWorkflow.class, workflowId);
+    wf.requestCancellation(reason);
+    return ResponseEntity.accepted().build();
+}
+```
+
+> The controller returns `202 Accepted` with a `workflowId`. The frontend polls `/status/{workflowId}` every 2 seconds. The `@QueryMethod` returns the live pipeline stage — no database, no Redis, no custom status table.
+
+---
+
+## What Happens When Things Fail
+
+### Scenario 1 — Tesseract OCR crashes on page 47 of a 200-page PDF
+
+| CompletableFuture | Temporal |
+|-------------------|----------|
+| Entire pipeline fails. 30 minutes of text extraction is lost. User must re-upload. | OCR Activity fails. Temporal retries just the OCR Activity (up to 3 times). Stages 1–3 are already completed and cached — they don't re-run. |
+
+### Scenario 2 — Elasticsearch cluster goes down during indexing
+
+| CompletableFuture | Temporal |
+|-------------------|----------|
+| `exceptionally()` logs the error. All OCR and extraction work is gone. | Storage Activity retries with exponential backoff (`setMaximumAttempts(5)`). Upload, extraction, and OCR results are safe in Temporal's event history. When ES comes back, the Activity succeeds. |
+
+### Scenario 3 — Spring Boot server restarts mid-processing
+
+| CompletableFuture | Temporal |
+|-------------------|----------|
+| All in-flight `CompletableFuture` chains vanish. No record of what was processing. | Worker restarts and re-registers. Temporal replays the event history — completed Activities return cached results, the pipeline resumes from the exact stage where it left off. |
+
+### Scenario 4 — AI model API rate-limited during analytics
+
+| CompletableFuture | Temporal |
+|-------------------|----------|
+| Pipeline fails or blocks a thread indefinitely. | AI Activity has `heartbeatTimeout(30s)` — if the API hangs, Temporal detects it. `RetryOptions` with `setBackoffCoefficient(2.0)` adds increasing delays between retries, naturally backing off from the rate limit. |
+
+### Scenario 5 — User cancels a document that's mid-OCR
+
+| CompletableFuture | Temporal |
+|-------------------|----------|
+| No mechanism. `future.cancel()` is unreliable for chains. | Frontend calls `POST /api/worker/cancel/{id}`. The `@SignalMethod` sets `cancelRequested = true`. The Workflow checks this between stages and returns a `CANCELLED` result cleanly. |
+
+---
+
+## Document Pipeline — Architecture Diagram
+
+```
+  ┌──────────────────────────┐
+  │   Spring Boot REST API   │
+  │                          │
+  │  POST /api/worker/upload │──── WorkflowClient.start(wf::processDocument, request)
+  │  GET  /api/worker/status │──── wf.getStatus()  (@QueryMethod)
+  │  POST /api/worker/cancel │──── wf.requestCancellation()  (@SignalMethod)
+  └────────────┬─────────────┘
+               │ gRPC
+               ▼
+  ┌──────────────────────────────────────────┐
+  │           Temporal Server                │
+  │                                          │
+  │   Event History (durable, replayable)    │
+  │   Task Queue: DOCUMENT_PROCESSING_TASK_QUEUE │
+  │   Web UI: http://localhost:8233          │
+  └────────────┬─────────────────────────────┘
+               │ gRPC (poll)
+               ▼
+  ┌──────────────────────────────────────────────────────────┐
+  │                   Temporal Worker(s)                      │
+  │                                                          │
+  │  ┌─────────────────────────────────────────────────┐     │
+  │  │  DocumentProcessingWorkflowImpl                 │     │
+  │  │                                                 │     │
+  │  │  Stage 1 → UploadActivity           (2 min, 3x) │     │
+  │  │  Stage 2 → TextExtractionActivity   (5 min, 3x) │     │
+  │  │  Stage 3 → ImageExtractionActivity  (5 min, 3x) │     │
+  │  │  Stage 4 → OcrActivity             (10 min, 3x) │     │
+  │  │  Stage 5 → StorageActivity          (3 min, 5x) │     │
+  │  │  Stage 6 → AiAnalyticsActivity      (5 min, 3x) │     │
+  │  └─────────────────────────────────────────────────┘     │
+  │                                                          │
+  │  Scale: Run N instances → Temporal distributes tasks     │
+  └──────────────────────────────────────────────────────────┘
+               │                    │
+               ▼                    ▼
+  ┌────────────────────┐  ┌────────────────────┐
+  │   PostgreSQL /     │  │   Elasticsearch    │
+  │   MySQL Database   │  │   Cluster          │
+  └────────────────────┘  └────────────────────┘
+```
+
+---
+
+## Worker Registration — Spring Boot Integration
+
+📄 **`DocumentWorkerRegistrar.java`**
+
+```java
+@Component
+public class DocumentWorkerRegistrar {
+
+    @Autowired private WorkflowClient workflowClient;
+    @Autowired private UploadActivityImpl uploadActivity;
+    @Autowired private TextExtractionActivityImpl extractActivity;
+    @Autowired private OcrActivityImpl ocrActivity;
+    @Autowired private StorageActivityImpl storageActivity;
+    @Autowired private AiAnalyticsActivityImpl aiActivity;
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void startWorker() {
+        WorkerFactory factory = WorkerFactory.newInstance(workflowClient);
+
+        Worker worker = factory.newWorker(
+            "DOCUMENT_PROCESSING_TASK_QUEUE",
+            WorkerOptions.newBuilder()
+                .setMaxConcurrentActivityExecutionSize(20)   // parallel activities
+                .setMaxConcurrentWorkflowTaskExecutionSize(10)
+                .build());
+
+        // Register workflow type
+        worker.registerWorkflowImplementationTypes(
+            DocumentProcessingWorkflowImpl.class);
+
+        // Register all activity implementations (Spring beans — injectable)
+        worker.registerActivitiesImplementations(
+            uploadActivity, extractActivity, ocrActivity,
+            storageActivity, aiActivity);
+
+        factory.start();
+        log.info("Temporal Worker started on DOCUMENT_PROCESSING_TASK_QUEUE");
+    }
+}
+```
+
+> Because Activity implementations are Spring `@Component` beans, they can `@Autowired` repositories, Elasticsearch clients, AI services, and any other Spring-managed dependency — Temporal doesn't interfere with dependency injection.
+
+📖 [Java SDK → Core Application](https://docs.temporal.io/develop/java/core-application)
+
+---
+
+## `application.properties` — Configuration
+
+```properties
+# ── Temporal Connection ─────────────────────────────────────
+# LOCAL DEV:
+spring.temporal.connection.target=127.0.0.1:7233
+spring.temporal.namespace=default
+
+# Enable @WorkflowImpl / @ActivityImpl auto-discovery
+spring.temporal.workers-auto-discovery.packages=com.example.temporal
+
+# TEMPORAL CLOUD (production):
+# spring.temporal.connection.target=<ns>.tmprl.cloud:7233
+# spring.temporal.namespace=<your-namespace>
+# spring.temporal.connection.mtls.key-file=/path/client.key
+# spring.temporal.connection.mtls.cert-chain-file=/path/client.crt
+
+# ── Database ────────────────────────────────────────────────
+spring.datasource.url=jdbc:postgresql://localhost:5432/docprocessing
+spring.jpa.hibernate.ddl-auto=update
+
+# ── Elasticsearch ───────────────────────────────────────────
+spring.elasticsearch.uris=http://localhost:9200
+```
+
+---
+
 ## Key Takeaways
 
-⚙️ **Activities** hold all side effects — I/O, HTTP, DB. Decorated with `@activity.defn`.
+⚙️ **Activities** hold all side effects — I/O, HTTP, DB. Decorated with `@activity.defn` (Python) or `@ActivityInterface` (Java).
 
 🔁 **Workflows** are deterministic orchestrators. They schedule Activities and define retry logic.
 
@@ -286,6 +877,14 @@ These states come from `WorkflowExecutionStatus` in the Temporal protobuf API. `
 🛡️ **Fault tolerance** — Temporal replays event history after crashes, skipping completed steps. Your code runs to completion.
 
 🌐 **Cross-language** — Java CLI can start workflows that Python Workers execute — via gRPC + protobuf.
+
+📄 **Document pipelines** — Upload, convert, OCR, store, and analyze documents with per-stage retries, heartbeats, and live status queries. CompletableFuture chains can't offer any of this.
+
+🔍 **Observability for free** — `@QueryMethod` replaces custom status-tracking tables. Temporal Web UI shows the full event history of every document processed.
+
+🤖 **AI-ready** — Long-running NLP and model calls get their own Activity with `heartbeatTimeout` and `doNotRetry` for non-transient errors like token limits.
+
+💾 **Spring Boot native** — Activity impls are Spring `@Component` beans. Autowire repositories, ES clients, and AI services normally.
 
 ---
 
@@ -301,7 +900,12 @@ These states come from `WorkflowExecutionStatus` in the Temporal protobuf API. `
 | Java — Temporal Client | [docs.temporal.io/develop/java/temporal-client](https://docs.temporal.io/develop/java/temporal-client) |
 | Python — Failure Detection | [docs.temporal.io/develop/python/failure-detection](https://docs.temporal.io/develop/python/failure-detection) |
 | Java — Failure Detection | [docs.temporal.io/develop/java/failure-detection](https://docs.temporal.io/develop/java/failure-detection) |
+| Java — Message Passing (Query/Signal) | [docs.temporal.io/develop/java/message-passing](https://docs.temporal.io/develop/java/message-passing) |
+| Java — Observability & Logging | [docs.temporal.io/develop/java/observability](https://docs.temporal.io/develop/java/observability) |
 | Python — Sandbox | [docs.temporal.io/develop/python/python-sdk-sandbox](https://docs.temporal.io/develop/python/python-sdk-sandbox) |
 | Task Queues & Naming | [docs.temporal.io/task-queue/naming](https://docs.temporal.io/task-queue/naming) |
+| Activity Heartbeats | [docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat](https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat) |
+| Temporal Cloud Setup | [docs.temporal.io/cloud/get-started](https://docs.temporal.io/cloud/get-started) |
+| temporal-spring-boot-autoconfigure | [github.com/temporalio/sdk-java](https://github.com/temporalio/sdk-java) |
 | Python SDK on PyPI | [pypi.org/project/temporalio](https://pypi.org/project/temporalio/) |
-| Java SDK on GitHub | [github.com/temporalio/sdk-java](https://github.com/temporalio/sdk-java) |
+| Java SDK on Maven Central | [search.maven.org — temporal-sdk](https://search.maven.org/artifact/io.temporal/temporal-sdk) |

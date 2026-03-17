@@ -1,93 +1,246 @@
 activities:
-- input:
-    type: person
+- description: Validates order data, checks SKU catalog, verifies pricing.
+  input:
+    type: OrderInput
   mode: sync
-  name: upload
+  name: validate_order
   output:
-    type: person
-  retry_policy: auto-upload
-  start_to_close_timeout: 30s
-- input:
-    type: person
+    type: OrderInput
+  retry_policy: auto-validate_order
+  start_to_close_timeout: 10s
+- description: Reserves stock for each line item. Idempotent by order_id.
+  input:
+    type: OrderInput
   mode: sync
-  name: checktype
+  name: reserve_inventory
   output:
+    type: bool
+  retry_policy: auto-reserve_inventory
+  start_to_close_timeout: 15s
+- description: Captures payment via gateway. Heartbeats while waiting for processor
+    callback.
+  heartbeat_timeout: 30s
+  input:
+    type: OrderInput
+  mode: async
+  name: capture_payment
+  output:
+    type: PaymentResult
+  retry_policy: auto-capture_payment
+  start_to_close_timeout: 3m
+- description: Hands order to warehouse. Heartbeats as pick/pack/ship progresses.
+  heartbeat_timeout: 5m
+  input:
+    type: OrderInput
+  mode: async
+  name: fulfill_order
+  output:
+    type: ShipmentResult
+  retry_policy: auto-fulfill_order
+  start_to_close_timeout: 23h
+  task_queue: fulfillment
+- description: Sends order confirmation or shipment notification email.
+  input:
     type: string
-  retry_policy: auto-checktype
+  mode: sync
+  name: send_notification
+  output:
+    type: bool
+  retry_policy: auto-send_notification
   start_to_close_timeout: 30s
 clients:
 - allowed_workflows:
-  - demoworflow
+  - ProcessOrder
   default_mode: async
-  name: client
-  target: localhost:7233
+  name: order-api-client
+  target: temporal.internal:7233
+  tls:
+    enabled: true
+- allowed_workflows:
+  - ProcessOrder
+  - CleanupStaleOrders
+  default_mode: sync
+  name: admin-client
+  target: temporal.internal:7233
+  tls:
+    enabled: true
 metadata:
-  default_task_queue: main-queue
+  default_task_queue: order-processing
   language:
-  - go
-  name: MyTemporalProject
-  namespace: default
-pipelines:
-- name: piepline1
-  stages:
-  - execution: sequential
-    id: '1'
-    workflows:
-    - max_concurrency: 10
-      workflow: demoworflow
-  timeout: 12h
-  trigger:
-    kind: manual
+  - python
+  name: OrderProcessingSystem
+  namespace: orders-prod
 retry_policies:
 - backoff_coefficient: 2
   initial_interval: 1s
-  max_attempts: 3
+  max_attempts: 5
   max_interval: 30s
-  name: auto-upload
+  name: auto-validate_order
 - backoff_coefficient: 2
   initial_interval: 1s
   max_attempts: 3
   max_interval: 30s
-  name: auto-checktype
+  name: auto-reserve_inventory
+- backoff_coefficient: 2
+  initial_interval: 1s
+  max_attempts: 3
+  max_interval: 30s
+  name: auto-capture_payment
+- backoff_coefficient: 2
+  initial_interval: 1s
+  max_attempts: 5
+  max_interval: 30s
+  name: auto-fulfill_order
+- backoff_coefficient: 2
+  initial_interval: 1s
+  max_attempts: 10
+  max_interval: 30s
+  name: auto-send_notification
 schema_version: 1.0.0
 types:
 - fields:
-  - name: name
-    required: true
-    type: string
-  - name: id
+  - name: amount
     required: true
     type: int
+  - name: currency
+    required: true
+    type: string
   kind: struct
-  name: person
+  name: Money
+- fields:
+  - name: sku
+    required: true
+    type: string
+  - name: quantity
+    required: true
+    type: int
+  - name: unit_price
+    required: true
+    type: Money
+  kind: struct
+  name: OrderItem
+- fields:
+  - name: order_id
+    required: true
+    type: string
+  - name: customer_id
+    required: true
+    type: string
+  - name: items
+    required: true
+    type: list<string>
+  - name: total
+    required: true
+    type: Money
+  kind: struct
+  name: OrderInput
+- kind: enum
+  name: OrderStatus
+  values:
+  - name: PENDING
+    value: pending
+  - name: PAYMENT_CAPTURED
+    value: payment_captured
+  - name: SHIPPED
+    value: shipped
+  - name: COMPLETED
+    value: completed
+  - name: CANCELLED
+    value: cancelled
+- fields:
+  - name: transaction_id
+    required: true
+    type: string
+  - name: captured
+    required: true
+    type: bool
+  kind: struct
+  name: PaymentResult
+- fields:
+  - name: tracking_number
+    required: true
+    type: string
+  - name: carrier
+    required: true
+    type: string
+  kind: struct
+  name: ShipmentResult
 workers:
 - activities:
-  - upload
-  - checktype
-  max_concurrent_activities: 200
+  - validate_order
+  - reserve_inventory
+  max_concurrent_activities: 100
   max_concurrent_workflow_tasks: 200
-  name: myworker
+  name: order-worker
+  runtime:
+    cpu: '1'
+    memory: 1Gi
+    replicas: 3
+  task_queue: order-processing
+  workflows:
+  - ProcessOrder
+  - CleanupStaleOrders
+- activities:
+  - capture_payment
+  max_concurrent_activities: 50
+  max_concurrent_workflow_tasks: 200
+  name: payment-worker
   runtime:
     cpu: 500m
     memory: 512Mi
-    replicas: 1
-  task_queue: main-queue
+    replicas: 2
+  task_queue: order-processing
   workflows:
-  - demoworflow
+  - ProcessOrder
+- activities:
+  - fulfill_order
+  - send_notification
+  max_concurrent_activities: 25
+  max_concurrent_workflow_tasks: 200
+  name: fulfillment-worker
+  runtime:
+    cpu: 500m
+    memory: 512Mi
+    replicas: 2
+  task_queue: fulfillment
+  workflows:
+  - ProcessOrder
 workflows:
-- execution_timeout: 1h
+- description: End-to-end order processing with saga-style compensation.
+  execution_timeout: 48h
   input:
-    type: string
+    type: OrderInput
   mode: async
-  name: demoworflow
+  name: ProcessOrder
   output:
     type: string
   steps:
-  - activity: upload
-    id: '1'
+  - activity: validate_order
+    id: validate
     kind: activity
-    output_var: file
-  - activity: checktype
-    id: '2'
+    output_var: validated_order
+  - activity: reserve_inventory
+    id: reserve
     kind: activity
-    output_var: answer
+    output_var: reserved
+  - activity: capture_payment
+    id: payment
+    kind: activity
+    output_var: payment_result
+  - activity: fulfill_order
+    id: fulfill
+    kind: activity
+    output_var: shipment
+  - activity: send_notification
+    id: notify
+    kind: activity
+    output_var: notified
+- cron_schedule: 0 3 * * *
+  description: Runs daily to cancel stuck orders older than 24h.
+  execution_timeout: 1h
+  input:
+    type: 'null'
+  mode: cron
+  name: CleanupStaleOrders
+  output:
+    type: int

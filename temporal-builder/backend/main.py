@@ -97,6 +97,80 @@ def parse_duration_to_seconds(dur: str) -> str:
     return f"timedelta(seconds={val})"
 
 
+# ── Server-side Validation ─────────────────────────────────
+
+import re
+
+def validate_config(config: dict) -> list[str]:
+    """Validate the YAML config and return a list of error messages."""
+    errors = []
+    meta = config.get("metadata", {})
+
+    if not meta.get("name"):
+        errors.append("metadata.name is required")
+    if not meta.get("namespace"):
+        errors.append("metadata.namespace is required")
+    if not meta.get("default_task_queue"):
+        errors.append("metadata.default_task_queue is required")
+
+    # Validate activities
+    act_names = set()
+    for act in config.get("activities", []):
+        name = act.get("name", "")
+        if not name:
+            errors.append("Activity missing name")
+        elif name in act_names:
+            errors.append(f"Duplicate activity name: {name}")
+        else:
+            act_names.add(name)
+
+        mode = act.get("mode", "sync")
+        if mode not in ("sync", "async"):
+            errors.append(f"Activity '{name}': invalid mode '{mode}'")
+
+        timeout = act.get("start_to_close_timeout", "")
+        if timeout and not re.match(r'^\d+(ms|s|m|h|d)$', timeout):
+            errors.append(f"Activity '{name}': invalid timeout format '{timeout}'")
+
+    # Validate workflows
+    wf_names = set()
+    for wf in config.get("workflows", []):
+        name = wf.get("name", "")
+        if not name:
+            errors.append("Workflow missing name")
+        elif name in wf_names:
+            errors.append(f"Duplicate workflow name: {name}")
+        else:
+            wf_names.add(name)
+
+        if wf.get("mode") == "cron" and not wf.get("cron_schedule"):
+            errors.append(f"Workflow '{name}': cron mode requires cron_schedule")
+
+        for step in wf.get("steps", []):
+            if not step.get("id"):
+                errors.append(f"Workflow '{name}': step missing id")
+            if step.get("kind") == "activity":
+                ref = step.get("activity", "")
+                if ref and ref not in act_names:
+                    errors.append(f"Workflow '{name}': step references undefined activity '{ref}'")
+
+    # Validate workers
+    for w in config.get("workers", []):
+        if not w.get("name"):
+            errors.append("Worker missing name")
+        if not w.get("task_queue"):
+            errors.append(f"Worker '{w.get('name', '?')}': task_queue is required")
+
+    # Validate clients
+    for c in config.get("clients", []):
+        if not c.get("name"):
+            errors.append("Client missing name")
+        if not c.get("target"):
+            errors.append(f"Client '{c.get('name', '?')}': target is required")
+
+    return errors
+
+
 # ── Routes ────────────────────────────────────────────────────
 
 @app.get("/api/health")
@@ -118,6 +192,11 @@ async def generate(request: Request):
 
     if not config:
         raise HTTPException(status_code=400, detail="Empty config")
+
+    # ── Server-side validation ───────────────────────────────
+    errors = validate_config(config)
+    if errors:
+        raise HTTPException(status_code=422, detail=f"Validation failed: {'; '.join(errors)}")
 
     # ── Create project folder ────────────────────────────────
     project_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:8]

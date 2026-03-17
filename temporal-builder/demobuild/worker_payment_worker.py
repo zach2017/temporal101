@@ -1,4 +1,4 @@
-"""Auto-generated Temporal worker: myworker"""
+"""Auto-generated Temporal worker: payment-worker"""
 
 import asyncio
 import signal
@@ -10,31 +10,29 @@ from temporalio.worker import Worker
 # Import activities & workflows
 try:
     from .activities import (
-        upload,
-        checktype,
+        capture_payment,
     )
     from .workflows import (
-        demoworflow,
+        ProcessOrder,
     )
 except ImportError:
     from activities import (
-        upload,
-        checktype,
+        capture_payment,
     )
     from workflows import (
-        demoworflow,
+        ProcessOrder,
     )
 
-TASK_QUEUE = "main-queue"
-NAMESPACE = "default"
-MAX_CONCURRENT_ACTIVITIES = 200
+TASK_QUEUE = "order-processing"
+NAMESPACE = "orders-prod"
+MAX_CONCURRENT_ACTIVITIES = 50
 MAX_CONCURRENT_WORKFLOW_TASKS = 200
 
 logger = logging.getLogger(__name__)
 
 
 async def run_worker():
-    """Start the myworker worker."""
+    """Start the payment-worker worker."""
     logger.info(f'Connecting to Temporal at localhost:7233, namespace={NAMESPACE}')
     client = await Client.connect(
         "localhost:7233",
@@ -45,17 +43,16 @@ async def run_worker():
         client,
         task_queue=TASK_QUEUE,
         activities=[
-            upload,
-            checktype,
+            capture_payment,
         ],
         workflows=[
-            demoworflow,
+            ProcessOrder,
         ],
         max_concurrent_activities=MAX_CONCURRENT_ACTIVITIES,
         max_concurrent_workflow_tasks=MAX_CONCURRENT_WORKFLOW_TASKS,
     )
 
-    logger.info(f'Worker "myworker" started on queue={TASK_QUEUE}')
+    logger.info(f'Worker "payment-worker" started on queue={TASK_QUEUE}')
 
     shutdown_event = asyncio.Event()
 
