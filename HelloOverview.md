@@ -36,6 +36,10 @@
 - [Document Pipeline — Architecture Diagram](#document-pipeline--architecture-diagram)
 - [Worker Registration — Spring Boot Integration](#worker-registration--spring-boot-integration)
 - [Configuration](#configuration)
+- [Scaling as Clients Multiply](#scaling-as-clients-multiply)
+- [Scaling Clients — Many Entry Points](#scaling-clients--many-entry-points)
+- [Production Scaling Patterns](#production-scaling-patterns)
+- [Architecture at Scale](#architecture-at-scale)
 - [Key Takeaways](#key-takeaways)
 - [References](#references)
 
@@ -1148,6 +1152,441 @@ spring.elasticsearch.uris=http://localhost:9200
 
 ---
 
+## Scaling as Clients Multiply
+
+*What happens when 10, 100, or 1,000 clients submit documents simultaneously?*
+
+### The Core Scaling Principle
+
+Temporal fundamentally separates **submission** from **execution**. Clients submit workflow requests to the Temporal Server. Workers pull tasks from a Task Queue. These two sides scale independently — adding 100 more clients doesn't require adding 100 more Workers.
+
+```
+                          SUBMISSION SIDE                    EXECUTION SIDE
+                        (scales with demand)              (scales with capacity)
+
+  Client 1 ──┐                                        ┌── Worker 1
+  Client 2 ──┤                                        ├── Worker 2
+  Client 3 ──┤                                        ├── Worker 3
+  ...        ├──►  Temporal Server  ──►  Task Queue  ──┼── Worker 4
+  Client 98 ──┤      (manages state)     (durable)    ├── ...
+  Client 99 ──┤      (queues tasks)      (buffered)   ├── Worker N-1
+  Client 100──┘                                        └── Worker N
+```
+
+### Without Temporal — Single JVM Bottleneck
+
+```
+  Client 1 ──┐
+  Client 2 ──┤──►  Spring Boot @Async Thread Pool  ──►  🔥 BOTTLENECK
+  Client 3 ──┘      8 threads = 8 docs max
+                     OCR hogs threads for 10+ minutes
+                     Long AI jobs starve upload threads
+                     Crash = all progress lost
+                     No way to add capacity without redesign
+```
+
+The `@Async` thread pool is the ceiling. Long-running OCR and AI Activities consume threads, starving short upload requests. When the JVM restarts, every in-flight `CompletableFuture` vanishes. Vertical scaling (bigger JVM, more threads) only delays the problem.
+
+### With Temporal — Elastic Workers
+
+```
+  Client 1 ──┐                                        ┌── Worker 1  (upload, text)
+  Client 2 ──┤                                        ├── Worker 2  (upload, text)
+  Client 3 ──┤──►  Temporal Server  ──►  Task Queue  ──┼── Worker 3  (OCR, GPU)
+  Client 4 ──┤      (manages state)     (decoupled)   ├── Worker 4  (OCR, GPU)
+  Client 5 ──┘                                        └── Worker 5  (AI, Python)
+```
+
+Temporal **decouples submission from execution**. Clients submit workflows to the server. Workers pull tasks from the queue independently. Adding more clients just means more workflows in the queue — Workers scale separately to match the load.
+
+### Comparison: Scaling Dimensions
+
+| Dimension | Without Temporal | With Temporal |
+|-----------|-----------------|---------------|
+| **Client throughput** | Limited by JVM thread pool (8–64 threads) | Unlimited — server queues all requests |
+| **Worker throughput** | Same JVM as REST API — shared resources | Independent processes — scale to N |
+| **Crash recovery** | All in-flight work lost | Replay from Event History, resume from last Activity |
+| **Resource isolation** | OCR blocks upload threads | Separate Workers / queues for heavy Activities |
+| **Adding capacity** | Vertical only (bigger JVM) | `kubectl scale deployment doc-worker --replicas=20` |
+| **Backpressure** | None — excess requests rejected or queued in-memory | Task Queue buffers naturally — Workers drain at their own pace |
+| **Cost efficiency** | Over-provision for peak or drop requests | Scale Workers up for peak, down for quiet periods |
+| **Multi-region** | Application-level complexity | Temporal Cloud supports multi-region namespaces |
+
+### How Backpressure Works
+
+When clients submit faster than Workers can process, the Task Queue acts as a durable buffer:
+
+```
+  High traffic period:
+
+  100 clients ──► Temporal Server ──► Task Queue (500 pending tasks)
+                                            │
+                                    Workers drain at ~50/min
+                                    No tasks lost, no timeouts
+                                    Auto-scale Workers to catch up
+
+  Low traffic period:
+
+  5 clients ──► Temporal Server ──► Task Queue (0–3 pending tasks)
+                                            │
+                                    Scale Workers down to save cost
+                                    Idle Workers have zero overhead
+```
+
+Unlike an in-memory queue that drops tasks when full, the Temporal Task Queue is durable — tasks survive server restarts and are never lost. Workers process them at their own pace.
+
+---
+
+## Scaling Clients — Many Entry Points
+
+*Any system that can make a gRPC call can be a Temporal Client*
+
+| Client Type | Example | How It Starts Workflows |
+|-------------|---------|------------------------|
+| 🌐 **REST API** | Spring Boot controllers, FastAPI endpoints | User uploads via browser → `WorkflowClient.start()` |
+| ⚡ **Microservices** | Internal order-processing, ingestion services | Service-to-service → Temporal Client SDK |
+| ⌨️ **CLI Tools** | Java/Go CLI for batch uploads, admin ops | `java -jar client.jar start-async --steps 100` |
+| 📅 **Scheduled Jobs** | Cron jobs, Temporal Schedules | Nightly batch → `ScheduleClient.create()` |
+| 📨 **Event Consumers** | Kafka/SQS listeners | Message arrives → start workflow per message |
+| 🤖 **AI Agents** | LLM orchestrators, LangChain pipelines | Agent decides to analyze a document programmatically |
+
+```
+  🌐 REST API ──────────┐
+  ⚡ Microservices ──────┤
+  ⌨️ CLI Tools ──────────┤
+  📅 Scheduled Jobs ─────┼──►  Temporal Server  +  Task Queue
+  📨 Event Consumers ────┤
+  🤖 AI Agents ──────────┘
+```
+
+All clients converge on the **same Temporal Server** and **same Task Queue**. They don't need to know about each other — or about the Workers.
+
+### Client Code Examples
+
+**REST API Client (Spring Boot)**
+
+```java
+@PostMapping("/api/worker/upload")
+public ResponseEntity<Map<String, String>> upload(@RequestParam MultipartFile file) {
+    String workflowId = "doc-" + UUID.randomUUID();
+    WorkflowClient.start(wf::processDocument, new DocumentRequest(file, workflowId));
+    return ResponseEntity.accepted().body(Map.of("workflowId", workflowId));
+}
+```
+
+**Event Consumer Client (Kafka)**
+
+```java
+@KafkaListener(topics = "document-ingestion")
+public void onDocumentEvent(DocumentEvent event) {
+    String workflowId = "doc-" + event.getDocumentId();
+    WorkflowOptions opts = WorkflowOptions.newBuilder()
+        .setWorkflowId(workflowId)
+        .setTaskQueue("DOCUMENT_PROCESSING_TASK_QUEUE")
+        .build();
+    DocumentProcessingWorkflow wf = workflowClient.newWorkflowStub(
+        DocumentProcessingWorkflow.class, opts);
+    WorkflowClient.start(wf::processDocument, event.toRequest());
+    log.info("Started workflow {} from Kafka event", workflowId);
+}
+```
+
+**Scheduled Batch Client (Temporal Schedules)**
+
+```java
+// Create a schedule that runs every night at 2 AM
+ScheduleClient scheduleClient = ScheduleClient.newInstance(workflowClient);
+scheduleClient.createSchedule(
+    "nightly-batch-reprocess",
+    Schedule.newBuilder()
+        .setAction(ScheduleActionStartWorkflow.newBuilder()
+            .setWorkflowType("BatchReprocessWorkflow")
+            .setTaskQueue("DOCUMENT_PROCESSING_TASK_QUEUE")
+            .build())
+        .setSpec(ScheduleSpec.newBuilder()
+            .setCronExpressions(List.of("0 2 * * *"))  // 2 AM daily
+            .build())
+        .build());
+```
+
+**CLI Client (from the demo)**
+
+```bash
+# Start a workflow from the command line
+java -jar temporal-longrunning-client.jar start-async \
+    --job-id batch-2026-03-17 \
+    --steps 50 \
+    --task-queue DOCUMENT_PROCESSING_TASK_QUEUE
+
+# Check status later
+java -jar temporal-longrunning-client.jar status \
+    --workflow-id long-running-batch-2026-03-17
+
+# Get result when done
+java -jar temporal-longrunning-client.jar result \
+    --workflow-id long-running-batch-2026-03-17
+```
+
+**Python AI Agent Client**
+
+```python
+from temporalio.client import Client
+
+async def ai_agent_triggers_analysis(document_url: str, analysis_type: str):
+    client = await Client.connect("localhost:7233")
+
+    result = await client.execute_workflow(
+        "DocumentProcessingWorkflow",
+        DocumentRequest(url=document_url, analytics_config=analysis_type),
+        id=f"ai-agent-{uuid4()}",
+        task_queue="DOCUMENT_PROCESSING_TASK_QUEUE",
+    )
+    return result  # AI agent uses this result for further reasoning
+```
+
+> **Client scaling is free:** adding more clients just means more workflows in the queue. Workers scale independently — add instances to handle the load. No client registration, no connection pooling between clients and Workers, no shared state.
+
+---
+
+## Production Scaling Patterns
+
+*How to scale from 10 to 10,000+ concurrent document workflows*
+
+### 1. Horizontal Worker Scaling
+
+Run N Worker instances on the same Task Queue. Temporal distributes tasks round-robin. No leader election, no coordination code. Add and remove Workers at any time with zero downtime.
+
+```bash
+# Scale from 1 to 20 Workers instantly
+kubectl scale deployment doc-worker --replicas=20
+
+# Or use Horizontal Pod Autoscaler based on Task Queue depth
+kubectl autoscale deployment doc-worker --min=2 --max=50 --cpu-percent=70
+```
+
+**How it works:** Every Worker instance polls the same `DOCUMENT_PROCESSING_TASK_QUEUE`. Temporal assigns each task to exactly one Worker. No sticky sessions, no partition keys, no manual shard assignment. A new Worker starts polling within seconds of startup.
+
+```
+  Task Queue: "DOCUMENT_PROCESSING_TASK_QUEUE"
+
+  Before scaling:                   After scaling:
+  ┌──────────┐                     ┌──────────┐
+  │ Worker 1 │ ← 100% load         │ Worker 1 │ ← 20% load
+  └──────────┘                     ├──────────┤
+                                   │ Worker 2 │ ← 20% load
+                                   ├──────────┤
+                                   │ Worker 3 │ ← 20% load
+                                   ├──────────┤
+                                   │ Worker 4 │ ← 20% load
+                                   ├──────────┤
+                                   │ Worker 5 │ ← 20% load
+                                   └──────────┘
+```
+
+### 2. Dedicated Task Queues
+
+Route heavy Activities (OCR, AI) to specialized queues with GPU Workers. Lightweight Activities stay on standard Workers. A single Workflow can fan out to multiple queues.
+
+```java
+// In the Workflow — route OCR to GPU Workers
+private final OcrActivity ocrActivity = Workflow.newActivityStub(
+    OcrActivity.class,
+    ActivityOptions.newBuilder()
+        .setTaskQueue("gpu-ocr-queue")     // separate queue for GPU nodes
+        .setStartToCloseTimeout(Duration.ofMinutes(10))
+        .setHeartbeatTimeout(Duration.ofSeconds(30))
+        .build());
+
+// Route AI analytics to Python ML Workers
+private final AiAnalyticsActivity aiActivity = Workflow.newActivityStub(
+    AiAnalyticsActivity.class,
+    ActivityOptions.newBuilder()
+        .setTaskQueue("ai-analytics-queue")  // Python Workers with PyTorch
+        .setStartToCloseTimeout(Duration.ofMinutes(5))
+        .build());
+```
+
+```
+  Workflow runs on:  "doc-pipeline"       →  Standard Workers (×10, Java)
+  OCR Activity on:   "gpu-ocr-queue"      →  GPU Workers (×4, Java + Tesseract)
+  AI Activity on:    "ai-analytics-queue"  →  ML Workers (×6, Python + PyTorch)
+  Storage on:        "doc-pipeline"       →  Standard Workers (same pool)
+```
+
+This pattern lets you scale each Activity type independently based on its resource profile. OCR needs GPUs? Add GPU Workers. AI is the bottleneck? Scale up the Python ML pool. Upload is fast? Keep the standard pool small.
+
+### 3. Worker Tuning
+
+Control concurrency per Worker to match hardware. Prevent one long OCR job from blocking short uploads on the same Worker.
+
+```java
+Worker worker = factory.newWorker(
+    "DOCUMENT_PROCESSING_TASK_QUEUE",
+    WorkerOptions.newBuilder()
+        .setMaxConcurrentActivityExecutionSize(20)       // 20 parallel activities
+        .setMaxConcurrentWorkflowTaskExecutionSize(50)   // 50 parallel workflow tasks
+        .setMaxConcurrentLocalActivityExecutionSize(10)  // 10 local activities
+        .build());
+```
+
+**Tuning guidelines:**
+
+| Worker Type | Activity Concurrency | Workflow Concurrency | Why |
+|-------------|---------------------|---------------------|-----|
+| **Standard** (upload, text, storage) | 20 | 50 | I/O-bound — more concurrency is fine |
+| **GPU** (OCR) | 2–4 | 10 | GPU memory limits — fewer parallel jobs |
+| **ML** (AI analytics) | 4–8 | 20 | Model inference is CPU/GPU-heavy |
+
+### 4. Auto-Scaling with Kubernetes
+
+Use Temporal's built-in metrics to drive Kubernetes Horizontal Pod Autoscaler (HPA). The key metric is **Task Queue backlog** — how many tasks are waiting.
+
+```yaml
+# Kubernetes HPA based on Temporal metrics via Prometheus
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: doc-worker-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: doc-worker
+  minReplicas: 2
+  maxReplicas: 50
+  metrics:
+    - type: Pods
+      pods:
+        metric:
+          name: temporal_activity_schedule_to_start_latency
+        target:
+          type: AverageValue
+          averageValue: "5000"   # scale up if tasks wait > 5 seconds
+```
+
+**Key Temporal metrics for auto-scaling:**
+
+| Metric | What It Measures | Scale Up When |
+|--------|-----------------|---------------|
+| `temporal_activity_schedule_to_start_latency` | Time tasks wait in queue before a Worker picks them up | > 5 seconds (tasks backing up) |
+| `temporal_sticky_cache_size` | Workflow cache entries per Worker | Approaching limit (cache evictions) |
+| `temporal_worker_task_slots_available` | Free slots on each Worker | Approaching 0 (Worker saturated) |
+
+📖 [Java SDK → Observability & Metrics](https://docs.temporal.io/develop/java/observability)
+
+### 5. Multi-Namespace & Temporal Cloud
+
+Isolate tenants or environments with namespaces. Temporal Cloud handles server scaling — you only manage Workers.
+
+```properties
+# Temporal Cloud — fully managed, auto-scaling server
+spring.temporal.connection.target=<ns>.tmprl.cloud:7233
+spring.temporal.namespace=prod-docs
+spring.temporal.connection.mtls.key-file=/path/client.key
+spring.temporal.connection.mtls.cert-chain-file=/path/client.crt
+```
+
+**Namespace isolation patterns:**
+
+| Pattern | Namespaces | Use Case |
+|---------|-----------|----------|
+| **Per environment** | `dev-docs`, `staging-docs`, `prod-docs` | Standard SDLC isolation |
+| **Per tenant** | `tenant-acme`, `tenant-globex` | Multi-tenant SaaS — each customer gets their own namespace |
+| **Per team** | `team-ingest`, `team-analytics` | Large org — teams manage their own workflows independently |
+
+> Temporal Server itself scales to millions of concurrent workflows. You only scale Workers — and Temporal distributes the work.
+
+📖 [Temporal Cloud → Get Started](https://docs.temporal.io/cloud/get-started)
+
+---
+
+## Architecture at Scale
+
+### High-Level Architecture
+
+```
+┌────────────────────────┐   ┌──────────────────────────┐   ┌─────────────────────────────┐
+│  100+ Concurrent       │   │     1 Temporal Server     │   │     N Worker Instances       │
+│  Clients               │   │                           │   │                              │
+│                        │   │  Task Queues              │   │  Standard Workers (×10)      │
+│  REST · CLI · Events   │──►│  Event History            │──►│  GPU Workers (×4, OCR + AI)  │──►  PostgreSQL
+│  Schedules · Agents    │   │  Scheduler                │   │  ML Workers (×6, Python)     │──►  Elasticsearch
+│  Microservices         │   │  Web UI :8233             │   │                              │──►  S3 / MinIO
+└────────────────────────┘   └──────────────────────────┘   └─────────────────────────────┘
+```
+
+### Component Scaling Strategies
+
+| Component | Scaling Strategy |
+|-----------|-----------------|
+| **Clients** | Add as many as needed — each just calls `WorkflowClient.start()`. No registration required. |
+| **Temporal Server** | Self-managed: horizontal sharding across 4+ nodes. Cloud: fully managed by Temporal, auto-scales. |
+| **Standard Workers** | `kubectl scale --replicas=N` — handles upload, text extraction, storage. I/O-bound, scale wide. |
+| **GPU Workers** | Dedicated nodes with GPUs on `gpu-ocr-queue` — handles OCR and image processing. Scale by GPU count. |
+| **ML Workers** | Python Workers with PyTorch on `ai-analytics-queue` — handles NLP tasks. Scale by model throughput. |
+| **PostgreSQL** | Read replicas for query load. Partitioning by document date for large tables. |
+| **Elasticsearch** | Cluster auto-scales on index size. Separate hot/warm/cold tiers for document lifecycle. |
+| **S3 / Object Storage** | Effectively infinite — store staged files and extracted images by reference. |
+
+### Capacity Planning by Growth Stage
+
+| Stage | Concurrent Docs | Workers | Task Queues | Infrastructure |
+|-------|----------------|---------|-------------|---------------|
+| **Dev / POC** | 1–10 | 1 Worker (local) | 1 queue | Local Temporal CLI, single JVM |
+| **Small team** | 10–50 | 2–5 Workers | 1 queue | Docker Compose, single Temporal server |
+| **Production** | 50–500 | 5–20 Workers | 2–3 queues | Kubernetes, Temporal cluster (3 nodes) |
+| **High volume** | 500–5,000 | 20–100 Workers | 3–5 queues (standard, GPU, AI) | K8s with HPA, Temporal Cloud or 5+ node cluster |
+| **Enterprise** | 5,000+ | 100+ Workers | 5+ queues, multiple namespaces | Temporal Cloud, multi-region, dedicated GPU pools |
+
+### Scaling the Temporal Server Itself
+
+For self-hosted deployments, the Temporal Server consists of four services that scale independently:
+
+```
+  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+  │  Frontend    │  │  History     │  │  Matching    │  │  Worker      │
+  │  Service     │  │  Service     │  │  Service     │  │  Service     │
+  │             │  │             │  │             │  │  (internal)  │
+  │  Accepts    │  │  Manages    │  │  Dispatches  │  │  System      │
+  │  gRPC calls │  │  event      │  │  tasks to    │  │  workflows   │
+  │  from       │  │  history    │  │  Workers via │  │  (archival,  │
+  │  clients    │  │  per        │  │  Task Queues │  │   cleanup)   │
+  │             │  │  workflow   │  │             │  │             │
+  │  ×2–4       │  │  ×4–8       │  │  ×2–4       │  │  ×1–2       │
+  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
+         │                │                │                │
+         └────────────────┼────────────────┼────────────────┘
+                          ▼
+               ┌─────────────────┐
+               │  Persistence    │
+               │  (PostgreSQL,   │
+               │   Cassandra,    │
+               │   or MySQL)     │
+               └─────────────────┘
+```
+
+**With Temporal Cloud**, you skip all of this — Temporal manages the server, persistence, and scaling. You deploy only Workers.
+
+### Multi-Region Deployment
+
+For global applications, Temporal Cloud supports multi-region namespaces:
+
+```
+  Region: US-East                          Region: EU-West
+  ┌──────────────────┐                    ┌──────────────────┐
+  │  US Clients      │                    │  EU Clients      │
+  │  US Workers      │◄──── Temporal ────►│  EU Workers      │
+  │  US PostgreSQL   │      Cloud         │  EU PostgreSQL   │
+  │  US Elasticsearch│   (multi-region)   │  EU Elasticsearch│
+  └──────────────────┘                    └──────────────────┘
+```
+
+Workers can run in any region. Temporal routes tasks to the nearest available Worker. Event history is replicated for durability. This gives you both low latency (local Workers) and disaster recovery (cross-region failover).
+
+> **Key insight:** Adding clients doesn't slow anything down. Each workflow is independent with its own Event History. Scale Workers to match inbound rate. Temporal Cloud handles server-side scaling for you.
+
+---
+
 ## Key Takeaways
 
 ⚙️ **Activities** hold all side effects — I/O, HTTP, DB. Decorated with `@activity.defn` (Python) or `@ActivityInterface` (Java).
@@ -1173,6 +1612,8 @@ spring.elasticsearch.uris=http://localhost:9200
 🌐 **Cross-language** — Java CLI can start workflows that Python Workers execute — via gRPC + protobuf.
 
 🔀 **Polyglot Workers** — Python, Java, and Go Workers can poll the same Task Queue simultaneously. Use Python for AI, Go for throughput, Java for enterprise — in the same Workflow.
+
+📈 **Scaling is decoupled** — 1,000 clients submit workflows. Workers scale independently. Dedicated Task Queues route OCR to GPU nodes and AI to ML Workers. Temporal Cloud handles server-side scaling.
 
 ---
 
@@ -1202,3 +1643,8 @@ spring.elasticsearch.uris=http://localhost:9200
 | Go SDK on GitHub | [github.com/temporalio/sdk-go](https://github.com/temporalio/sdk-go) |
 | Python SDK on PyPI | [pypi.org/project/temporalio](https://pypi.org/project/temporalio/) |
 | Java SDK on Maven Central | [search.maven.org — temporal-sdk](https://search.maven.org/artifact/io.temporal/temporal-sdk) |
+| Workers — Concepts | [docs.temporal.io/workers](https://docs.temporal.io/workers) |
+| Task Queues — Concepts | [docs.temporal.io/task-queue](https://docs.temporal.io/task-queue) |
+| Temporal Cloud — Pricing & Scaling | [docs.temporal.io/cloud](https://docs.temporal.io/cloud) |
+| Worker Performance Tuning | [docs.temporal.io/develop/worker-performance](https://docs.temporal.io/develop/worker-performance) |
+| Temporal Visibility (Search Attributes) | [docs.temporal.io/visibility](https://docs.temporal.io/visibility) |
