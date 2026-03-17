@@ -17,6 +17,9 @@
 - [Step 2 — Define a Workflow](#step-2--define-a-workflow)
 - [Step 3 — Register a Worker](#step-3--register-a-worker)
 - [Step 4 — Start a Workflow from a Client](#step-4--start-a-workflow-from-a-client)
+- [Workers in Every Language — Java & Go Examples](#workers-in-every-language--java--go-examples)
+- [Three Workers, One Pattern](#three-workers-one-pattern)
+- [Python vs. Java vs. Go Workers — Pros & Cons](#python-vs-java-vs-go-workers--pros--cons)
 - [Fault Tolerance](#fault-tolerance)
 - [Workflow Lifecycle](#workflow-lifecycle)
 - [Real-World Case — Document Processing Pipeline](#real-world-case--document-processing-pipeline)
@@ -247,6 +250,184 @@ The Java CLI offers four commands: `start`, `start-async`, `status`, and `result
 📖 [Java SDK → Temporal Client](https://docs.temporal.io/develop/java/temporal-client)
 
 > **Cross-language interop:** The Java CLI starts the same workflows that the Python worker executes. Temporal's gRPC + protobuf protocol makes this seamless — no shared code needed.
+
+---
+
+## Workers in Every Language — Java & Go Examples
+
+*Same concepts, same Temporal Server — different SDK idioms*
+
+### ☕ Java Worker
+
+```java
+// Connect to Temporal
+WorkflowServiceStubs service = WorkflowServiceStubs.newLocalServiceStubs();
+WorkflowClient client = WorkflowClient.newInstance(service);
+
+// Create Worker on the task queue
+WorkerFactory factory = WorkerFactory.newInstance(client);
+Worker worker = factory.newWorker("hello-world-queue");
+
+// Register workflow + activity implementations
+worker.registerWorkflowImplementationTypes(HelloWorkflowImpl.class);
+worker.registerActivitiesImplementations(new GreetActivityImpl());
+
+// Start polling
+factory.start();
+```
+
+📖 [Java SDK → Run a Worker](https://docs.temporal.io/develop/java/core-application#run-a-dev-worker)
+
+### 🐹 Go Worker
+
+```go
+// Connect to Temporal
+c, err := client.Dial(client.Options{
+    HostPort: "localhost:7233",
+})
+if err != nil {
+    log.Fatal("Unable to connect", err)
+}
+defer c.Close()
+
+// Create Worker on the task queue
+w := worker.New(c, "hello-world-queue", worker.Options{})
+
+// Register workflow + activity functions
+w.RegisterWorkflow(HelloWorkflow)
+w.RegisterActivity(Greet)
+
+// Start polling (blocks until interrupt signal)
+err = w.Run(worker.InterruptCh())
+if err != nil {
+    log.Fatal("Worker failed", err)
+}
+```
+
+📖 [Go SDK → Run a Worker](https://docs.temporal.io/develop/go/core-application#run-a-dev-worker)
+
+> All three SDKs share the same pattern: connect → create worker → register types → run. Same server, same Task Queue.
+
+---
+
+## Three Workers, One Pattern
+
+*Every SDK follows the same lifecycle: Connect → Create Worker → Register Types → Run*
+
+### Side-by-Side Comparison
+
+| Step | 🐍 Python | ☕ Java | 🐹 Go |
+|------|----------|--------|-------|
+| **Connect** | `Client.connect(host)` | `WorkflowServiceStubs.newLocalServiceStubs()` → `WorkflowClient.newInstance(service)` | `client.Dial(client.Options{HostPort: "..."})` |
+| **Create Worker** | `Worker(client, task_queue="queue")` | `WorkerFactory.newInstance(client)` → `factory.newWorker("queue")` | `worker.New(c, "queue", worker.Options{})` |
+| **Register Workflows** | `workflows=[HelloWorldWorkflow]` | `worker.registerWorkflowImplementationTypes(Impl.class)` | `w.RegisterWorkflow(HelloWorkflow)` |
+| **Register Activities** | `activities=[say_hello]` | `worker.registerActivitiesImplementations(new Impl())` | `w.RegisterActivity(Greet)` |
+| **Run** | `await worker.run()` | `factory.start()` | `w.Run(worker.InterruptCh())` |
+
+### Polyglot Workers on the Same Task Queue
+
+All three SDKs can poll the **same Task Queue simultaneously**. Temporal distributes tasks to whichever Worker picks them up first. This enables powerful patterns:
+
+```
+                    ┌──────────────────────────────┐
+                    │      Temporal Server          │
+                    │  Task Queue: "doc-pipeline"   │
+                    └──┬──────────┬──────────┬─────┘
+                       │          │          │
+                       ▼          ▼          ▼
+                 ┌──────────┐ ┌────────┐ ┌────────┐
+                 │ Python   │ │  Java  │ │   Go   │
+                 │ Worker   │ │ Worker │ │ Worker │
+                 │          │ │        │ │        │
+                 │ AI/ML    │ │ Spring │ │ High-  │
+                 │ Activities│ │ Boot   │ │ thru-  │
+                 │ (PyTorch)│ │ (JPA)  │ │ put I/O│
+                 └──────────┘ └────────┘ └────────┘
+```
+
+> Mix languages per Activity — Python for AI inference, Java for enterprise integrations, Go for high-throughput I/O. The Workflow orchestrator doesn't care which language executes its Activities.
+
+---
+
+## Python vs. Java vs. Go Workers — Pros & Cons
+
+*Choosing the right SDK for your team and workload*
+
+### 🐍 Python
+
+**✅ Pros**
+
+- Fastest prototyping — minimal boilerplate, clean `@activity.defn` / `@workflow.defn` decorators
+- Native `async/await` — excellent for I/O-heavy Activities (HTTP calls, DB queries, API calls)
+- Rich AI/ML ecosystem — PyTorch, HuggingFace, scikit-learn, LangChain all available in Activities
+- Built-in workflow sandbox enforces determinism at import time
+- Type hints + dataclasses make Activity inputs/outputs clean and self-documenting
+
+**⚠️ Cons**
+
+- GIL limits CPU parallelism — compute-heavy Activities run slower than Java/Go equivalents
+- Slower than JVM or Go for raw throughput on CPU-bound work
+- Smaller Temporal community and fewer production examples compared to Java/Go
+
+**🎯 Best for:** AI/ML pipelines, data science workflows, rapid prototyping, teams already using Python
+
+📖 [Python SDK Developer Guide](https://docs.temporal.io/develop/python)
+
+### ☕ Java
+
+**✅ Pros**
+
+- Mature enterprise ecosystem — Spring Boot, JPA, Hibernate, Maven/Gradle all integrate cleanly
+- Strong typing catches errors at compile time — Activity and Workflow signatures are type-safe
+- JVM is fast, well-optimized, and battle-tested at scale
+- Largest Temporal SDK community with the most samples and production case studies
+- `temporal-spring-boot-autoconfigure` provides `@WorkflowImpl` / `@ActivityImpl` auto-discovery
+
+**⚠️ Cons**
+
+- Verbose — more boilerplate than Python or Go (interfaces + implementations + stubs)
+- Longer startup times due to JVM warmup (relevant for cold-start scenarios)
+- Heavier memory footprint per Worker compared to Go
+
+**🎯 Best for:** Enterprise applications, Spring Boot backends, document processing pipelines, teams with Java expertise
+
+📖 [Java SDK Developer Guide](https://docs.temporal.io/develop/java)
+
+### 🐹 Go
+
+**✅ Pros**
+
+- Temporal itself is written in Go — the Go SDK is first-class and always up-to-date
+- Fastest startup time and lowest memory consumption per Worker of all three SDKs
+- Goroutines provide massive concurrency with tiny per-goroutine overhead (~2 KB stack)
+- Compiles to a single static binary — simple deployment, no runtime dependencies
+- Excellent choice for infrastructure and platform teams building internal tooling
+
+**⚠️ Cons**
+
+- No generics in Activity/Workflow function signatures (must use interface types for complex payloads)
+- Smaller enterprise library ecosystem compared to Java (no Spring equivalent)
+- Error handling verbosity — `if err != nil` patterns throughout Worker and Activity code
+
+**🎯 Best for:** High-throughput Workers, microservices, infrastructure automation, platform engineering
+
+📖 [Go SDK Developer Guide](https://docs.temporal.io/develop/go)
+
+### Quick Decision Matrix
+
+| Factor | Python | Java | Go |
+|--------|--------|------|-----|
+| **Startup speed** | Medium | Slow (JVM) | Fast |
+| **Memory per Worker** | Medium | High | Low |
+| **CPU throughput** | Low (GIL) | High | High |
+| **I/O concurrency** | High (async) | High (threads) | Very High (goroutines) |
+| **Enterprise ecosystem** | Medium | Very High | Medium |
+| **AI/ML ecosystem** | Very High | Low | Low |
+| **Boilerplate** | Low | High | Medium |
+| **Temporal community** | Growing | Largest | Large |
+| **Deploy complexity** | pip + venv | JVM + JAR | Single binary |
+
+> **You don't have to choose just one.** Multiple Workers in different languages can poll the same Task Queue. Use Python for AI Activities, Go for high-throughput I/O, and Java for enterprise integrations — all in the same Workflow.
 
 ---
 
@@ -991,6 +1172,8 @@ spring.elasticsearch.uris=http://localhost:9200
 
 🌐 **Cross-language** — Java CLI can start workflows that Python Workers execute — via gRPC + protobuf.
 
+🔀 **Polyglot Workers** — Python, Java, and Go Workers can poll the same Task Queue simultaneously. Use Python for AI, Go for throughput, Java for enterprise — in the same Workflow.
+
 ---
 
 ## References
@@ -999,18 +1182,23 @@ spring.elasticsearch.uris=http://localhost:9200
 |----------|------|
 | Python SDK Developer Guide | [docs.temporal.io/develop/python](https://docs.temporal.io/develop/python) |
 | Java SDK Developer Guide | [docs.temporal.io/develop/java](https://docs.temporal.io/develop/java) |
+| Go SDK Developer Guide | [docs.temporal.io/develop/go](https://docs.temporal.io/develop/go) |
 | Python — Core Application | [docs.temporal.io/develop/python/core-application](https://docs.temporal.io/develop/python/core-application) |
 | Java — Core Application | [docs.temporal.io/develop/java/core-application](https://docs.temporal.io/develop/java/core-application) |
+| Go — Core Application | [docs.temporal.io/develop/go/core-application](https://docs.temporal.io/develop/go/core-application) |
 | Python — Temporal Client | [docs.temporal.io/develop/python/temporal-client](https://docs.temporal.io/develop/python/temporal-client) |
 | Java — Temporal Client | [docs.temporal.io/develop/java/temporal-client](https://docs.temporal.io/develop/java/temporal-client) |
+| Go — Temporal Client | [docs.temporal.io/develop/go/temporal-client](https://docs.temporal.io/develop/go/temporal-client) |
 | Python — Failure Detection | [docs.temporal.io/develop/python/failure-detection](https://docs.temporal.io/develop/python/failure-detection) |
 | Java — Failure Detection | [docs.temporal.io/develop/java/failure-detection](https://docs.temporal.io/develop/java/failure-detection) |
+| Go — Failure Detection | [docs.temporal.io/develop/go/failure-detection](https://docs.temporal.io/develop/go/failure-detection) |
 | Java — Message Passing (Query/Signal) | [docs.temporal.io/develop/java/message-passing](https://docs.temporal.io/develop/java/message-passing) |
 | Java — Observability & Logging | [docs.temporal.io/develop/java/observability](https://docs.temporal.io/develop/java/observability) |
 | Python — Sandbox | [docs.temporal.io/develop/python/python-sdk-sandbox](https://docs.temporal.io/develop/python/python-sdk-sandbox) |
 | Task Queues & Naming | [docs.temporal.io/task-queue/naming](https://docs.temporal.io/task-queue/naming) |
 | Activity Heartbeats | [docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat](https://docs.temporal.io/encyclopedia/detecting-activity-failures#activity-heartbeat) |
 | Temporal Cloud Setup | [docs.temporal.io/cloud/get-started](https://docs.temporal.io/cloud/get-started) |
-| temporal-spring-boot-autoconfigure | [github.com/temporalio/sdk-java](https://github.com/temporalio/sdk-java) |
+| Java SDK on GitHub | [github.com/temporalio/sdk-java](https://github.com/temporalio/sdk-java) |
+| Go SDK on GitHub | [github.com/temporalio/sdk-go](https://github.com/temporalio/sdk-go) |
 | Python SDK on PyPI | [pypi.org/project/temporalio](https://pypi.org/project/temporalio/) |
 | Java SDK on Maven Central | [search.maven.org — temporal-sdk](https://search.maven.org/artifact/io.temporal/temporal-sdk) |
