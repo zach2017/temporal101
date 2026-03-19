@@ -1,0 +1,14 @@
+# ============================================================
+# OPTION 2: Pre-built JAR (CI/CD pipeline approach)
+# ============================================================
+
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+COPY service-b/target/service-b-1.0.0.jar app.jar
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -1,0 +1,48 @@
+# ============================================================
+# OPTION 1: Multi-stage build (recommended for production)
+# Builds everything inside Docker — no local JDK needed.
+# ============================================================
+
+# ── Stage 1: BUILD ──────────────────────────────────────────
+# Uses a full JDK + Maven image to compile all modules.
+# The entire multi-module project is copied in so Maven
+# can resolve the common-lib dependency during the build.
+FROM maven:3.9.9-eclipse-temurin-21 AS builder
+
+WORKDIR /build
+
+# Copy parent POM first (Docker cache optimization)
+COPY pom.xml .
+
+# Copy ALL module POMs (needed for dependency resolution)
+COPY common-lib/pom.xml  common-lib/
+COPY service-a/pom.xml   service-a/
+COPY service-b/pom.xml   service-b/
+
+# Download dependencies (cached unless POMs change)
+RUN mvn dependency:go-offline -B
+
+# Copy source code
+COPY common-lib/src common-lib/src
+COPY service-a/src service-a/src
+# service-b/src is NOT needed here — we only build service-a
+# But we need its pom.xml above for the reactor to resolve
+
+# Build only common-lib + service-a (skip service-b)
+RUN mvn package -pl common-lib,service-a -B -q
+
+# ── Stage 2: RUN ────────────────────────────────────────────
+# Uses a minimal JRE image — no Maven, no compiler, no source.
+# Final image is ~200 MB instead of ~800 MB.
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+# Copy only the fat JAR from the build stage
+COPY --from=builder /build/service-a/target/service-a-1.0.0.jar app.jar
+
+# Non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

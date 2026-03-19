@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- ──────────────────────────────────────────────
+         PARENT COORDINATES
+         Every child inherits groupId + version from here
+         ────────────────────────────────────────────── -->
+    <groupId>com.example</groupId>
+    <artifactId>my-platform</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>My Platform (Parent)</name>
+
+    <!-- ──────────────────────────────────────────────
+         MODULES — the reactor build order
+         Maven resolves dependency order automatically:
+           1. common-lib  (no internal deps)
+           2. service-a   (depends on common-lib)
+           3. service-b   (depends on common-lib)
+         ────────────────────────────────────────────── -->
+    <modules>
+        <module>common-lib</module>
+        <module>service-a</module>
+        <module>service-b</module>
+    </modules>
+
+    <!-- ──────────────────────────────────────────────
+         PROPERTIES — single source of truth for versions
+         Children reference these via ${property.name}
+         ────────────────────────────────────────────── -->
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Dependency versions (centralized here) -->
+        <gson.version>2.11.0</gson.version>
+        <slf4j.version>2.0.13</slf4j.version>
+        <logback.version>1.5.6</logback.version>
+    </properties>
+
+    <!-- ──────────────────────────────────────────────
+         DEPENDENCY MANAGEMENT
+         Declares versions WITHOUT adding them to classpath.
+         Children can use these deps without specifying <version>.
+         ────────────────────────────────────────────── -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Internal module -->
+            <dependency>
+                <groupId>com.example</groupId>
+                <artifactId>common-lib</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Third-party -->
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- ──────────────────────────────────────────────
+         BUILD PLUGINS (inherited by all children)
+         ────────────────────────────────────────────── -->
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <source>${java.version}</source>
+                        <target>${java.version}</target>
+                    </configuration>
+                </plugin>
+
+                <!-- Builds fat JARs for services -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

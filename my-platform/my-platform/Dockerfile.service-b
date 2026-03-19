@@ -1,0 +1,33 @@
+# ============================================================
+# OPTION 1: Multi-stage build (recommended for production)
+# ============================================================
+
+# ── Stage 1: BUILD ──────────────────────────────────────────
+FROM maven:3.9.9-eclipse-temurin-21 AS builder
+
+WORKDIR /build
+
+COPY pom.xml .
+COPY common-lib/pom.xml  common-lib/
+COPY service-a/pom.xml   service-a/
+COPY service-b/pom.xml   service-b/
+
+RUN mvn dependency:go-offline -B
+
+COPY common-lib/src common-lib/src
+COPY service-b/src service-b/src
+
+# Build only common-lib + service-b
+RUN mvn package -pl common-lib,service-b -B -q
+
+# ── Stage 2: RUN ────────────────────────────────────────────
+FROM eclipse-temurin:21-jre-alpine
+
+WORKDIR /app
+
+COPY --from=builder /build/service-b/target/service-b-1.0.0.jar app.jar
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

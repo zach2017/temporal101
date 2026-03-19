@@ -1,0 +1,17 @@
+# docker-compose.yml
+# Run: docker compose up --build
+
+services:
+  service-a:
+    build:
+      context: .
+      dockerfile: Dockerfile.service-a
+    container_name: service-a
+    image: my-platform/service-a:1.0.0
+
+  service-b:
+    build:
+      context: .
+      dockerfile: Dockerfile.service-b
+    container_name: service-b
+    image: my-platform/service-b:1.0.0
