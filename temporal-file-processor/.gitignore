@@ -1,0 +1,33 @@
+# ── Build output ──────────────────────
+target/
+*.jar
+*.class
+
+# ── IDE ───────────────────────────────
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+.factorypath
+*.swp
+*.swo
+
+# ── OS ────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────
+logs/
+*.log
+
+# ── Docker test fixtures ─────────────
+docker/test-fixtures/
+
+# ── Environment overrides ─────────────
+.env.local
+.env.production
+
+# ── Temp ──────────────────────────────
+tmp/

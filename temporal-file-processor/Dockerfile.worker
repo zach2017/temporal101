@@ -1,0 +1,62 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  Stage 1: Build the Maven project
+# ═══════════════════════════════════════════════════════════════════════
+FROM maven:3.9-eclipse-temurin-21 AS builder
+
+WORKDIR /build
+COPY pom.xml .
+COPY file-processor-common/pom.xml file-processor-common/
+COPY file-processor-worker/pom.xml file-processor-worker/
+COPY file-processor-client/pom.xml file-processor-client/
+
+# Download dependencies (cached unless POM changes)
+RUN mvn dependency:go-offline -B
+
+COPY file-processor-common/src file-processor-common/src
+COPY file-processor-worker/src file-processor-worker/src
+COPY file-processor-client/src file-processor-client/src
+
+RUN mvn clean package -DskipTests -B -pl file-processor-common,file-processor-worker
+
+
+# ═══════════════════════════════════════════════════════════════════════
+#  Stage 2: Runtime image with Tesseract OCR installed
+# ═══════════════════════════════════════════════════════════════════════
+FROM eclipse-temurin:21-jre-jammy
+
+LABEL maintainer="file-processor-team"
+LABEL description="Temporal File Processor Worker with Tesseract OCR"
+
+# Install Tesseract OCR + language packs
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        tesseract-ocr \
+        tesseract-ocr-eng \
+        libtesseract-dev \
+        libleptonica-dev \
+        # For image handling
+        libpng-dev \
+        libjpeg-dev \
+        libtiff-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set Tesseract data path
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+
+# Create working directories
+RUN mkdir -p /tmp/file-processor /data/inbox /data/outbox /app/logs
+
+WORKDIR /app
+
+# Copy the fat JAR from the build stage
+COPY --from=builder \
+     /build/file-processor-worker/target/file-processor-worker-1.0.0-SNAPSHOT.jar \
+     /app/file-processor-worker.jar
+
+# Environment variables (overrideable at runtime)
+ENV TEMPORAL_ADDRESS=temporal:7233
+ENV TEMPORAL_NAMESPACE=default
+ENV WORKER_MAX_CONCURRENT_ACTIVITIES=5
+ENV JAVA_OPTS="-Xms256m -Xmx512m"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/file-processor-worker.jar"]

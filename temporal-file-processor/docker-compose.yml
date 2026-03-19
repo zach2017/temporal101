@@ -1,0 +1,144 @@
+# ═══════════════════════════════════════════════════════════════════════
+#  Temporal File Processor — Docker Compose
+#
+#  Spins up:
+#    1. PostgreSQL          — Temporal persistence backend
+#    2. Temporal Server     — orchestration engine
+#    3. Temporal UI         — web dashboard (port 8080)
+#    4. File Processor Worker — our worker with Tesseract OCR
+#
+#  Usage:
+#    docker compose up -d                # start everything
+#    docker compose logs -f worker       # tail worker logs
+#    docker compose run client \         # submit a test file
+#      -f test.pdf -l /data/inbox/test.pdf -o /data/outbox
+#
+#    docker compose down -v              # tear down + wipe volumes
+# ═══════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── PostgreSQL (Temporal persistence) ─────────────────────────────
+  postgresql:
+    image: postgres:16-alpine
+    container_name: temporal-postgres
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - temporal-net
+
+  # ── Temporal Server (auto-setup mode) ─────────────────────────────
+  temporal:
+    image: temporalio/auto-setup:1.25.2
+    container_name: temporal-server
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - temporal-net
+
+  # ── Temporal Web UI ───────────────────────────────────────────────
+  temporal-ui:
+    image: temporalio/ui:2.31.2
+    container_name: temporal-ui
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"
+    networks:
+      - temporal-net
+
+  # ── File Processor Worker ─────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: file-processor-worker
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - WORKER_MAX_CONCURRENT_ACTIVITIES=5
+      - TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+      - JAVA_OPTS=-Xms256m -Xmx1g
+    volumes:
+      # Shared data volumes — the client places files in inbox,
+      # the worker reads from inbox and writes to outbox
+      - file-inbox:/data/inbox
+      - file-outbox:/data/outbox
+      - worker-tmp:/tmp/file-processor
+      - worker-logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - temporal-net
+
+  # ── File Processor Client (run on-demand) ─────────────────────────
+  #    docker compose run client -f test.pdf -l /data/inbox/test.pdf -o /data/outbox
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: file-processor-client
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+    volumes:
+      - file-inbox:/data/inbox
+      - file-outbox:/data/outbox
+    profiles:
+      - cli    # Only starts when explicitly invoked
+    networks:
+      - temporal-net
+
+# ── Volumes ─────────────────────────────────────────────────────────
+volumes:
+  postgres-data:
+    driver: local
+  file-inbox:
+    driver: local
+  file-outbox:
+    driver: local
+  worker-tmp:
+    driver: local
+  worker-logs:
+    driver: local
+
+# ── Network ─────────────────────────────────────────────────────────
+networks:
+  temporal-net:
+    driver: bridge
