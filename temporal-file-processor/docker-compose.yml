@@ -20,7 +20,7 @@ services:
 
   # ── PostgreSQL (Temporal persistence) ─────────────────────────────
   postgresql:
-    image: postgres:16-alpine
+    image: postgres:17
     container_name: temporal-postgres
     environment:
       POSTGRES_USER: temporal
@@ -40,7 +40,7 @@ services:
 
   # ── Temporal Server (auto-setup mode) ─────────────────────────────
   temporal:
-    image: temporalio/auto-setup:1.25.2
+    image: temporalio/auto-setup
     container_name: temporal-server
     depends_on:
       postgresql:
@@ -65,7 +65,7 @@ services:
 
   # ── Temporal Web UI ───────────────────────────────────────────────
   temporal-ui:
-    image: temporalio/ui:2.31.2
+    image: temporalio/ui
     container_name: temporal-ui
     depends_on:
       temporal:

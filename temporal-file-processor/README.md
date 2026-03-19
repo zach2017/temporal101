@@ -227,7 +227,7 @@ Java library you can embed in any application:
 ```java
 // Add to your pom.xml:
 // <dependency>
-//   <groupId>com.fileprocessor</groupId>
+//   <groupId>demo.temporal</groupId>
 //   <artifactId>file-processor-client</artifactId>
 //   <version>1.0.0-SNAPSHOT</version>
 // </dependency>

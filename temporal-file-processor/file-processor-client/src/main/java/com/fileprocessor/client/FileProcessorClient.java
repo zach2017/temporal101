@@ -1,9 +1,9 @@
-package com.fileprocessor.client;
+package demo.temporal.client;
 
-import com.fileprocessor.model.FileProcessingRequest;
-import com.fileprocessor.model.FileProcessingResult;
-import com.fileprocessor.shared.TaskQueues;
-import com.fileprocessor.workflow.FileProcessingWorkflow;
+import demo.temporal.model.FileProcessingRequest;
+import demo.temporal.model.FileProcessingResult;
+import demo.temporal.shared.TaskQueues;
+import demo.temporal.workflow.FileProcessingWorkflow;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.client.WorkflowOptions;
@@ -50,10 +50,9 @@ public class FileProcessorClient implements AutoCloseable {
     // ═════════════════════════════════════════════════════════════════
     //  Synchronous API
     // ═════════════════════════════════════════════════════════════════
-
     /**
-     * Submit a file for processing and <b>block</b> until the result
-     * is available.
+     * Submit a file for processing and <b>block</b> until the result is
+     * available.
      *
      * @return the completed result
      */
@@ -75,10 +74,9 @@ public class FileProcessorClient implements AutoCloseable {
     // ═════════════════════════════════════════════════════════════════
     //  Asynchronous API
     // ═════════════════════════════════════════════════════════════════
-
     /**
-     * Submit a file for processing <b>asynchronously</b>.
-     * Returns immediately with a Future and the Workflow ID.
+     * Submit a file for processing <b>asynchronously</b>. Returns immediately
+     * with a Future and the Workflow ID.
      */
     public AsyncHandle processFileAsync(
             String fileName,
@@ -90,9 +88,9 @@ public class FileProcessorClient implements AutoCloseable {
                 fileName, fileLocation, outputLocation, metadata);
 
         FileProcessingWorkflow workflow = createWorkflowStub(request);
-        String workflowId = TaskQueues.WORKFLOW_ID_PREFIX +
-                fileName.replaceAll("[^a-zA-Z0-9._-]", "_") + "-" +
-                UUID.randomUUID().toString().substring(0, 8);
+        String workflowId = TaskQueues.WORKFLOW_ID_PREFIX
+                + fileName.replaceAll("[^a-zA-Z0-9._-]", "_") + "-"
+                + UUID.randomUUID().toString().substring(0, 8);
 
         WorkflowClient.start(workflow::processFile, request);
         log.info("Started async workflow {} for: {}", workflowId, fileName);
@@ -110,7 +108,6 @@ public class FileProcessorClient implements AutoCloseable {
     // ═════════════════════════════════════════════════════════════════
     //  Query & Signal
     // ═════════════════════════════════════════════════════════════════
-
     /**
      * Query the current status of a running Workflow.
      */
@@ -133,11 +130,10 @@ public class FileProcessorClient implements AutoCloseable {
     // ═════════════════════════════════════════════════════════════════
     //  Internal helpers
     // ═════════════════════════════════════════════════════════════════
-
     private FileProcessingWorkflow createWorkflowStub(FileProcessingRequest request) {
-        String workflowId = TaskQueues.WORKFLOW_ID_PREFIX +
-                request.getFileName().replaceAll("[^a-zA-Z0-9._-]", "_") + "-" +
-                UUID.randomUUID().toString().substring(0, 8);
+        String workflowId = TaskQueues.WORKFLOW_ID_PREFIX
+                + request.getFileName().replaceAll("[^a-zA-Z0-9._-]", "_") + "-"
+                + UUID.randomUUID().toString().substring(0, 8);
 
         WorkflowOptions options = WorkflowOptions.newBuilder()
                 .setWorkflowId(workflowId)
@@ -157,36 +153,50 @@ public class FileProcessorClient implements AutoCloseable {
     // ═════════════════════════════════════════════════════════════════
     //  Async handle
     // ═════════════════════════════════════════════════════════════════
-
     /**
      * Handle returned by {@link #processFileAsync}.
      */
     public static final class AsyncHandle {
+
         private final String workflowId;
         private final CompletableFuture<FileProcessingResult> future;
 
         public AsyncHandle(String workflowId,
-                           CompletableFuture<FileProcessingResult> future) {
+                CompletableFuture<FileProcessingResult> future) {
             this.workflowId = workflowId;
             this.future = future;
         }
 
-        public String getWorkflowId()                           { return workflowId; }
-        public CompletableFuture<FileProcessingResult> getFuture() { return future; }
+        public String getWorkflowId() {
+            return workflowId;
+        }
+
+        public CompletableFuture<FileProcessingResult> getFuture() {
+            return future;
+        }
     }
 
     // ═════════════════════════════════════════════════════════════════
     //  Builder
     // ═════════════════════════════════════════════════════════════════
-
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static final class Builder {
+
         private String temporalAddress = "localhost:7233";
         private String namespace = "default";
 
-        public Builder temporalAddress(String v) { this.temporalAddress = v; return this; }
-        public Builder namespace(String v)       { this.namespace = v; return this; }
+        public Builder temporalAddress(String v) {
+            this.temporalAddress = v;
+            return this;
+        }
+
+        public Builder namespace(String v) {
+            this.namespace = v;
+            return this;
+        }
 
         public FileProcessorClient build() {
             WorkflowServiceStubs stubs = WorkflowServiceStubs.newServiceStubs(

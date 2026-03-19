@@ -1,4 +1,4 @@
-package com.fileprocessor.model;
+package demo.temporal.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -10,8 +10,9 @@ import java.util.Objects;
 /**
  * Immutable input payload for the File Processing Workflow.
  *
- * <p>Temporal serialises this via its default Jackson-based DataConverter,
- * so we keep it Jackson-friendly with explicit {@code @JsonCreator}.</p>
+ * <p>
+ * Temporal serialises this via its default Jackson-based DataConverter, so we
+ * keep it Jackson-friendly with explicit {@code @JsonCreator}.</p>
  *
  * <h3>Example JSON</h3>
  * <pre>{@code
@@ -36,23 +37,36 @@ public final class FileProcessingRequest {
 
     @JsonCreator
     public FileProcessingRequest(
-            @JsonProperty("fileName")       String fileName,
-            @JsonProperty("fileLocation")   String fileLocation,
+            @JsonProperty("fileName") String fileName,
+            @JsonProperty("fileLocation") String fileLocation,
             @JsonProperty("outputLocation") String outputLocation,
-            @JsonProperty("metadata")       Map<String, String> metadata) {
+            @JsonProperty("metadata") Map<String, String> metadata) {
 
-        this.fileName       = Objects.requireNonNull(fileName, "fileName is required");
-        this.fileLocation   = Objects.requireNonNull(fileLocation, "fileLocation is required");
+        this.fileName = Objects.requireNonNull(fileName, "fileName is required");
+        this.fileLocation = Objects.requireNonNull(fileLocation, "fileLocation is required");
         this.outputLocation = Objects.requireNonNull(outputLocation, "outputLocation is required");
-        this.metadata       = metadata;   // nullable — purely optional
+        this.metadata = metadata;   // nullable — purely optional
     }
 
-    public String getFileName()              { return fileName; }
-    public String getFileLocation()          { return fileLocation; }
-    public String getOutputLocation()        { return outputLocation; }
-    public Map<String, String> getMetadata() { return metadata; }
+    public String getFileName() {
+        return fileName;
+    }
 
-    /** Convenience: full path = fileLocation (if it already includes the name). */
+    public String getFileLocation() {
+        return fileLocation;
+    }
+
+    public String getOutputLocation() {
+        return outputLocation;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    /**
+     * Convenience: full path = fileLocation (if it already includes the name).
+     */
     public String getFullSourcePath() {
         if (fileLocation.endsWith(fileName)) {
             return fileLocation;
@@ -64,11 +78,11 @@ public final class FileProcessingRequest {
 
     @Override
     public String toString() {
-        return "FileProcessingRequest{" +
-                "fileName='" + fileName + '\'' +
-                ", fileLocation='" + fileLocation + '\'' +
-                ", outputLocation='" + outputLocation + '\'' +
-                ", metadata=" + metadata +
-                '}';
+        return "FileProcessingRequest{"
+                + "fileName='" + fileName + '\''
+                + ", fileLocation='" + fileLocation + '\''
+                + ", outputLocation='" + outputLocation + '\''
+                + ", metadata=" + metadata
+                + '}';
     }
 }

@@ -1,6 +1,6 @@
-package com.fileprocessor.worker.util;
+package demo.temporal.worker.util;
 
-import com.fileprocessor.model.DetectedFileType;
+import demo.temporal.model.DetectedFileType;
 
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +39,8 @@ public final class MimeTypeResolver {
                     DetectedFileType.PRESENTATION)
     );
 
-    private MimeTypeResolver() { /* utility class */ }
+    private MimeTypeResolver() {
+        /* utility class */ }
 
     /**
      * Resolve a MIME-type string to a {@link DetectedFileType}.
@@ -56,7 +57,9 @@ public final class MimeTypeResolver {
 
         // Check exact matches first
         DetectedFileType exact = EXACT_MAP.get(normalized);
-        if (exact != null) return exact;
+        if (exact != null) {
+            return exact;
+        }
 
         // Image family
         if (IMAGE_MIMES.contains(normalized) || normalized.startsWith("image/")) {

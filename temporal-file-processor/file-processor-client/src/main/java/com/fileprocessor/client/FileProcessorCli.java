@@ -1,9 +1,9 @@
-package com.fileprocessor.client;
+package demo.temporal.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fileprocessor.model.FileProcessingResult;
+import demo.temporal.model.FileProcessingResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -96,7 +96,6 @@ public class FileProcessorCli {
     }
 
     // ═════════════════════════════════════════════════════════════════
-
     private static CliArgs parseArgs(String[] args) throws Exception {
         CliArgs cli = new CliArgs();
 
@@ -117,7 +116,8 @@ public class FileProcessorCli {
                 case "--metadata":
                 case "-m":
                     cli.metadata = MAPPER.readValue(args[++i],
-                            new TypeReference<Map<String, String>>() {});
+                            new TypeReference<Map<String, String>>() {
+                    });
                     break;
                 case "--temporal-address":
                 case "-t":
@@ -141,9 +141,15 @@ public class FileProcessorCli {
         }
 
         if (!cli.showHelp) {
-            if (cli.fileName == null)       throw new IllegalArgumentException("--file-name is required");
-            if (cli.fileLocation == null)   throw new IllegalArgumentException("--file-location is required");
-            if (cli.outputLocation == null) throw new IllegalArgumentException("--output-location is required");
+            if (cli.fileName == null) {
+                throw new IllegalArgumentException("--file-name is required");
+            }
+            if (cli.fileLocation == null) {
+                throw new IllegalArgumentException("--file-location is required");
+            }
+            if (cli.outputLocation == null) {
+                throw new IllegalArgumentException("--output-location is required");
+            }
         }
 
         return cli;
@@ -179,6 +185,7 @@ public class FileProcessorCli {
     }
 
     private static class CliArgs {
+
         String fileName;
         String fileLocation;
         String outputLocation;

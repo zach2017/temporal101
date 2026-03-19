@@ -27,7 +27,7 @@
     <logger name="io.grpc" level="WARN"/>
 
     <!-- Our code at INFO (set to DEBUG for troubleshooting) -->
-    <logger name="com.fileprocessor" level="INFO"/>
+    <logger name="demo.temporal" level="INFO"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>

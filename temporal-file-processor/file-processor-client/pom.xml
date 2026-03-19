@@ -6,14 +6,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.fileprocessor</groupId>
+        <groupId>demo.temporal</groupId>
         <artifactId>temporal-file-processor</artifactId>
         <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>file-processor-client</artifactId>
     <packaging>jar</packaging>
-    <n>File Processor Client</n>
+    <name>File Processor Client</name>
     <description>
         Client library + CLI for submitting file-processing Workflows
         to the Temporal service.  Depends only on file-processor-common
@@ -23,7 +24,7 @@
     <dependencies>
         <!-- Shared contract (interfaces + models) -->
         <dependency>
-            <groupId>com.fileprocessor</groupId>
+            <groupId>demo.temporal</groupId>
             <artifactId>file-processor-common</artifactId>
         </dependency>
 
@@ -73,7 +74,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.fileprocessor.client.FileProcessorCli</mainClass>
+                                    <mainClass>demo.temporal.client.FileProcessorCli</mainClass>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                             </transformers>

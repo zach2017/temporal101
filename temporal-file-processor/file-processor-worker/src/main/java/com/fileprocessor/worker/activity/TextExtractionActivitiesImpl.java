@@ -1,6 +1,6 @@
-package com.fileprocessor.worker.activity;
+package demo.temporal.worker.activity;
 
-import com.fileprocessor.activity.TextExtractionActivities;
+import demo.temporal.activity.TextExtractionActivities;
 import io.temporal.activity.Activity;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.cos.COSName;
@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Implements text extraction for plain text, PDF (text layer + image extraction),
- * and Office documents.
+ * Implements text extraction for plain text, PDF (text layer + image
+ * extraction), and Office documents.
  */
 public class TextExtractionActivitiesImpl implements TextExtractionActivities {
 
@@ -34,7 +34,6 @@ public class TextExtractionActivitiesImpl implements TextExtractionActivities {
     private final Tika tika = new Tika();
 
     // ─── Plain Text ──────────────────────────────────────────────────
-
     @Override
     public String extractPlainText(String filePath, String outputPath) {
         log.info("Extracting plain text: {} → {}", filePath, outputPath);
@@ -50,7 +49,6 @@ public class TextExtractionActivitiesImpl implements TextExtractionActivities {
     }
 
     // ─── PDF Text ────────────────────────────────────────────────────
-
     @Override
     public String extractPdfText(String filePath, String outputPath) {
         log.info("Extracting PDF text layer: {} → {}", filePath, outputPath);
@@ -68,7 +66,6 @@ public class TextExtractionActivitiesImpl implements TextExtractionActivities {
     }
 
     // ─── PDF Image Extraction ────────────────────────────────────────
-
     @Override
     public List<String> extractPdfImages(String filePath, String imageOutputDir) {
         log.info("Extracting images from PDF: {} → {}", filePath, imageOutputDir);
@@ -81,7 +78,9 @@ public class TextExtractionActivitiesImpl implements TextExtractionActivities {
             for (PDPage page : doc.getPages()) {
                 pageIndex++;
                 PDResources resources = page.getResources();
-                if (resources == null) continue;
+                if (resources == null) {
+                    continue;
+                }
 
                 int imgIndex = 0;
                 for (COSName name : resources.getXObjectNames()) {
@@ -90,7 +89,9 @@ public class TextExtractionActivitiesImpl implements TextExtractionActivities {
                         BufferedImage buffered = image.getImage();
 
                         String suffix = image.getSuffix();
-                        if (suffix == null || suffix.isBlank()) suffix = "png";
+                        if (suffix == null || suffix.isBlank()) {
+                            suffix = "png";
+                        }
 
                         String imgFileName = String.format("page_%d_img_%d.%s",
                                 pageIndex, imgIndex, suffix);
@@ -120,7 +121,6 @@ public class TextExtractionActivitiesImpl implements TextExtractionActivities {
     }
 
     // ─── Office Documents ────────────────────────────────────────────
-
     @Override
     public String extractOfficeText(String filePath, String outputPath) {
         log.info("Extracting Office document text: {} → {}", filePath, outputPath);
@@ -137,7 +137,6 @@ public class TextExtractionActivitiesImpl implements TextExtractionActivities {
     }
 
     // ─── Helper ──────────────────────────────────────────────────────
-
     private void writeText(String outputPath, String content) throws IOException {
         Path out = Path.of(outputPath);
         Files.createDirectories(out.getParent());

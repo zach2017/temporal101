@@ -1,12 +1,12 @@
-package com.fileprocessor.model;
+package demo.temporal.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Result of the MIME-type detection Activity.
- * Carries both the raw MIME string and the high-level category enum.
+ * Result of the MIME-type detection Activity. Carries both the raw MIME string
+ * and the high-level category enum.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public final class MimeDetectionResult {
@@ -22,8 +22,13 @@ public final class MimeDetectionResult {
         this.fileType = fileType;
     }
 
-    public String getMimeType()          { return mimeType; }
-    public DetectedFileType getFileType() { return fileType; }
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    public DetectedFileType getFileType() {
+        return fileType;
+    }
 
     @Override
     public String toString() {

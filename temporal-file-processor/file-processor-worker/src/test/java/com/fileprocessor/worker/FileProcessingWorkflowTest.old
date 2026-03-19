@@ -1,13 +1,13 @@
-package com.fileprocessor.worker;
+package demo.temporal.worker;
 
-import com.fileprocessor.activity.FileDetectionActivities;
-import com.fileprocessor.activity.FileStorageActivities;
-import com.fileprocessor.activity.OcrActivities;
-import com.fileprocessor.activity.TextExtractionActivities;
-import com.fileprocessor.model.*;
-import com.fileprocessor.shared.TaskQueues;
-import com.fileprocessor.workflow.FileProcessingWorkflow;
-import com.fileprocessor.worker.workflow.FileProcessingWorkflowImpl;
+import demo.temporal.activity.FileDetectionActivities;
+import demo.temporal.activity.FileStorageActivities;
+import demo.temporal.activity.OcrActivities;
+import demo.temporal.activity.TextExtractionActivities;
+import demo.temporal.model.*;
+import demo.temporal.shared.TaskQueues;
+import demo.temporal.workflow.FileProcessingWorkflow;
+import demo.temporal.worker.workflow.FileProcessingWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.testing.TestWorkflowEnvironment;
@@ -25,9 +25,10 @@ import static org.mockito.Mockito.*;
 /**
  * Integration tests for {@link FileProcessingWorkflowImpl}.
  *
- * <p>Uses Temporal's {@link TestWorkflowEnvironment} — an in-memory
- * Temporal server.  All Activities are mocked so we test only the
- * Workflow orchestration logic.</p>
+ * <p>
+ * Uses Temporal's {@link TestWorkflowEnvironment} — an in-memory Temporal
+ * server. All Activities are mocked so we test only the Workflow orchestration
+ * logic.</p>
  */
 class FileProcessingWorkflowTest {
 
@@ -35,23 +36,23 @@ class FileProcessingWorkflowTest {
     private Worker worker;
     private WorkflowClient client;
 
-    private FileDetectionActivities   detectionActivities;
-    private TextExtractionActivities  textActivities;
-    private OcrActivities             ocrActivities;
-    private FileStorageActivities     storageActivities;
+    private FileDetectionActivities detectionActivities;
+    private TextExtractionActivities textActivities;
+    private OcrActivities ocrActivities;
+    private FileStorageActivities storageActivities;
 
     @BeforeEach
     void setUp() {
         testEnv = TestWorkflowEnvironment.newInstance();
-        worker  = testEnv.newWorker(TaskQueues.FILE_PROCESSING_TASK_QUEUE);
-        client  = testEnv.getWorkflowClient();
+        worker = testEnv.newWorker(TaskQueues.FILE_PROCESSING_TASK_QUEUE);
+        client = testEnv.getWorkflowClient();
 
         worker.registerWorkflowImplementationTypes(FileProcessingWorkflowImpl.class);
 
         detectionActivities = mock(FileDetectionActivities.class);
-        textActivities      = mock(TextExtractionActivities.class);
-        ocrActivities       = mock(OcrActivities.class);
-        storageActivities   = mock(FileStorageActivities.class);
+        textActivities = mock(TextExtractionActivities.class);
+        ocrActivities = mock(OcrActivities.class);
+        storageActivities = mock(FileStorageActivities.class);
 
         worker.registerActivitiesImplementations(
                 detectionActivities,
@@ -80,7 +81,6 @@ class FileProcessingWorkflowTest {
     // ═════════════════════════════════════════════════════════════════
     //  Test 1: Plain-text file
     // ═════════════════════════════════════════════════════════════════
-
     @Test
     @DisplayName("Plain text → extractPlainText → copy to output")
     void testPlainTextFile() {
@@ -113,7 +113,6 @@ class FileProcessingWorkflowTest {
     // ═════════════════════════════════════════════════════════════════
     //  Test 2: Image file → Tesseract OCR
     // ═════════════════════════════════════════════════════════════════
-
     @Test
     @DisplayName("JPEG image → OCR via Tesseract → copy to output")
     void testImageFile() {
@@ -147,7 +146,6 @@ class FileProcessingWorkflowTest {
     // ═════════════════════════════════════════════════════════════════
     //  Test 3: PDF → text extraction + image extraction + OCR + merge
     // ═════════════════════════════════════════════════════════════════
-
     @Test
     @DisplayName("PDF → extract text + images → OCR images → merge → output")
     void testPdfFile() {
@@ -198,7 +196,6 @@ class FileProcessingWorkflowTest {
     // ═════════════════════════════════════════════════════════════════
     //  Test 4: Word document → Office extraction
     // ═════════════════════════════════════════════════════════════════
-
     @Test
     @DisplayName("DOCX → extractOfficeText → copy to output")
     void testWordDocument() {
@@ -225,7 +222,6 @@ class FileProcessingWorkflowTest {
     // ═════════════════════════════════════════════════════════════════
     //  Test 5: Unsupported file type
     // ═════════════════════════════════════════════════════════════════
-
     @Test
     @DisplayName("Unsupported MIME → returns failure result (no exception)")
     void testUnsupportedFileType() {
@@ -249,7 +245,6 @@ class FileProcessingWorkflowTest {
     // ═════════════════════════════════════════════════════════════════
     //  Test 6: PDF with no embedded images
     // ═════════════════════════════════════════════════════════════════
-
     @Test
     @DisplayName("PDF with no images → text extraction only, no OCR")
     void testPdfNoImages() {
@@ -281,7 +276,6 @@ class FileProcessingWorkflowTest {
     // ═════════════════════════════════════════════════════════════════
     //  Test 7: Query status
     // ═════════════════════════════════════════════════════════════════
-
     @Test
     @DisplayName("getStatus() query returns current pipeline stage")
     void testQueryStatus() {
@@ -313,7 +307,6 @@ class FileProcessingWorkflowTest {
     // ═════════════════════════════════════════════════════════════════
     //  Test 8: Metadata pass-through
     // ═════════════════════════════════════════════════════════════════
-
     @Test
     @DisplayName("Metadata from request is preserved in result")
     void testMetadataPassthrough() {
@@ -329,7 +322,7 @@ class FileProcessingWorkflowTest {
         Map<String, String> metadata = Map.of(
                 "uploadedBy", "jsmith",
                 "department", "engineering",
-                "priority",   "high");
+                "priority", "high");
 
         var request = new FileProcessingRequest(
                 "doc.txt", "/data/inbox/doc.txt", "/data/outbox", metadata);

@@ -1,4 +1,4 @@
-package com.fileprocessor.model;
+package demo.temporal.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -17,27 +17,38 @@ public final class ExtractedImageInfo {
 
     @JsonCreator
     public ExtractedImageInfo(
-            @JsonProperty("imageName")     String imageName,
-            @JsonProperty("imagePath")     String imagePath,
-            @JsonProperty("ocrTextPath")   String ocrTextPath,
+            @JsonProperty("imageName") String imageName,
+            @JsonProperty("imagePath") String imagePath,
+            @JsonProperty("ocrTextPath") String ocrTextPath,
             @JsonProperty("characterCount") long characterCount) {
-        this.imageName      = imageName;
-        this.imagePath      = imagePath;
-        this.ocrTextPath    = ocrTextPath;
+        this.imageName = imageName;
+        this.imagePath = imagePath;
+        this.ocrTextPath = ocrTextPath;
         this.characterCount = characterCount;
     }
 
-    public String getImageName()    { return imageName; }
-    public String getImagePath()    { return imagePath; }
-    public String getOcrTextPath()  { return ocrTextPath; }
-    public long getCharacterCount() { return characterCount; }
+    public String getImageName() {
+        return imageName;
+    }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public String getOcrTextPath() {
+        return ocrTextPath;
+    }
+
+    public long getCharacterCount() {
+        return characterCount;
+    }
 
     @Override
     public String toString() {
-        return "ExtractedImageInfo{" +
-                "imageName='" + imageName + '\'' +
-                ", ocrTextPath='" + ocrTextPath + '\'' +
-                ", characterCount=" + characterCount +
-                '}';
+        return "ExtractedImageInfo{"
+                + "imageName='" + imageName + '\''
+                + ", ocrTextPath='" + ocrTextPath + '\''
+                + ", characterCount=" + characterCount
+                + '}';
     }
 }

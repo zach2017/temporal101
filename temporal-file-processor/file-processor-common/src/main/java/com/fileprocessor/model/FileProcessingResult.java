@@ -1,4 +1,4 @@
-package com.fileprocessor.model;
+package demo.temporal.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Immutable result payload returned when the File Processing Workflow completes.
+ * Immutable result payload returned when the File Processing Workflow
+ * completes.
  *
  * <h3>Example JSON</h3>
  * <pre>{@code
@@ -48,62 +49,100 @@ public final class FileProcessingResult {
 
     @JsonCreator
     public FileProcessingResult(
-            @JsonProperty("fileName")          String fileName,
-            @JsonProperty("detectedMimeType")  String detectedMimeType,
-            @JsonProperty("detectedFileType")  DetectedFileType detectedFileType,
-            @JsonProperty("textOutputPath")    String textOutputPath,
-            @JsonProperty("imageTextOutputs")  List<ExtractedImageInfo> imageTextOutputs,
-            @JsonProperty("tmpDirectory")      String tmpDirectory,
-            @JsonProperty("totalCharacters")   long totalCharacters,
-            @JsonProperty("processingTimeMs")  long processingTimeMs,
-            @JsonProperty("success")           boolean success,
-            @JsonProperty("errorMessage")      String errorMessage,
-            @JsonProperty("metadata")          Map<String, String> metadata,
-            @JsonProperty("completedAt")       Instant completedAt) {
+            @JsonProperty("fileName") String fileName,
+            @JsonProperty("detectedMimeType") String detectedMimeType,
+            @JsonProperty("detectedFileType") DetectedFileType detectedFileType,
+            @JsonProperty("textOutputPath") String textOutputPath,
+            @JsonProperty("imageTextOutputs") List<ExtractedImageInfo> imageTextOutputs,
+            @JsonProperty("tmpDirectory") String tmpDirectory,
+            @JsonProperty("totalCharacters") long totalCharacters,
+            @JsonProperty("processingTimeMs") long processingTimeMs,
+            @JsonProperty("success") boolean success,
+            @JsonProperty("errorMessage") String errorMessage,
+            @JsonProperty("metadata") Map<String, String> metadata,
+            @JsonProperty("completedAt") Instant completedAt) {
 
-        this.fileName          = fileName;
-        this.detectedMimeType  = detectedMimeType;
-        this.detectedFileType  = detectedFileType;
-        this.textOutputPath    = textOutputPath;
-        this.imageTextOutputs  = imageTextOutputs;
-        this.tmpDirectory      = tmpDirectory;
-        this.totalCharacters   = totalCharacters;
-        this.processingTimeMs  = processingTimeMs;
-        this.success           = success;
-        this.errorMessage      = errorMessage;
-        this.metadata          = metadata;
-        this.completedAt       = completedAt;
+        this.fileName = fileName;
+        this.detectedMimeType = detectedMimeType;
+        this.detectedFileType = detectedFileType;
+        this.textOutputPath = textOutputPath;
+        this.imageTextOutputs = imageTextOutputs;
+        this.tmpDirectory = tmpDirectory;
+        this.totalCharacters = totalCharacters;
+        this.processingTimeMs = processingTimeMs;
+        this.success = success;
+        this.errorMessage = errorMessage;
+        this.metadata = metadata;
+        this.completedAt = completedAt;
     }
 
     // ── Getters ─────────────────────────────────────────────────────
-    public String getFileName()                      { return fileName; }
-    public String getDetectedMimeType()              { return detectedMimeType; }
-    public DetectedFileType getDetectedFileType()    { return detectedFileType; }
-    public String getTextOutputPath()                { return textOutputPath; }
-    public List<ExtractedImageInfo> getImageTextOutputs() { return imageTextOutputs; }
-    public String getTmpDirectory()                  { return tmpDirectory; }
-    public long getTotalCharacters()                 { return totalCharacters; }
-    public long getProcessingTimeMs()                { return processingTimeMs; }
-    public boolean isSuccess()                       { return success; }
-    public String getErrorMessage()                  { return errorMessage; }
-    public Map<String, String> getMetadata()         { return metadata; }
-    public Instant getCompletedAt()                  { return completedAt; }
+    public String getFileName() {
+        return fileName;
+    }
+
+    public String getDetectedMimeType() {
+        return detectedMimeType;
+    }
+
+    public DetectedFileType getDetectedFileType() {
+        return detectedFileType;
+    }
+
+    public String getTextOutputPath() {
+        return textOutputPath;
+    }
+
+    public List<ExtractedImageInfo> getImageTextOutputs() {
+        return imageTextOutputs;
+    }
+
+    public String getTmpDirectory() {
+        return tmpDirectory;
+    }
+
+    public long getTotalCharacters() {
+        return totalCharacters;
+    }
+
+    public long getProcessingTimeMs() {
+        return processingTimeMs;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
 
     @Override
     public String toString() {
-        return "FileProcessingResult{" +
-                "fileName='" + fileName + '\'' +
-                ", detectedFileType=" + detectedFileType +
-                ", success=" + success +
-                ", totalCharacters=" + totalCharacters +
-                ", processingTimeMs=" + processingTimeMs +
-                '}';
+        return "FileProcessingResult{"
+                + "fileName='" + fileName + '\''
+                + ", detectedFileType=" + detectedFileType
+                + ", success=" + success
+                + ", totalCharacters=" + totalCharacters
+                + ", processingTimeMs=" + processingTimeMs
+                + '}';
     }
 
     // ── Builder ─────────────────────────────────────────────────────
-    public static Builder builder() { return new Builder(); }
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static final class Builder {
+
         private String fileName;
         private String detectedMimeType;
         private DetectedFileType detectedFileType;
@@ -117,18 +156,65 @@ public final class FileProcessingResult {
         private Map<String, String> metadata;
         private Instant completedAt;
 
-        public Builder fileName(String v)                          { this.fileName = v; return this; }
-        public Builder detectedMimeType(String v)                  { this.detectedMimeType = v; return this; }
-        public Builder detectedFileType(DetectedFileType v)        { this.detectedFileType = v; return this; }
-        public Builder textOutputPath(String v)                    { this.textOutputPath = v; return this; }
-        public Builder imageTextOutputs(List<ExtractedImageInfo> v){ this.imageTextOutputs = v; return this; }
-        public Builder tmpDirectory(String v)                      { this.tmpDirectory = v; return this; }
-        public Builder totalCharacters(long v)                     { this.totalCharacters = v; return this; }
-        public Builder processingTimeMs(long v)                    { this.processingTimeMs = v; return this; }
-        public Builder success(boolean v)                          { this.success = v; return this; }
-        public Builder errorMessage(String v)                      { this.errorMessage = v; return this; }
-        public Builder metadata(Map<String, String> v)             { this.metadata = v; return this; }
-        public Builder completedAt(Instant v)                      { this.completedAt = v; return this; }
+        public Builder fileName(String v) {
+            this.fileName = v;
+            return this;
+        }
+
+        public Builder detectedMimeType(String v) {
+            this.detectedMimeType = v;
+            return this;
+        }
+
+        public Builder detectedFileType(DetectedFileType v) {
+            this.detectedFileType = v;
+            return this;
+        }
+
+        public Builder textOutputPath(String v) {
+            this.textOutputPath = v;
+            return this;
+        }
+
+        public Builder imageTextOutputs(List<ExtractedImageInfo> v) {
+            this.imageTextOutputs = v;
+            return this;
+        }
+
+        public Builder tmpDirectory(String v) {
+            this.tmpDirectory = v;
+            return this;
+        }
+
+        public Builder totalCharacters(long v) {
+            this.totalCharacters = v;
+            return this;
+        }
+
+        public Builder processingTimeMs(long v) {
+            this.processingTimeMs = v;
+            return this;
+        }
+
+        public Builder success(boolean v) {
+            this.success = v;
+            return this;
+        }
+
+        public Builder errorMessage(String v) {
+            this.errorMessage = v;
+            return this;
+        }
+
+        public Builder metadata(Map<String, String> v) {
+            this.metadata = v;
+            return this;
+        }
+
+        public Builder completedAt(Instant v) {
+            this.completedAt = v;
+            return this;
+        }
 
         public FileProcessingResult build() {
             return new FileProcessingResult(

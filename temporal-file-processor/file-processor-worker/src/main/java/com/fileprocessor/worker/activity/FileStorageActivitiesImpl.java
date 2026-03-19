@@ -1,6 +1,6 @@
-package com.fileprocessor.worker.activity;
+package demo.temporal.worker.activity;
 
-import com.fileprocessor.activity.FileStorageActivities;
+import demo.temporal.activity.FileStorageActivities;
 import io.temporal.activity.Activity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +13,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 /**
- * Handles filesystem operations: temp directory setup, text merging,
- * and copying final results to the caller-specified output location.
+ * Handles filesystem operations: temp directory setup, text merging, and
+ * copying final results to the caller-specified output location.
  */
 public class FileStorageActivitiesImpl implements FileStorageActivities {
 

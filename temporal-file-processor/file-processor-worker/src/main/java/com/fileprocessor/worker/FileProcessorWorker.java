@@ -1,11 +1,11 @@
-package com.fileprocessor.worker;
+package demo.temporal.worker;
 
-import com.fileprocessor.shared.TaskQueues;
-import com.fileprocessor.worker.activity.FileDetectionActivitiesImpl;
-import com.fileprocessor.worker.activity.FileStorageActivitiesImpl;
-import com.fileprocessor.worker.activity.OcrActivitiesImpl;
-import com.fileprocessor.worker.activity.TextExtractionActivitiesImpl;
-import com.fileprocessor.worker.workflow.FileProcessingWorkflowImpl;
+import demo.temporal.shared.TaskQueues;
+import demo.temporal.worker.activity.FileDetectionActivitiesImpl;
+import demo.temporal.worker.activity.FileStorageActivitiesImpl;
+import demo.temporal.worker.activity.OcrActivitiesImpl;
+import demo.temporal.worker.activity.TextExtractionActivitiesImpl;
+import demo.temporal.worker.workflow.FileProcessingWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowClientOptions;
 import io.temporal.serviceclient.WorkflowServiceStubs;
@@ -20,16 +20,20 @@ import org.slf4j.LoggerFactory;
 /**
  * Entry point for the File Processor Worker process.
  *
- * <p>Reads connection settings from environment variables:
+ * <p>
+ * Reads connection settings from environment variables:
  * <ul>
- *   <li>{@code TEMPORAL_ADDRESS} – gRPC target (default: {@code localhost:7233})</li>
- *   <li>{@code TEMPORAL_NAMESPACE} – namespace (default: {@code default})</li>
- *   <li>{@code WORKER_MAX_CONCURRENT_ACTIVITIES} – concurrency cap (default: {@code 5})</li>
- *   <li>{@code TESSDATA_PREFIX} – Tesseract trained data directory</li>
+ * <li>{@code TEMPORAL_ADDRESS} – gRPC target (default:
+ * {@code localhost:7233})</li>
+ * <li>{@code TEMPORAL_NAMESPACE} – namespace (default: {@code default})</li>
+ * <li>{@code WORKER_MAX_CONCURRENT_ACTIVITIES} – concurrency cap (default:
+ * {@code 5})</li>
+ * <li>{@code TESSDATA_PREFIX} – Tesseract trained data directory</li>
  * </ul>
  *
- * <p>Registers all Workflow and Activity implementations with a single
- * Worker that polls the {@link TaskQueues#FILE_PROCESSING_TASK_QUEUE}.</p>
+ * <p>
+ * Registers all Workflow and Activity implementations with a single Worker that
+ * polls the {@link TaskQueues#FILE_PROCESSING_TASK_QUEUE}.</p>
  */
 public class FileProcessorWorker {
 
@@ -42,8 +46,8 @@ public class FileProcessorWorker {
 
         // ── 1. Read configuration from environment ───────────────
         String temporalAddress = env("TEMPORAL_ADDRESS", "localhost:7233");
-        String namespace       = env("TEMPORAL_NAMESPACE", "default");
-        int maxConcurrent      = Integer.parseInt(
+        String namespace = env("TEMPORAL_NAMESPACE", "default");
+        int maxConcurrent = Integer.parseInt(
                 env("WORKER_MAX_CONCURRENT_ACTIVITIES", "5"));
 
         log.info("Temporal address : {}", temporalAddress);

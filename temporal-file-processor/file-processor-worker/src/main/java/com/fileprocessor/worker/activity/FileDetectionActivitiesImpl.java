@@ -1,9 +1,9 @@
-package com.fileprocessor.worker.activity;
+package demo.temporal.worker.activity;
 
-import com.fileprocessor.activity.FileDetectionActivities;
-import com.fileprocessor.model.DetectedFileType;
-import com.fileprocessor.model.MimeDetectionResult;
-import com.fileprocessor.worker.util.MimeTypeResolver;
+import demo.temporal.activity.FileDetectionActivities;
+import demo.temporal.model.DetectedFileType;
+import demo.temporal.model.MimeDetectionResult;
+import demo.temporal.worker.util.MimeTypeResolver;
 import io.temporal.activity.Activity;
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
@@ -14,8 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Detects MIME types using Apache Tika's content-based analysis
- * (magic bytes + filename heuristics).
+ * Detects MIME types using Apache Tika's content-based analysis (magic bytes +
+ * filename heuristics).
  */
 public class FileDetectionActivitiesImpl implements FileDetectionActivities {
 

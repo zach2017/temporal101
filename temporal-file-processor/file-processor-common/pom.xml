@@ -6,14 +6,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.fileprocessor</groupId>
+        <groupId>demo.temporal</groupId>
         <artifactId>temporal-file-processor</artifactId>
         <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>file-processor-common</artifactId>
     <packaging>jar</packaging>
-    <n>File Processor Common</n>
+    <name>File Processor Common</name>
     <description>
         Shared Workflow/Activity interfaces and data models.
         This module is the contract between the Client and the Worker.
