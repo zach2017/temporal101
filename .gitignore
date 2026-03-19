@@ -148,3 +148,10 @@ temporal-doc-processor/java-worker/.gradle/
 temporal-workers-java/.gradle/8.7/
 temporal-workers-java/.gradle/
 java-worker-client/target/
+my-platform/my-platform/common-lib/target/
+temporal-file-processing/shared-lib/target/
+temporal-file-processing/worker/target/
+temporal-file-processing/client/target/
+my-platform/my-platform/service-b/target/
+my-platform/my-platform/service-a/target/
+ocr-temporal-project/ocr-common/target/
