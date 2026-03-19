@@ -1,8 +1,8 @@
-package com.example.worker;
+package demo.temporal.worker;
 
-import com.example.shared.SharedConstants;
-import com.example.worker.activity.FileProcessingActivitiesImpl;
-import com.example.worker.workflow.FileProcessingWorkflowImpl;
+import demo.temporal.shared.SharedConstants;
+import demo.temporal.worker.activity.FileProcessingActivitiesImpl;
+import demo.temporal.worker.workflow.FileProcessingWorkflowImpl;
 import io.temporal.client.WorkflowClient;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.worker.Worker;
@@ -11,11 +11,10 @@ import io.temporal.worker.WorkerFactory;
 /**
  * Starts a Temporal Worker that polls the FILE_PROCESSING_TASK_QUEUE.
  *
- * Run:
- *   mvn -pl worker exec:java
+ * Run: mvn -pl worker exec:java
  *
- * Prerequisites:
- *   Temporal dev server on localhost:7233 → temporal server start-dev
+ * Prerequisites: Temporal dev server on localhost:7233 → temporal server
+ * start-dev
  */
 public class FileProcessingWorker {
 

@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.example</groupId>
+        <groupId>demo.temporal</groupId>
         <artifactId>temporal-file-processing</artifactId>
         <version>1.0.0</version>
     </parent>
@@ -19,7 +19,7 @@
     <dependencies>
         <!-- Shared interfaces and models (for typed WorkflowStub) -->
         <dependency>
-            <groupId>com.example</groupId>
+            <groupId>demo.temporal</groupId>
             <artifactId>shared-lib</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -44,7 +44,7 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.example.client.FileProcessingClient</mainClass>
+                    <mainClass>demo.temporal.client.FileProcessingClient</mainClass>
                 </configuration>
             </plugin>
         </plugins>

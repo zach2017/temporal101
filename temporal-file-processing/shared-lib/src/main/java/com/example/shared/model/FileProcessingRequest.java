@@ -1,15 +1,14 @@
-package com.example.shared.model;
+package demo.temporal.shared.model;
 
 import java.util.Objects;
 
 /**
- * Request passed from Client → Workflow → Activities.
- * Serialized by Temporal's default Jackson JSON Payload Converter.
+ * Request passed from Client → Workflow → Activities. Serialized by Temporal's
+ * default Jackson JSON Payload Converter.
  *
- * Fields:
- *   jobId        — unique identifier for this processing job
- *   fileName     — logical name of the file (e.g. "report-q1.csv")
- *   fileLocation — path or URI where the file can be found
+ * Fields: jobId — unique identifier for this processing job fileName — logical
+ * name of the file (e.g. "report-q1.csv") fileLocation — path or URI where the
+ * file can be found
  */
 public class FileProcessingRequest {
 
@@ -17,22 +16,41 @@ public class FileProcessingRequest {
     private String fileName;
     private String fileLocation;
 
-    /** No-arg constructor required by Jackson. */
-    public FileProcessingRequest() {}
-
-    public FileProcessingRequest(String jobId, String fileName, String fileLocation) {
-        this.jobId         = jobId;
-        this.fileName      = fileName;
-        this.fileLocation  = fileLocation;
+    /**
+     * No-arg constructor required by Jackson.
+     */
+    public FileProcessingRequest() {
     }
 
-    public String getJobId()        { return jobId; }
-    public String getFileName()     { return fileName; }
-    public String getFileLocation() { return fileLocation; }
+    public FileProcessingRequest(String jobId, String fileName, String fileLocation) {
+        this.jobId = jobId;
+        this.fileName = fileName;
+        this.fileLocation = fileLocation;
+    }
 
-    public void setJobId(String jobId)               { this.jobId = jobId; }
-    public void setFileName(String fileName)         { this.fileName = fileName; }
-    public void setFileLocation(String fileLocation) { this.fileLocation = fileLocation; }
+    public String getJobId() {
+        return jobId;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public String getFileLocation() {
+        return fileLocation;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public void setFileLocation(String fileLocation) {
+        this.fileLocation = fileLocation;
+    }
 
     @Override
     public String toString() {
@@ -43,11 +61,15 @@ public class FileProcessingRequest {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FileProcessingRequest that)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FileProcessingRequest that)) {
+            return false;
+        }
         return Objects.equals(jobId, that.jobId)
-            && Objects.equals(fileName, that.fileName)
-            && Objects.equals(fileLocation, that.fileLocation);
+                && Objects.equals(fileName, that.fileName)
+                && Objects.equals(fileLocation, that.fileLocation);
     }
 
     @Override

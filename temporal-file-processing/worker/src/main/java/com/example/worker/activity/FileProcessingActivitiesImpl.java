@@ -1,18 +1,18 @@
-package com.example.worker.activity;
+package demo.temporal.worker.activity;
 
-import com.example.shared.activity.FileProcessingActivities;
+import demo.temporal.shared.activity.FileProcessingActivities;
 import io.temporal.activity.Activity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Activity implementation — contains the real business logic.
- * Only the Worker project needs this class.
+ * Activity implementation — contains the real business logic. Only the Worker
+ * project needs this class.
  */
 public class FileProcessingActivitiesImpl implements FileProcessingActivities {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(FileProcessingActivitiesImpl.class);
+    private static final Logger log
+            = LoggerFactory.getLogger(FileProcessingActivitiesImpl.class);
 
     @Override
     public boolean validateFile(String fileLocation, String fileName) {

@@ -1,4 +1,4 @@
-package com.example.shared.model;
+package demo.temporal.shared.model;
 
 import java.util.Objects;
 
@@ -11,21 +11,38 @@ public class FileProcessingResult {
     private String status;   // COMPLETED | FAILED
     private String message;
 
-    public FileProcessingResult() {}
+    public FileProcessingResult() {
+    }
 
     public FileProcessingResult(String jobId, String status, String message) {
-        this.jobId   = jobId;
-        this.status  = status;
+        this.jobId = jobId;
+        this.status = status;
         this.message = message;
     }
 
-    public String getJobId()   { return jobId; }
-    public String getStatus()  { return status; }
-    public String getMessage() { return message; }
+    public String getJobId() {
+        return jobId;
+    }
 
-    public void setJobId(String jobId)     { this.jobId = jobId; }
-    public void setStatus(String status)   { this.status = status; }
-    public void setMessage(String message) { this.message = message; }
+    public String getStatus() {
+        return status;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
 
     @Override
     public String toString() {
@@ -36,11 +53,15 @@ public class FileProcessingResult {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof FileProcessingResult that)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FileProcessingResult that)) {
+            return false;
+        }
         return Objects.equals(jobId, that.jobId)
-            && Objects.equals(status, that.status)
-            && Objects.equals(message, that.message);
+                && Objects.equals(status, that.status)
+                && Objects.equals(message, that.message);
     }
 
     @Override

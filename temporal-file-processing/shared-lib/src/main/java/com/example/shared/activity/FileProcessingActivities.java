@@ -1,4 +1,4 @@
-package com.example.shared.activity;
+package demo.temporal.shared.activity;
 
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
@@ -6,8 +6,8 @@ import io.temporal.activity.ActivityMethod;
 /**
  * Activity interface for file-processing steps.
  *
- * Lives in shared-lib because the Workflow (also in shared-lib)
- * references it by type, and the Worker implements it.
+ * Lives in shared-lib because the Workflow (also in shared-lib) references it
+ * by type, and the Worker implements it.
  */
 @ActivityInterface
 public interface FileProcessingActivities {

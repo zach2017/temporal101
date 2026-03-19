@@ -1,24 +1,24 @@
-package com.example.worker.workflow;
+package demo.temporal.worker.workflow;
 
-import com.example.shared.activity.FileProcessingActivities;
-import com.example.shared.model.FileProcessingRequest;
-import com.example.shared.model.FileProcessingResult;
-import com.example.shared.workflow.FileProcessingWorkflow;
+import demo.temporal.shared.activity.FileProcessingActivities;
+import demo.temporal.shared.model.FileProcessingRequest;
+import demo.temporal.shared.model.FileProcessingResult;
+import demo.temporal.shared.workflow.FileProcessingWorkflow;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.workflow.Workflow;
 
 import java.time.Duration;
 
 /**
- * Workflow implementation — only the Worker needs this class.
- * The Client starts it using the shared interface.
+ * Workflow implementation — only the Worker needs this class. The Client starts
+ * it using the shared interface.
  */
 public class FileProcessingWorkflowImpl implements FileProcessingWorkflow {
 
     private String currentStatus = "INITIALIZED";
 
-    private final FileProcessingActivities activities =
-            Workflow.newActivityStub(
+    private final FileProcessingActivities activities
+            = Workflow.newActivityStub(
                     FileProcessingActivities.class,
                     ActivityOptions.newBuilder()
                             .setStartToCloseTimeout(Duration.ofMinutes(5))
@@ -27,8 +27,8 @@ public class FileProcessingWorkflowImpl implements FileProcessingWorkflow {
 
     @Override
     public FileProcessingResult processFile(FileProcessingRequest request) {
-        String jobId        = request.getJobId();
-        String fileName     = request.getFileName();
+        String jobId = request.getJobId();
+        String fileName = request.getFileName();
         String fileLocation = request.getFileLocation();
 
         // Step 1 — Validate

@@ -1,9 +1,9 @@
-package com.example.client;
+package demo.temporal.client;
 
-import com.example.shared.SharedConstants;
-import com.example.shared.model.FileProcessingRequest;
-import com.example.shared.model.FileProcessingResult;
-import com.example.shared.workflow.FileProcessingWorkflow;
+import demo.temporal.shared.SharedConstants;
+import demo.temporal.shared.model.FileProcessingRequest;
+import demo.temporal.shared.model.FileProcessingResult;
+import demo.temporal.shared.workflow.FileProcessingWorkflow;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.serviceclient.WorkflowServiceStubs;
@@ -13,12 +13,10 @@ import java.util.UUID;
 /**
  * Starts a FileProcessingWorkflow execution on the Temporal Service.
  *
- * Run:
- *   mvn -pl client exec:java
+ * Run: mvn -pl client exec:java
  *
- * Prerequisites:
- *   - Temporal dev server on localhost:7233
- *   - Worker already running (to pick up the task)
+ * Prerequisites: - Temporal dev server on localhost:7233 - Worker already
+ * running (to pick up the task)
  */
 public class FileProcessingClient {
 
@@ -41,7 +39,7 @@ public class FileProcessingClient {
         FileProcessingWorkflow workflow = client.newWorkflowStub(
                 FileProcessingWorkflow.class,
                 WorkflowOptions.newBuilder()
-                        .setWorkflowId(jobId)                    // unique per execution
+                        .setWorkflowId(jobId) // unique per execution
                         .setTaskQueue(SharedConstants.TASK_QUEUE) // must match Worker
                         .build()
         );
