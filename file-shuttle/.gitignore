@@ -1,0 +1,8 @@
+target/
+*.class
+*.jar
+!file-shuttle.jar
+.idea/
+*.iml
+.DS_Store
+test-data/*.bin

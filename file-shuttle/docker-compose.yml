@@ -1,0 +1,100 @@
+# ============================================================================
+# File Shuttle — Docker Compose Stack
+# ============================================================================
+# minio          – S3-compatible store (9000 API, 9001 console)
+# minio-init     – One-shot: creates test buckets
+# nfs-server     – NFS v4 server exporting /nfs-share
+# upload-server  – Mock HTTP upload API (port 8080)
+# file-shuttle   – The Java CLI app (run one-shot transfer commands)
+# ============================================================================
+
+services:
+
+  # ── MinIO (S3-compatible) ───────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── MinIO bucket initializer ────────────────────────────────
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin;
+        mc mb --ignore-existing local/test-bucket;
+        mc mb --ignore-existing local/output-bucket;
+        echo '--- Buckets ready ---';
+        mc ls local/;
+      "
+
+  # ── NFS Server ─────────────────────────────────────────────
+  nfs-server:
+    image: itsthenetwork/nfs-server-alpine:latest
+    privileged: true
+    environment:
+      SHARED_DIRECTORY: /nfs-share
+    volumes:
+      - nfs-data:/nfs-share
+    ports:
+      - "2049:2049"
+
+  # ── Mock Upload API ────────────────────────────────────────
+  upload-server:
+    image: python:3.12-slim
+    working_dir: /app
+    command: python server.py 8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./docker/mock-upload-server:/app:ro
+      - upload-data:/uploads
+
+  # ── File Shuttle (Java CLI) ────────────────────────────────
+  file-shuttle:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+      upload-server:
+        condition: service_started
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      S3_ENDPOINT: http://minio:9000
+    volumes:
+      - ./test-data:/data/local:ro
+      - nfs-data:/mnt/nfs-share
+    # Default: local file → S3
+    command: >
+      --file test-file.bin
+      --input-type local
+      --input /data/local/test-file.bin
+      --output-type s3
+      --output s3://test-bucket/uploads/test-file.bin
+      --s3-endpoint http://minio:9000
+      --buffer-size 65536
+      --multipart-size 8388608
+
+volumes:
+  minio-data:
+  nfs-data:
+  upload-data:
