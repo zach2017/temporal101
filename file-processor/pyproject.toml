@@ -1,0 +1,26 @@
+[project]
+name = "file-processor"
+version = "1.0.0"
+description = "CLI tool to detect file MIME types and process PDFs, images, and text files."
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1",
+    "python-magic>=0.4.27",
+    "pdfplumber>=0.11",
+    "PyMuPDF>=1.25",
+    "pytesseract>=0.3.13",
+    "Pillow>=11.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+]
+
+[project.scripts]
+file-processor = "cli:main"
+
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"

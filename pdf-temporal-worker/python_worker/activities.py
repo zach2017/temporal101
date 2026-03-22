@@ -182,31 +182,63 @@ async def fetch_pdf_activity(request: PdfProcessingRequest) -> str:
     # ── fetch via storage handler ──
     handler = get_handler(request.storage_type)
 
-    try:
-        local = handler.fetch_pdf(request.file_name, request.location)
-    except FileNotFoundError:
-        raise ApplicationError(
-            f"PDF not found in {request.storage_type} storage: "
-            f"file_name={request.file_name!r}, location={request.location!r}. "
-            "Please verify the file has been uploaded and the path is correct.",
-            type="FILE_NOT_FOUND",
-            non_retryable=True,
-        )
-    except PermissionError:
-        raise ApplicationError(
-            f"Permission denied when fetching PDF from {request.storage_type} storage: "
-            f"file_name={request.file_name!r}, location={request.location!r}. "
-            "Check that the worker has read access to this storage location.",
-            type="PERMISSION_DENIED",
-            non_retryable=True,
-        )
-    except Exception as exc:
-        log.exception("fetch_pdf_unexpected_error")
-        raise ApplicationError(
-            f"Unexpected error fetching PDF: {exc}",
-            type="FETCH_ERROR",
-            non_retryable=False,  # might be transient — allow retry
-        )
+    # Build the source path the same way the handler would, so we can
+    # detect the "already local" case *before* calling shutil.copy2.
+    src = os.path.join(request.location, request.file_name)
+    src_resolved = os.path.realpath(src)
+
+    if os.path.isfile(src_resolved):
+        # File is already on local disk — no copy needed.
+        # Create a distinct working copy so the processing activity can
+        # safely delete it without destroying the original.
+        try:
+            tmp_fd, tmp_path = tempfile.mkstemp(
+                suffix=".pdf", prefix="fetch_"
+            )
+            os.close(tmp_fd)
+            shutil.copy2(src_resolved, tmp_path)
+            local = tmp_path
+            log.info(
+                "fetch_pdf_local_copy",
+                extra={
+                    "source": src_resolved,
+                    "working_copy": tmp_path,
+                },
+            )
+        except Exception as exc:
+            _rm(tmp_path)
+            raise ApplicationError(
+                f"Failed to create working copy of local PDF: {exc}",
+                type="IO_ERROR",
+                non_retryable=False,
+            )
+    else:
+        # File is remote — delegate to the storage handler.
+        try:
+            local = handler.fetch_pdf(request.file_name, request.location)
+        except FileNotFoundError:
+            raise ApplicationError(
+                f"PDF not found in {request.storage_type} storage: "
+                f"file_name={request.file_name!r}, location={request.location!r}. "
+                "Please verify the file has been uploaded and the path is correct.",
+                type="FILE_NOT_FOUND",
+                non_retryable=True,
+            )
+        except PermissionError:
+            raise ApplicationError(
+                f"Permission denied when fetching PDF from {request.storage_type} storage: "
+                f"file_name={request.file_name!r}, location={request.location!r}. "
+                "Check that the worker has read access to this storage location.",
+                type="PERMISSION_DENIED",
+                non_retryable=True,
+            )
+        except Exception as exc:
+            log.exception("fetch_pdf_unexpected_error")
+            raise ApplicationError(
+                f"Unexpected error fetching PDF: {exc}",
+                type="FETCH_ERROR",
+                non_retryable=False,
+            )
 
     # ── validate the downloaded file ──
     _validate_local_pdf(local, context=request.file_name)

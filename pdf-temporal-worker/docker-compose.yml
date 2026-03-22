@@ -93,7 +93,6 @@ services:
     volumes:
       # Mount a shared dir for NFS storage mode testing
       - pdf-data:/data
-    restart: unless-stopped
     deploy:
       resources:
         limits:

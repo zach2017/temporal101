@@ -1,0 +1,12 @@
+services:
+  file-processor:
+    build: .
+    volumes:
+      # Mount a local folder so the container can read your files
+      - ./data:/data
+      - ./output:/output
+    # Example: process a PDF in the mounted /data folder
+    # Override CMD at run-time:
+    #   docker compose run file-processor /data/sample.pdf -o /output
+    entrypoint: ["python", "cli.py"]
+    command: ["--help"]
