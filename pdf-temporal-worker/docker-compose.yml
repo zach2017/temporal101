@@ -1,0 +1,120 @@
+###############################################################################
+#  PDF-to-Text Temporal Service — Docker Compose (PostgreSQL)
+#
+#  Services:
+#    postgres    PostgreSQL database for Temporal persistence
+#    temporal    Temporal server (gRPC :7233, UI :8233)
+#    worker      Python PDF processing worker (long-running)
+#    cli         Java CLI client (one-shot, exits after workflow completes)
+#
+#  Quick start:
+#    docker compose up -d postgres temporal worker   # start infra + worker
+#    docker compose run --rm cli report.pdf S3 s3://bucket/docs
+#    docker compose run --rm cli spec.pdf NFS /data/pdfs --no-images
+#
+###############################################################################
+
+services:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PostgreSQL — Temporal persistence backend
+  # ═══════════════════════════════════════════════════════════════════════════
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Temporal server (includes UI at http://localhost:8233)
+  # auto-setup creates the DB schema on first run
+  # ═══════════════════════════════════════════════════════════════════════════
+  temporal:
+    image: temporalio/auto-setup:latest
+    ports:
+      - "7233:7233"   # gRPC frontend
+      - "8233:8233"   # Web UI
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Python PDF Worker (long-running, auto-restarts)
+  # ═══════════════════════════════════════════════════════════════════════════
+  worker:
+    build:
+      context: ./python_worker
+      dockerfile: Dockerfile
+    command: ["--host", "temporal:7233"]
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      # Pass through AWS creds for S3 storage mode
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      # Mount a shared dir for NFS storage mode testing
+      - pdf-data:/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M    # generator approach keeps usage flat
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Java CLI Client (one-shot)
+  #
+  # Run with:
+  #   docker compose run --rm cli <file> <S3|NFS|URL> <location> [--no-images]
+  # ═══════════════════════════════════════════════════════════════════════════
+  cli:
+    build:
+      context: ./java_client
+      dockerfile: Dockerfile
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+    volumes:
+      - pdf-data:/data
+    # Override CMD at run time — no --host needed inside compose:
+    #   docker compose run --rm cli report.pdf NFS /data
+    command: ["--help"]
+
+volumes:
+  postgres-data:
+    driver: local
+  pdf-data:
+    driver: local
