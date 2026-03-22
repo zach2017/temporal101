@@ -5,7 +5,6 @@ description = "CLI tool to detect file MIME types and process PDFs, images, and 
 requires-python = ">=3.11"
 dependencies = [
     "click>=8.1",
-    "python-magic>=0.4.27",
     "pdfplumber>=0.11",
     "PyMuPDF>=1.25",
     "pytesseract>=0.3.13",
@@ -13,6 +12,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+magic = ["python-magic>=0.4.27"]           # Linux/macOS with libmagic
+magic-win = ["python-magic-bin>=0.4.14"]   # Windows (bundles the DLL)
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",

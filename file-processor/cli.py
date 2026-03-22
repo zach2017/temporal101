@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-file-processor CLI — Detect file types via python-magic (libmagic),
+file-processor CLI — Detect file types via libmagic / extension sniffing,
 then dispatch to the appropriate handler.
 
 PDF handling uses generators (yield) throughout to keep memory usage
@@ -13,6 +13,7 @@ from pathlib import Path
 import click
 
 from processor.dispatcher import dispatch_file
+from processor.tesseract_config import configure as configure_tesseract
 
 
 @click.command()
@@ -32,6 +33,15 @@ def main(filepath: Path, output_dir: Path | None, verbose: bool) -> None:
       • Images (JPEG/PNG/TIFF/BMP/WEBP) — OCR via pytesseract
       • Plain text / CSV / JSON — echo content summary
     """
+    # ── Locate Tesseract binary (Windows / Linux / macOS) ────────
+    try:
+        tess_path = configure_tesseract()
+        if verbose:
+            click.echo(f"🔧 Tesseract: {tess_path}")
+    except FileNotFoundError as exc:
+        click.secho(str(exc), fg="red", err=True)
+        sys.exit(1)
+
     if output_dir is None:
         output_dir = filepath.parent / f"{filepath.stem}_output"
 

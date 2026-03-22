@@ -62,7 +62,15 @@ brew install tesseract libmagic
 ```
 
 ### Windows
-Download the installer from [UB-Mannheim/tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add the install directory to your `PATH`.
+
+1. **Tesseract:** Download the installer from [UB-Mannheim/tesseract](https://github.com/UB-Mannheim/tesseract/wiki) and add the install directory to your `PATH`.
+2. **Python deps:**
+```bash
+pip install -r requirements.txt
+pip install python-magic-bin   # bundles libmagic DLL — no extra install needed
+```
+
+> **Note:** On Windows you do *not* need `python-magic` or libmagic. The `python-magic-bin` package bundles everything. If you skip both, the CLI still works using extension-based MIME detection.
 
 ---
 
