@@ -1,0 +1,242 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  PDF Extraction Pipeline – Full Stack Docker Compose            ║
+# ║                                                                 ║
+# ║  Services:                                                      ║
+# ║    Infrastructure : postgresql, elasticsearch, minio             ║
+# ║    Temporal       : temporal-server, temporal-ui                 ║
+# ║    Workers        : pdf-worker, ocr-worker                      ║
+# ║    Client         : java-client (one-shot, use with --profile)  ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+name: pdf-extraction-pipeline
+
+services:
+
+  # ════════════════════════════════════════════════════════════
+  #  INFRASTRUCTURE
+  # ════════════════════════════════════════════════════════════
+
+  postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks:
+      - pipeline
+
+  elasticsearch:
+    image: elasticsearch:${ELASTICSEARCH_VERSION:-7.17.25}
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks:
+      - pipeline
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":${MINIO_CONSOLE_PORT:-9001}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks:
+      - pipeline
+
+  # Pre-create the S3 bucket on first boot
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
+        mc mb --ignore-existing local/${S3_BUCKET_NAME} &&
+        echo 'Bucket ${S3_BUCKET_NAME} ready'
+      "
+    networks:
+      - pipeline
+
+  # ════════════════════════════════════════════════════════════
+  #  TEMPORAL
+  # ════════════════════════════════════════════════════════════
+
+  temporal-server:
+    image: temporalio/auto-setup:${TEMPORAL_VERSION:-1.26.2}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=postgresql
+      - ENABLE_ES=true
+      - ES_SEEDS=elasticsearch
+      - ES_VERSION=v7
+      - TEMPORAL_ADDRESS=0.0.0.0:7233
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks:
+      - pipeline
+
+  temporal-ui:
+    image: temporalio/ui:${TEMPORAL_UI_VERSION:-2.34.0}
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=temporal-server:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"
+    networks:
+      - pipeline
+
+  # ════════════════════════════════════════════════════════════
+  #  PYTHON WORKERS
+  # ════════════════════════════════════════════════════════════
+
+  pdf-worker:
+    build:
+      context: ../pdf_extraction_worker
+      dockerfile: Dockerfile
+      target: pdf-worker
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+      TEMPORAL_OCR_TASK_QUEUE: ${TEMPORAL_OCR_TASK_QUEUE}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_REGION: ${S3_REGION}
+      MAX_CONCURRENT_ACTIVITIES: ${MAX_CONCURRENT_ACTIVITIES}
+      ACTIVITY_HEARTBEAT_TIMEOUT_SECONDS: ${ACTIVITY_HEARTBEAT_TIMEOUT_SECONDS}
+      ACTIVITY_START_TO_CLOSE_TIMEOUT_SECONDS: ${ACTIVITY_START_TO_CLOSE_TIMEOUT_SECONDS}
+    volumes:
+      - ${PDF_SOURCE_DIR:-./sample_pdfs}:/data/pdfs:ro
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - pipeline
+
+  ocr-worker:
+    build:
+      context: ../pdf_extraction_worker
+      dockerfile: Dockerfile
+      target: ocr-worker
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_OCR_TASK_QUEUE}
+      TEMPORAL_OCR_TASK_QUEUE: ${TEMPORAL_OCR_TASK_QUEUE}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_REGION: ${S3_REGION}
+      MAX_CONCURRENT_ACTIVITIES: ${MAX_CONCURRENT_ACTIVITIES}
+      ACTIVITY_HEARTBEAT_TIMEOUT_SECONDS: ${ACTIVITY_HEARTBEAT_TIMEOUT_SECONDS}
+      ACTIVITY_START_TO_CLOSE_TIMEOUT_SECONDS: ${ACTIVITY_START_TO_CLOSE_TIMEOUT_SECONDS}
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - pipeline
+
+  # ════════════════════════════════════════════════════════════
+  #  JAVA CLIENT  (on-demand – use with docker compose profile)
+  # ════════════════════════════════════════════════════════════
+
+  java-client:
+    build:
+      context: ../pdf_extraction_java_client
+      dockerfile: Dockerfile
+    profiles:
+      - client
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    environment:
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+    networks:
+      - pipeline
+    # Override CMD at runtime:
+    # docker compose --profile client run java-client \
+    #   --file-name report.pdf --file-location /data/pdfs/report.pdf
+
+# ════════════════════════════════════════════════════════════
+#  VOLUMES & NETWORKS
+# ════════════════════════════════════════════════════════════
+
+volumes:
+  postgres_data:
+    driver: local
+  es_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  pipeline:
+    driver: bridge
