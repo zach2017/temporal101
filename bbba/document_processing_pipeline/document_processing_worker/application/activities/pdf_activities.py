@@ -2,6 +2,8 @@
 Temporal Activities – PDF text and image extraction + S3 persistence.
 
 Runs on the ``pdf-extraction-queue``.
+Every file-touching activity validates the path first and fails
+immediately with a clear error if the file is missing.
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from dataclasses import asdict
 
 import structlog
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
 from domain.services.pdf_processing import PdfProcessingService
 from domain.value_objects.documents import (
@@ -17,6 +20,7 @@ from domain.value_objects.documents import (
     ExtractedImage,
     ImageOcrRequest,
 )
+from infrastructure.file_validation import validate_file_exists, FileNotFoundError
 from infrastructure.s3.gateway import S3Gateway
 
 logger = structlog.get_logger()
@@ -24,28 +28,34 @@ logger = structlog.get_logger()
 
 @activity.defn(name="extract_text_from_pdf")
 async def extract_text_from_pdf(payload: dict) -> dict:
-    """
-    Extract text from every page of a PDF.
+    file_name = payload["file_name"]
+    file_location = payload["file_location"]
 
-    Input:  {"file_name": str, "file_location": str, "file_type": str}
-    Output: {"document_name": str, "source_mime_type": str,
-             "pages": {page_num: text, ...}}
-    """
+    activity.heartbeat(f"Validating file: {file_location}")
+
+    try:
+        validate_file_exists(file_location, context="extract_text_from_pdf")
+    except FileNotFoundError as e:
+        raise ApplicationError(
+            str(e), type="FileNotFoundError", non_retryable=True
+        )
+
     doc_ref = DocumentFileReference(
-        file_name=payload["file_name"],
-        file_location=payload["file_location"],
+        file_name=file_name,
+        file_location=file_location,
         file_type=payload.get("file_type", "application/pdf"),
     )
+
     activity.heartbeat(f"Extracting text from {doc_ref.file_name}")
-    logger.info("activity.extract_text.start", file_name=doc_ref.file_name)
+    logger.info("activity.extract_text.start",
+                file_name=doc_ref.file_name,
+                file_location=file_location)
 
     extracted = PdfProcessingService.extract_text(doc_ref)
 
-    logger.info(
-        "activity.extract_text.done",
-        document_name=extracted.document_name,
-        page_count=len(extracted.pages),
-    )
+    logger.info("activity.extract_text.done",
+                document_name=extracted.document_name,
+                page_count=len(extracted.pages))
 
     return {
         "document_name": extracted.document_name,
@@ -56,19 +66,28 @@ async def extract_text_from_pdf(payload: dict) -> dict:
 
 @activity.defn(name="extract_images_from_pdf")
 async def extract_images_from_pdf(payload: dict) -> list[dict]:
-    """
-    Extract all embedded images from a PDF.
+    file_name = payload["file_name"]
+    file_location = payload["file_location"]
 
-    Input:  {"file_name": str, "file_location": str, "file_type": str}
-    Output: list of image metadata dicts.
-    """
+    activity.heartbeat(f"Validating file: {file_location}")
+
+    try:
+        validate_file_exists(file_location, context="extract_images_from_pdf")
+    except FileNotFoundError as e:
+        raise ApplicationError(
+            str(e), type="FileNotFoundError", non_retryable=True
+        )
+
     doc_ref = DocumentFileReference(
-        file_name=payload["file_name"],
-        file_location=payload["file_location"],
+        file_name=file_name,
+        file_location=file_location,
         file_type=payload.get("file_type", "application/pdf"),
     )
+
     activity.heartbeat(f"Extracting images from {doc_ref.file_name}")
-    logger.info("activity.extract_images.start", file_name=doc_ref.file_name)
+    logger.info("activity.extract_images.start",
+                file_name=doc_ref.file_name,
+                file_location=file_location)
 
     images: list[ExtractedImage] = PdfProcessingService.extract_images(doc_ref)
 
@@ -90,7 +109,6 @@ async def extract_images_from_pdf(payload: dict) -> list[dict]:
 
 @activity.defn(name="store_extracted_text_to_s3")
 async def store_extracted_text_to_s3(payload: dict) -> str:
-    """Upload extracted text JSON to S3. Returns S3 key."""
     document_name = payload["document_name"]
     pages = payload.get("pages", {})
     full_text = payload.get("full_text", "")
@@ -112,7 +130,6 @@ async def store_extracted_text_to_s3(payload: dict) -> str:
 
 @activity.defn(name="store_image_to_s3")
 async def store_image_to_s3(payload: dict) -> str:
-    """Upload a single extracted image to S3. Returns S3 key."""
     s3_key = payload["s3_object_key"]
     image_bytes = payload["image_bytes"]
     extension = payload["extension"]
@@ -129,7 +146,6 @@ async def store_image_to_s3(payload: dict) -> str:
 
 @activity.defn(name="build_ocr_requests")
 async def build_ocr_requests(payload: dict) -> list[dict]:
-    """Build OCR request payloads for every extracted image."""
     document_name = payload["document_name"]
     image_s3_keys = payload["image_s3_keys"]
     image_metadata = payload["image_metadata"]

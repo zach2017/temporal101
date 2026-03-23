@@ -12,7 +12,9 @@ from __future__ import annotations
 
 import structlog
 from temporalio import activity
+from temporalio.exceptions import ApplicationError
 
+from infrastructure.file_validation import validate_file_exists, FileNotFoundError
 from infrastructure.s3.gateway import S3Gateway
 
 logger = structlog.get_logger()
@@ -20,65 +22,33 @@ logger = structlog.get_logger()
 
 @activity.defn(name="ocr_extract_text_from_image")
 async def ocr_extract_text_from_image(payload: dict) -> dict:
-    """
-    Download an image from S3 and run OCR on it.
-
-    Input
-    -----
-    {
-        "s3_bucket": str,
-        "s3_key": str,
-        "document_name": str,
-        "page_number": int,   # 0 for standalone images
-        "image_index": int,   # 0 for standalone images
-    }
-
-    Output
-    ------
-    {
-        "document_name": str,
-        "page_number": int,
-        "image_index": int,
-        "extracted_text": str,
-    }
-    """
     s3_key = payload["s3_key"]
     document_name = payload["document_name"]
     page_number = payload.get("page_number", 0)
     image_index = payload.get("image_index", 0)
 
     activity.heartbeat(f"OCR processing {s3_key}")
-    logger.info("activity.ocr.start", s3_key=s3_key)
+    logger.info("activity.ocr.start",
+                s3_key=s3_key,
+                document_name=document_name)
 
     gw = S3Gateway()
     image_bytes = gw.download_bytes(s3_key)
 
-    # ── TODO: Replace with real OCR engine ────────────────────
-    #
-    # Example with Tesseract:
-    #   from PIL import Image
-    #   import pytesseract, io
-    #   img = Image.open(io.BytesIO(image_bytes))
-    #   extracted_text = pytesseract.image_to_string(img)
-    #
-    # Example with Amazon Textract:
-    #   import boto3
-    #   textract = boto3.client("textract")
-    #   response = textract.detect_document_text(
-    #       Document={"Bytes": image_bytes}
-    #   )
-    #   extracted_text = "\n".join(
-    #       block["Text"] for block in response["Blocks"]
-    #       if block["BlockType"] == "LINE"
-    #   )
+    logger.info("activity.ocr.downloaded",
+                s3_key=s3_key,
+                size_bytes=len(image_bytes))
 
+    # ── TODO: Replace with real OCR engine ────────────────────
     extracted_text = (
         f"[STUB] OCR placeholder for {document_name} "
         f"page={page_number} image={image_index} "
         f"({len(image_bytes)} bytes)"
     )
 
-    logger.info("activity.ocr.done", s3_key=s3_key, text_length=len(extracted_text))
+    logger.info("activity.ocr.done",
+                s3_key=s3_key,
+                text_length=len(extracted_text))
 
     return {
         "document_name": document_name,
@@ -90,17 +60,22 @@ async def ocr_extract_text_from_image(payload: dict) -> dict:
 
 @activity.defn(name="upload_image_for_ocr")
 async def upload_image_for_ocr(payload: dict) -> str:
-    """
-    Upload a standalone image file to S3 so the OCR activity can fetch it.
-
-    Input:  {"file_location": str, "s3_key": str, "extension": str}
-    Output: S3 key.
-    """
     file_location = payload["file_location"]
     s3_key = payload["s3_key"]
     extension = payload["extension"]
 
-    activity.heartbeat(f"Uploading image for OCR: {s3_key}")
+    activity.heartbeat(f"Validating image file: {file_location}")
+
+    try:
+        validate_file_exists(file_location, context="upload_image_for_ocr")
+    except FileNotFoundError as e:
+        raise ApplicationError(
+            str(e), type="FileNotFoundError", non_retryable=True
+        )
+
+    logger.info("activity.upload_image_for_ocr.start",
+                file_location=file_location,
+                s3_key=s3_key)
 
     gw = S3Gateway()
     gw.ensure_bucket_exists()
@@ -110,5 +85,7 @@ async def upload_image_for_ocr(payload: dict) -> str:
 
     gw.upload_image(s3_key, image_bytes, extension)
 
-    logger.info("activity.upload_image_for_ocr.done", s3_key=s3_key)
+    logger.info("activity.upload_image_for_ocr.done",
+                s3_key=s3_key,
+                size_bytes=len(image_bytes))
     return s3_key
