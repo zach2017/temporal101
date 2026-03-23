@@ -1,8 +1,9 @@
 # ╔══════════════════════════════════════════════════════════════════╗
 # ║  Document Processing Pipeline – Full Stack Docker Compose       ║
 # ║                                                                 ║
-# ║  All images use :latest tags (pinnable via .env overrides).     ║
-# ║  Workers connect via host.docker.internal where needed.         ║
+# ║  All workers share a named volume mounted at /files.            ║
+# ║  Drop documents into ./sample_docs on the host — the            ║
+# ║  files-init container copies them into the shared volume.       ║
 # ║                                                                 ║
 # ║  Workers:                                                       ║
 # ║    tika-worker       (Java)   – MIME detection via Apache Tika  ║
@@ -42,7 +43,6 @@ services:
 
   elasticsearch:
     # NOTE: Elasticsearch does NOT publish a :latest tag.
-    # Use docker.elastic.co registry with an explicit version.
     image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION:-8.17.4}
     environment:
       - discovery.type=single-node
@@ -108,6 +108,28 @@ services:
       - pipeline
 
   # ════════════════════════════════════════════════════════════
+  #  SHARED FILES VOLUME INIT
+  #
+  #  Copies files from the host ./sample_docs directory into
+  #  the shared_files volume so all workers can access them
+  #  at /files inside their containers.
+  # ════════════════════════════════════════════════════════════
+
+  files-init:
+    image: busybox:latest
+    volumes:
+      - ${DOCS_SOURCE_DIR:-./sample_docs}:/source:ro
+      - shared_files:/files
+    entrypoint: >
+      /bin/sh -c "
+        echo 'Syncing files from host into shared /files volume...' &&
+        cp -rv /source/* /files/ 2>/dev/null || true &&
+        echo 'Shared volume contents:' &&
+        ls -la /files/ &&
+        echo 'Files init complete.'
+      "
+
+  # ════════════════════════════════════════════════════════════
   #  TEMPORAL
   # ════════════════════════════════════════════════════════════
 
@@ -171,12 +193,14 @@ services:
     depends_on:
       temporal-server:
         condition: service_healthy
+      files-init:
+        condition: service_completed_successfully
     environment:
       TEMPORAL_HOST: ${TEMPORAL_HOST}
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
       TEMPORAL_TIKA_TASK_QUEUE: ${TEMPORAL_TIKA_TASK_QUEUE}
     volumes:
-      - ${DOCS_SOURCE_DIR:-./sample_docs}:/data/docs:ro
+      - shared_files:/files
     restart: unless-stopped
     deploy:
       replicas: 1
@@ -190,6 +214,9 @@ services:
 
   # ════════════════════════════════════════════════════════════
   #  PYTHON WORKERS (4 workers, 4 task queues)
+  #
+  #  All workers mount shared_files at /files.
+  #  Use /files/<filename> as the file_location in workflows.
   # ════════════════════════════════════════════════════════════
 
   intake-worker:
@@ -201,6 +228,8 @@ services:
       temporal-server:
         condition: service_healthy
       localstack-init:
+        condition: service_completed_successfully
+      files-init:
         condition: service_completed_successfully
     environment: &worker-env
       TEMPORAL_HOST: ${TEMPORAL_HOST}
@@ -220,7 +249,7 @@ services:
       ACTIVITY_START_TO_CLOSE_TIMEOUT_SECONDS: ${ACTIVITY_START_TO_CLOSE_TIMEOUT_SECONDS}
       ACTIVITY_MAX_RETRIES: ${ACTIVITY_MAX_RETRIES}
     volumes:
-      - ${DOCS_SOURCE_DIR:-./sample_docs}:/data/docs:ro
+      - shared_files:/files
     restart: unless-stopped
     deploy:
       replicas: 1
@@ -242,9 +271,11 @@ services:
         condition: service_healthy
       localstack-init:
         condition: service_completed_successfully
+      files-init:
+        condition: service_completed_successfully
     environment: *worker-env
     volumes:
-      - ${DOCS_SOURCE_DIR:-./sample_docs}:/data/docs:ro
+      - shared_files:/files
     restart: unless-stopped
     deploy:
       replicas: 1
@@ -266,7 +297,11 @@ services:
         condition: service_healthy
       localstack-init:
         condition: service_completed_successfully
+      files-init:
+        condition: service_completed_successfully
     environment: *worker-env
+    volumes:
+      - shared_files:/files
     restart: unless-stopped
     deploy:
       replicas: 1
@@ -288,9 +323,11 @@ services:
         condition: service_healthy
       localstack-init:
         condition: service_completed_successfully
+      files-init:
+        condition: service_completed_successfully
     environment: *worker-env
     volumes:
-      - ${DOCS_SOURCE_DIR:-./sample_docs}:/data/docs:ro
+      - shared_files:/files
     restart: unless-stopped
     deploy:
       replicas: 1
@@ -315,10 +352,14 @@ services:
     depends_on:
       temporal-server:
         condition: service_healthy
+      files-init:
+        condition: service_completed_successfully
     environment:
       TEMPORAL_HOST: ${TEMPORAL_HOST}
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
       TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+    volumes:
+      - shared_files:/files
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -332,6 +373,8 @@ volumes:
   postgres_data:
   es_data:
   localstack_data:
+  shared_files:
+    driver: local
 
 networks:
   pipeline:
