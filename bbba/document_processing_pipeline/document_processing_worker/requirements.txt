@@ -1,0 +1,34 @@
+# ── Temporal SDK ──
+temporalio>=1.10.0
+
+# ── AWS / S3 ──
+boto3>=1.36.0
+
+# ── PDF Processing ──
+pymupdf>=1.25.3            # fitz – text + image extraction from PDFs
+
+# ── MIME Detection ──
+python-magic>=0.4.27       # libmagic bindings for reliable MIME detection
+
+# ── Document Conversion (to text) ──
+python-docx>=1.1.2         # .docx reading
+openpyxl>=3.1.5            # .xlsx reading
+python-pptx>=1.0.2         # .pptx reading
+beautifulsoup4>=4.13.3     # HTML/XML text extraction
+lxml>=5.3.1                # HTML parser backend
+markdown>=3.7.0            # .md → HTML → text
+chardet>=5.2.0             # encoding detection for plain text
+ebooklib>=0.18.0           # .epub reading
+striprtf>=0.0.28           # .rtf reading
+odfpy>=1.4.1               # .odt / .ods / .odp reading
+
+# ── Image Processing ──
+Pillow>=11.1.0             # image format handling
+
+# ── Configuration ──
+pydantic>=2.10.0
+pydantic-settings>=2.8.0
+
+# ── Utilities ──
+structlog>=25.1.0          # structured logging
+python-dotenv>=1.1.0

@@ -1,0 +1,301 @@
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  Document Processing Pipeline – Full Stack Docker Compose       ║
+# ║                                                                 ║
+# ║  All images use :latest tags (pinnable via .env overrides).     ║
+# ║  Workers connect via host.docker.internal where needed.         ║
+# ╚══════════════════════════════════════════════════════════════════╝
+
+name: document-processing-pipeline
+
+services:
+
+  # ════════════════════════════════════════════════════════════
+  #  INFRASTRUCTURE
+  # ════════════════════════════════════════════════════════════
+
+  postgresql:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  elasticsearch:
+    # NOTE: Elasticsearch does NOT publish a :latest tag.
+    # Use docker.elastic.co registry with an explicit version.
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTICSEARCH_VERSION:-8.17.4}
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  localstack:
+    image: localstack/localstack:${LOCALSTACK_VERSION:-latest}
+    environment:
+      - SERVICES=s3
+      - DEBUG=${LOCALSTACK_DEBUG:-0}
+      - PERSISTENCE=${LOCALSTACK_PERSISTENCE:-1}
+      - AWS_DEFAULT_REGION=${S3_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "${LOCALSTACK_PORT:-4566}:4566"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health | grep -q '\"s3\"'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  localstack-init:
+    image: amazon/aws-cli:latest
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+    entrypoint: >
+      /bin/sh -c "
+        echo 'Creating S3 bucket ${S3_BUCKET_NAME}...' &&
+        aws --endpoint-url http://localstack:4566 s3 mb s3://${S3_BUCKET_NAME} 2>/dev/null || true &&
+        echo 'Bucket ready:' &&
+        aws --endpoint-url http://localstack:4566 s3 ls
+      "
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  # ════════════════════════════════════════════════════════════
+  #  TEMPORAL
+  # ════════════════════════════════════════════════════════════
+
+  temporal-server:
+    image: temporalio/auto-setup:${TEMPORAL_VERSION:-latest}
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD}
+      - POSTGRES_SEEDS=postgresql
+      - ENABLE_ES=true
+      - ES_SEEDS=elasticsearch
+      - ES_VERSION=v7
+      - TEMPORAL_ADDRESS=host.docker.internal:7233
+      - TEMPORAL_CLI_ADDRESS=host.docker.internal:7233
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+    ports:
+      - "7233:7233"
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health --address host.docker.internal:7233 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  temporal-ui:
+    image: temporalio/ui:${TEMPORAL_UI_VERSION:-latest}
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_ADDRESS=host.docker.internal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  # ════════════════════════════════════════════════════════════
+  #  PYTHON WORKERS (4 workers, 4 task queues)
+  # ════════════════════════════════════════════════════════════
+
+  intake-worker:
+    build:
+      context: ./document_processing_worker
+      dockerfile: Dockerfile
+      target: intake-worker
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      localstack-init:
+        condition: service_completed_successfully
+    environment: &worker-env
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+      TEMPORAL_PDF_TASK_QUEUE: ${TEMPORAL_PDF_TASK_QUEUE}
+      TEMPORAL_OCR_TASK_QUEUE: ${TEMPORAL_OCR_TASK_QUEUE}
+      TEMPORAL_CONVERSION_TASK_QUEUE: ${TEMPORAL_CONVERSION_TASK_QUEUE}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_REGION: ${S3_REGION}
+      MAX_CONCURRENT_ACTIVITIES: ${MAX_CONCURRENT_ACTIVITIES}
+      ACTIVITY_HEARTBEAT_TIMEOUT_SECONDS: ${ACTIVITY_HEARTBEAT_TIMEOUT_SECONDS}
+      ACTIVITY_START_TO_CLOSE_TIMEOUT_SECONDS: ${ACTIVITY_START_TO_CLOSE_TIMEOUT_SECONDS}
+    volumes:
+      - ${DOCS_SOURCE_DIR:-./sample_docs}:/data/docs:ro
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 256M
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  pdf-worker:
+    build:
+      context: ./document_processing_worker
+      dockerfile: Dockerfile
+      target: pdf-worker
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      localstack-init:
+        condition: service_completed_successfully
+    environment: *worker-env
+    volumes:
+      - ${DOCS_SOURCE_DIR:-./sample_docs}:/data/docs:ro
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  ocr-worker:
+    build:
+      context: ./document_processing_worker
+      dockerfile: Dockerfile
+      target: ocr-worker
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      localstack-init:
+        condition: service_completed_successfully
+    environment: *worker-env
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  conversion-worker:
+    build:
+      context: ./document_processing_worker
+      dockerfile: Dockerfile
+      target: conversion-worker
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      localstack-init:
+        condition: service_completed_successfully
+    environment: *worker-env
+    volumes:
+      - ${DOCS_SOURCE_DIR:-./sample_docs}:/data/docs:ro
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  # ════════════════════════════════════════════════════════════
+  #  JAVA CLIENT  (on-demand)
+  # ════════════════════════════════════════════════════════════
+
+  java-client:
+    build:
+      context: ./pdf_extraction_java_client
+      dockerfile: Dockerfile
+    profiles:
+      - client
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    environment:
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+# ════════════════════════════════════════════════════════════
+#  VOLUMES & NETWORKS
+# ════════════════════════════════════════════════════════════
+
+volumes:
+  postgres_data:
+  es_data:
+  localstack_data:
+
+networks:
+  pipeline:
+    driver: bridge
