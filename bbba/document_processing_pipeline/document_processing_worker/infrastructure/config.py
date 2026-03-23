@@ -1,8 +1,8 @@
 """
 Centralised, ENV-driven configuration.
 
-Every external reference (Temporal, S3, timeouts) lives here so the rest
-of the codebase never hard-codes connection strings or bucket names.
+All output is written to the shared filesystem at SHARED_FILES_PATH
+(default: /files).  No S3 or object storage required.
 """
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Immutable value object – loaded once at process start."""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -28,25 +27,29 @@ class Settings(BaseSettings):
     temporal_ocr_task_queue: str = "image-ocr-queue"
     temporal_conversion_task_queue: str = "document-conversion-queue"
 
-    # ── S3 ────────────────────────────────────────────────────
-    s3_endpoint_url: str | None = None
-    s3_bucket_name: str = "document-processing"
-    s3_access_key_id: str = ""
-    s3_secret_access_key: str = ""
-    s3_region: str = "us-east-1"
+    # ── Shared Filesystem ─────────────────────────────────────
+    # All workers mount this volume.  Source files are read from
+    # here and all output (extracted text, images) is written here.
+    shared_files_path: str = "/files"
 
     # ── Worker tuning ─────────────────────────────────────────
     max_concurrent_activities: int = 5
     activity_heartbeat_timeout_seconds: int = 120
     activity_start_to_close_timeout_seconds: int = 600
-    activity_max_retries: int = 2  # total attempts (1 initial + 1 retry)
+    activity_max_retries: int = 2
 
-    # ── Derived helpers ───────────────────────────────────────
-    def text_bucket_key(self, document_name: str) -> str:
-        return f"{document_name}/extracted_text.json"
+    # ── Derived paths ─────────────────────────────────────────
+    def output_dir(self, document_name: str) -> str:
+        """Root output directory for a processed document."""
+        return f"{self.shared_files_path}/output/{document_name}"
 
-    def images_bucket_prefix(self, document_name: str) -> str:
-        return f"{document_name}/extracted_images/"
+    def text_output_path(self, document_name: str) -> str:
+        """Path for the extracted text JSON file."""
+        return f"{self.output_dir(document_name)}/extracted_text.json"
+
+    def images_output_dir(self, document_name: str) -> str:
+        """Directory for extracted images."""
+        return f"{self.output_dir(document_name)}/extracted_images"
 
 
 settings = Settings()

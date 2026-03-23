@@ -112,12 +112,12 @@ async def store_extracted_text_to_s3(payload: dict) -> str:
     activity.heartbeat(f"Uploading text for {document_name}")
     logger.info("activity.store_text.start", document_name=document_name)
 
-    gw = S3Gateway()
-    gw.ensure_bucket_exists()
-    s3_key = gw.upload_extracted_text(document_name, pages)
+   # gw = S3Gateway()
+   # gw.ensure_bucket_exists()
+   # s3_key = gw.upload_extracted_text(document_name, pages)
 
-    logger.info("activity.store_text.done", s3_key=s3_key)
-    return s3_key
+    #logger.info("activity.store_text.done", s3_key=s3_key)
+    #return s3_key
 
 
 @activity.defn(name="store_image_to_s3")
@@ -128,18 +128,15 @@ async def store_image_to_s3(payload: dict) -> str:
     Input:  {"s3_object_key": str, "image_bytes": bytes, "extension": str}
     Output: S3 key of the stored object.
     """
-    s3_key = payload["s3_object_key"]
-    image_bytes = payload["image_bytes"]
-    extension = payload["extension"]
+  
+    activity.heartbeat(f"Uploading image here ")
 
-    activity.heartbeat(f"Uploading image {s3_key}")
+   # gw = S3Gateway()
+   # gw.ensure_bucket_exists()
+   #gw.upload_image(s3_key, image_bytes, extension)
 
-    gw = S3Gateway()
-    gw.ensure_bucket_exists()
-    gw.upload_image(s3_key, image_bytes, extension)
-
-    logger.info("activity.store_image.done", s3_key=s3_key)
-    return s3_key
+    logger.info("activity.store_image.done")
+    return"s3_key"
 
 
 # ─── Build OCR Requests ──────────────────────────────────────

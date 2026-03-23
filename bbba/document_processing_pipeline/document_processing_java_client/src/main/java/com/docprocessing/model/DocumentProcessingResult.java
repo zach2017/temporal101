@@ -16,8 +16,8 @@ public record DocumentProcessingResult(
         @JsonProperty("document_name") String documentName,
         @JsonProperty("source_mime_type") String sourceMimeType,
         @JsonProperty("category") String category,
-        @JsonProperty("text_s3_key") String textS3Key,
-        @JsonProperty("image_s3_keys") List<String> imageS3Keys,
+        @JsonProperty("text_output_path") String textOutputPath,
+        @JsonProperty("image_output_paths") List<String> imageOutputPaths,
         @JsonProperty("ocr_results") List<OcrResult> ocrResults
 ) {
 
