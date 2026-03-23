@@ -155,3 +155,6 @@ temporal-file-processing/client/target/
 my-platform/my-platform/service-b/target/
 my-platform/my-platform/service-a/target/
 ocr-temporal-project/ocr-common/target/
+aaapdf_extraction_worker/pdf_extraction_java_client/.gradle
+bbba/document_processing_pipeline/document_processing_java_client/.gradle/
+bbba/document_processing_pipeline/tika_worker/.gradle/

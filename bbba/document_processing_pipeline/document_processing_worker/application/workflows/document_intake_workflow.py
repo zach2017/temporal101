@@ -3,12 +3,15 @@ Temporal Workflow – Document Intake Pipeline (top-level orchestrator).
 
 This is the single entry-point for ALL document types:
 
-  1. Detect MIME type  →  classify into a DocumentCategory
-  2. Route to the correct child workflow:
+  1. Call the Java Tika worker (tika-detection-queue) to detect MIME type
+  2. Route to the correct child workflow based on category:
        PDF   → PdfExtractionWorkflow   (pdf-extraction-queue)
-       IMAGE → ImageOcrWorkflow        (image-ocr-queue)
+       IMAGE → ImageDocumentWorkflow   (image-ocr-queue)
        OTHER → DocumentConversionWorkflow (document-conversion-queue)
   3. Return unified DocumentProcessingResult
+
+The MIME detection runs on a separate Java worker using Apache Tika
+for content-based detection (magic bytes + extension heuristics).
 """
 
 from __future__ import annotations
@@ -26,7 +29,7 @@ with workflow.unsafe.imports_passed_through():
 class DocumentIntakeWorkflow:
     """
     Top-level entry-point.  Accepts *any* file and routes it through
-    the correct extraction pipeline based on its detected MIME type.
+    the correct extraction pipeline based on Tika-detected MIME type.
     """
 
     @workflow.run
@@ -41,14 +44,20 @@ class DocumentIntakeWorkflow:
         timeout = timedelta(seconds=settings.activity_start_to_close_timeout_seconds)
         heartbeat = timedelta(seconds=settings.activity_heartbeat_timeout_seconds)
 
-        # ── Step 1: Detect MIME type ──────────────────────────
+        # ── Step 1: Detect MIME type via Java Tika worker ─────
+        #
+        # The activity "detect_file_type_tika" is registered on
+        # the tika-detection-queue by the Java TikaWorker.
+        # We call it cross-queue by specifying task_queue.
+        #
         detection: dict = await workflow.execute_activity(
-            "detect_mime_type",
+            "detect_file_type_tika",
             args=[{
                 "file_name": file_name,
                 "file_location": file_location,
                 "file_type": file_type,
             }],
+            task_queue=settings.temporal_tika_task_queue,
             start_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat,
         )
@@ -57,7 +66,7 @@ class DocumentIntakeWorkflow:
         category = detection["category"]
 
         workflow.logger.info(
-            "DocumentIntakeWorkflow.detected",
+            "DocumentIntakeWorkflow.tika_detected",
             extra={"mime_type": mime_type, "category": category},
         )
 

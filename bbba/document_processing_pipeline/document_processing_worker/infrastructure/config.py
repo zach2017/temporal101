@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     temporal_host: str = "localhost:7233"
     temporal_namespace: str = "default"
     temporal_task_queue: str = "document-intake-queue"
+    temporal_tika_task_queue: str = "tika-detection-queue"
     temporal_pdf_task_queue: str = "pdf-extraction-queue"
     temporal_ocr_task_queue: str = "image-ocr-queue"
     temporal_conversion_task_queue: str = "document-conversion-queue"

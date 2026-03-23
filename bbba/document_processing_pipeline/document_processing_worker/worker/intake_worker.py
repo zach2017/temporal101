@@ -1,8 +1,13 @@
 """
-Worker – Document Intake (MIME detection + routing).
+Worker – Document Intake (routing orchestrator).
 
 Listens on ``document-intake-queue``.  Runs the DocumentIntakeWorkflow
-which detects MIME type and dispatches to the appropriate child workflow.
+which calls the Java Tika worker for MIME detection (cross-queue activity),
+then dispatches to the appropriate child workflow.
+
+Note: This worker does NOT register any activities — the Tika detection
+activity runs on the ``tika-detection-queue`` (Java TikaWorker), and the
+extraction activities run on their respective queues.
 
 Run:  python -m worker.intake_worker
 """
@@ -15,7 +20,6 @@ import structlog
 from temporalio.client import Client
 from temporalio.worker import Worker
 
-from application.activities.mime_activities import detect_mime_type
 from application.workflows.document_intake_workflow import DocumentIntakeWorkflow
 from infrastructure.config import settings
 
@@ -38,7 +42,7 @@ async def main() -> None:
         client,
         task_queue=settings.temporal_task_queue,
         workflows=[DocumentIntakeWorkflow],
-        activities=[detect_mime_type],
+        activities=[],  # No local activities — Tika runs cross-queue
         max_concurrent_activities=settings.max_concurrent_activities,
     )
 

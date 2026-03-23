@@ -3,6 +3,13 @@
 # ║                                                                 ║
 # ║  All images use :latest tags (pinnable via .env overrides).     ║
 # ║  Workers connect via host.docker.internal where needed.         ║
+# ║                                                                 ║
+# ║  Workers:                                                       ║
+# ║    tika-worker       (Java)   – MIME detection via Apache Tika  ║
+# ║    intake-worker     (Python) – routing orchestrator            ║
+# ║    pdf-worker        (Python) – PDF text + image extraction     ║
+# ║    ocr-worker        (Python) – image-to-text (OCR stub)       ║
+# ║    conversion-worker (Python) – office/text/html/epub → text   ║
 # ╚══════════════════════════════════════════════════════════════════╝
 
 name: document-processing-pipeline
@@ -154,6 +161,34 @@ services:
       - pipeline
 
   # ════════════════════════════════════════════════════════════
+  #  JAVA TIKA WORKER (MIME detection via Apache Tika)
+  # ════════════════════════════════════════════════════════════
+
+  tika-worker:
+    build:
+      context: ./tika_worker
+      dockerfile: Dockerfile
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    environment:
+      TEMPORAL_HOST: ${TEMPORAL_HOST}
+      TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
+      TEMPORAL_TIKA_TASK_QUEUE: ${TEMPORAL_TIKA_TASK_QUEUE}
+    volumes:
+      - ${DOCS_SOURCE_DIR:-./sample_docs}:/data/docs:ro
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 768M
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - pipeline
+
+  # ════════════════════════════════════════════════════════════
   #  PYTHON WORKERS (4 workers, 4 task queues)
   # ════════════════════════════════════════════════════════════
 
@@ -171,6 +206,7 @@ services:
       TEMPORAL_HOST: ${TEMPORAL_HOST}
       TEMPORAL_NAMESPACE: ${TEMPORAL_NAMESPACE}
       TEMPORAL_TASK_QUEUE: ${TEMPORAL_TASK_QUEUE}
+      TEMPORAL_TIKA_TASK_QUEUE: ${TEMPORAL_TIKA_TASK_QUEUE}
       TEMPORAL_PDF_TASK_QUEUE: ${TEMPORAL_PDF_TASK_QUEUE}
       TEMPORAL_OCR_TASK_QUEUE: ${TEMPORAL_OCR_TASK_QUEUE}
       TEMPORAL_CONVERSION_TASK_QUEUE: ${TEMPORAL_CONVERSION_TASK_QUEUE}
@@ -271,7 +307,7 @@ services:
 
   java-client:
     build:
-      context: ./pdf_extraction_java_client
+      context: ./document_processing_java_client
       dockerfile: Dockerfile
     profiles:
       - client

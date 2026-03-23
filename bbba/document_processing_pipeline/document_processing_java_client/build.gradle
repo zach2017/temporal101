@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.docprocessing'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // ── Temporal SDK ──
+    implementation 'io.temporal:temporal-sdk:1.27.0'
+
+    // ── Configuration ──
+    implementation 'io.github.cdimascio:dotenv-java:3.1.0'
+
+    // ── Logging ──
+    implementation 'org.slf4j:slf4j-api:2.0.16'
+    implementation 'ch.qos.logback:logback-classic:1.5.15'
+
+    // ── JSON ──
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+}
+
+application {
+    mainClass = 'com.docprocessing.client.DocumentProcessingClient'
+}
