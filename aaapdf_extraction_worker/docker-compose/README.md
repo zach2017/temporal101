@@ -1,6 +1,6 @@
 # PDF Extraction Pipeline – Docker Compose
 
-One-command deployment of the entire PDF extraction pipeline with all infrastructure.
+One-command deployment of the entire PDF extraction pipeline with all infrastructure, using **LocalStack** for S3-compatible object storage.
 
 ## Architecture
 
@@ -8,10 +8,10 @@ One-command deployment of the entire PDF extraction pipeline with all infrastruc
 ┌──────────────────────────────────────────────────────────────────────┐
 │  docker compose                                                      │
 │                                                                      │
-│  ┌─────────────┐  ┌───────────────┐  ┌───────────────┐              │
-│  │ PostgreSQL   │  │ Elasticsearch │  │ MinIO (S3)    │              │
-│  │ :5432        │  │ :9200         │  │ :9000 / :9001 │              │
-│  └──────┬───────┘  └──────┬────────┘  └──────┬────────┘              │
+│  ┌─────────────┐  ┌───────────────┐  ┌───────────────────────┐      │
+│  │ PostgreSQL   │  │ Elasticsearch │  │ LocalStack (S3)       │      │
+│  │ :5432        │  │ :9200         │  │ :4566                 │      │
+│  └──────┬───────┘  └──────┬────────┘  └──────┬────────────────┘      │
 │         │                 │                   │                       │
 │  ┌──────┴─────────────────┴───┐               │                      │
 │  │  Temporal Server  :7233    │               │                      │
@@ -65,19 +65,42 @@ docker compose exec pdf-worker \
 |---|---|---|
 | Temporal UI | http://localhost:8080 | Workflow monitoring |
 | Temporal gRPC | localhost:7233 | SDK connections |
-| MinIO Console | http://localhost:9001 | S3 bucket browser |
-| MinIO API | http://localhost:9000 | S3-compatible API |
+| LocalStack S3 | http://localhost:4566 | S3-compatible API |
 | PostgreSQL | localhost:5432 | Temporal persistence |
 | Elasticsearch | http://localhost:9200 | Temporal visibility |
+
+## Interacting with LocalStack S3
+
+```bash
+# List buckets
+aws --endpoint-url http://localhost:4566 s3 ls
+
+# List objects in the processing bucket
+aws --endpoint-url http://localhost:4566 s3 ls s3://document-processing/ --recursive
+
+# Download extracted text
+aws --endpoint-url http://localhost:4566 \
+    s3 cp s3://document-processing/my_report/extracted_text.json -
+
+# Download an extracted image
+aws --endpoint-url http://localhost:4566 \
+    s3 cp s3://document-processing/my_report/extracted_images/page_1_img_0.png ./
+```
+
+You can also use the `awslocal` wrapper if you have `localstack` CLI installed:
+```bash
+pip install awscli-local
+awslocal s3 ls s3://document-processing/ --recursive
+```
 
 ## Default Credentials
 
 | Service | User | Password |
 |---|---|---|
-| MinIO | `minioadmin` | `minio_secret_change_me` |
+| LocalStack S3 | `test` | `test` |
 | PostgreSQL | `temporal` | `temporal_secret_change_me` |
 
-> Change these in `.env` before any non-local deployment.
+> LocalStack accepts any credentials in the free tier. Change the PostgreSQL password in `.env` before non-local deployment.
 
 ## Common Operations
 
@@ -105,22 +128,38 @@ All settings live in `.env`. Key variables:
 
 | Variable | Default | Description |
 |---|---|---|
-| `TEMPORAL_HOST` | `temporal:7233` | Internal Temporal address |
-| `S3_ENDPOINT_URL` | `http://minio:9000` | Internal MinIO address |
+| `TEMPORAL_HOST` | `temporal-server:7233` | Internal Temporal address |
+| `S3_ENDPOINT_URL` | `http://localstack:4566` | Internal LocalStack address |
 | `S3_BUCKET_NAME` | `document-processing` | Auto-created on startup |
-| `S3_ACCESS_KEY_ID` | `minioadmin` | MinIO access key |
-| `S3_SECRET_ACCESS_KEY` | `minio_secret_change_me` | MinIO secret key |
+| `S3_ACCESS_KEY_ID` | `test` | LocalStack accepts any value |
+| `S3_SECRET_ACCESS_KEY` | `test` | LocalStack accepts any value |
+| `LOCALSTACK_VERSION` | `4.1` | LocalStack image version |
+| `LOCALSTACK_PERSISTENCE` | `1` | Persist S3 data across restarts |
 | `PDF_SOURCE_DIR` | `./sample_pdfs` | Host dir mounted into workers |
 | `MAX_CONCURRENT_ACTIVITIES` | `5` | Per-worker concurrency |
+
+## Switching to Real AWS S3
+
+To point the workers at a real AWS S3 bucket instead of LocalStack, update `.env`:
+
+```env
+S3_ENDPOINT_URL=              # leave blank – boto3 uses the default AWS endpoint
+S3_BUCKET_NAME=your-production-bucket
+S3_ACCESS_KEY_ID=AKIA...
+S3_SECRET_ACCESS_KEY=...
+S3_REGION=us-east-1
+```
+
+No code changes required — the S3 gateway reads everything from environment variables.
 
 ## Directory Layout
 
 ```
 docker-compose/
-├── docker-compose.yml    ← this file
-├── .env                  ← all environment configuration
-├── sample_pdfs/          ← drop PDFs here
+├── docker-compose.yml        ← orchestration
+├── .env                      ← all environment configuration
+├── sample_pdfs/              ← drop PDFs here
 │
-├── ../pdf_extraction_worker/   ← Python worker source + Dockerfile
+├── ../pdf_extraction_worker/       ← Python worker source + Dockerfile
 └── ../pdf_extraction_java_client/  ← Java client source + Dockerfile
 ```
