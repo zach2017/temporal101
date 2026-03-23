@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     max_concurrent_activities: int = 5
     activity_heartbeat_timeout_seconds: int = 120
     activity_start_to_close_timeout_seconds: int = 600
+    activity_max_retries: int = 2  # total attempts (1 initial + 1 retry)
 
     # ── Derived helpers ───────────────────────────────────────
     def text_bucket_key(self, document_name: str) -> str:

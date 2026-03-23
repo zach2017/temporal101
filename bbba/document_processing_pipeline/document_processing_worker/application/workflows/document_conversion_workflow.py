@@ -2,8 +2,7 @@
 Temporal Workflow – Document Conversion Pipeline.
 
 Runs on the ``document-conversion-queue``.  Converts office docs,
-plain text, RTF, HTML, ebooks, email, etc. into extracted text and
-stores the result in S3.
+plain text, RTF, HTML, ebooks, email, etc. into extracted text.
 """
 
 from __future__ import annotations
@@ -14,6 +13,7 @@ from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
     from infrastructure.config import settings
+    from infrastructure.retry_policy import build_retry_policy
 
 
 @workflow.defn(name="DocumentConversionWorkflow")
@@ -40,8 +40,8 @@ class DocumentConversionWorkflow:
 
         timeout = timedelta(seconds=settings.activity_start_to_close_timeout_seconds)
         heartbeat = timedelta(seconds=settings.activity_heartbeat_timeout_seconds)
+        retry = build_retry_policy(settings.activity_max_retries)
 
-        # ── Step 1: Convert document to text ──────────────────
         conversion: dict = await workflow.execute_activity(
             "convert_document_to_text",
             args=[{
@@ -53,9 +53,9 @@ class DocumentConversionWorkflow:
             }],
             start_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat,
+            retry_policy=retry,
         )
 
-        # ── Step 2: Store extracted text to S3 ────────────────
         text_s3_key: str = await workflow.execute_activity(
             "store_extracted_text_to_s3",
             args=[{
@@ -65,6 +65,7 @@ class DocumentConversionWorkflow:
             }],
             start_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat,
+            retry_policy=retry,
         )
 
         return {

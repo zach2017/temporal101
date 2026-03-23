@@ -1,11 +1,8 @@
 """
 Temporal Workflow – PDF Extraction Pipeline.
 
-Orchestrates:
-  1. Extract text  → store in S3
-  2. Extract images → store each in S3
-  3. Fan-out ImageOcrWorkflow (on image-ocr-queue) for each extracted image
-  4. Return aggregated result
+All activity calls use the shared retry policy
+(default: 2 max attempts, configurable via ACTIVITY_MAX_RETRIES).
 """
 
 from __future__ import annotations
@@ -16,6 +13,7 @@ from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
     from infrastructure.config import settings
+    from infrastructure.retry_policy import build_retry_policy
 
 
 @workflow.defn(name="PdfExtractionWorkflow")
@@ -37,32 +35,32 @@ class PdfExtractionWorkflow:
         }
         timeout = timedelta(seconds=settings.activity_start_to_close_timeout_seconds)
         heartbeat = timedelta(seconds=settings.activity_heartbeat_timeout_seconds)
+        retry = build_retry_policy(settings.activity_max_retries)
 
-        # ── Step 1: Extract text ──────────────────────────────
         extracted_text: dict = await workflow.execute_activity(
             "extract_text_from_pdf",
             args=[doc_payload],
             start_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat,
+            retry_policy=retry,
         )
 
-        # ── Step 2: Store extracted text in S3 ────────────────
         text_s3_key: str = await workflow.execute_activity(
             "store_extracted_text_to_s3",
             args=[extracted_text],
             start_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat,
+            retry_policy=retry,
         )
 
-        # ── Step 3: Extract images ────────────────────────────
         image_metadata_list: list[dict] = await workflow.execute_activity(
             "extract_images_from_pdf",
             args=[doc_payload],
             start_to_close_timeout=timeout,
             heartbeat_timeout=heartbeat,
+            retry_policy=retry,
         )
 
-        # ── Step 4: Upload each image to S3 ───────────────────
         image_s3_keys: list[str] = []
         for img_meta in image_metadata_list:
             s3_key: str = await workflow.execute_activity(
@@ -74,10 +72,10 @@ class PdfExtractionWorkflow:
                 }],
                 start_to_close_timeout=timeout,
                 heartbeat_timeout=heartbeat,
+                retry_policy=retry,
             )
             image_s3_keys.append(s3_key)
 
-        # ── Step 5: Build OCR requests ────────────────────────
         ocr_payloads: list[dict] = []
         if image_s3_keys:
             ocr_payloads = await workflow.execute_activity(
@@ -93,9 +91,9 @@ class PdfExtractionWorkflow:
                 }],
                 start_to_close_timeout=timeout,
                 heartbeat_timeout=heartbeat,
+                retry_policy=retry,
             )
 
-        # ── Step 6: Fan-out to shared ImageOcrWorkflow ────────
         ocr_results: list[dict] = []
         for ocr_payload in ocr_payloads:
             result = await workflow.execute_child_workflow(
